@@ -2,7 +2,7 @@
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
   "created_by_lane": "lane5",
   "alert_set_id": "stage0-rev2-alerts",
-  "title": "ZenArt Stage 0 Rev2 Go/No-Go Alerts",
+  "title": "Zenari Stage 0 Rev2 Go/No-Go Alerts",
   "status": "definition_ready_runtime_evidence_open",
   "routing": {
     "default_channel": "stage0-ops",

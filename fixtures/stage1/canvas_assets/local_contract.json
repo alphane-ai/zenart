@@ -1,0 +1,48 @@
+{
+  "schema_version": "stage1.canvas_assets.contract.v1",
+  "kind": "backend_canvas_assets_tenant_contract",
+  "blueprint_source": "Docs/Stage1_20260621_blueprint.md",
+  "blueprint_items": ["BE-6", "BE-8", "BE-9", "AS-1", "AS-2", "AS-3"],
+  "backend_packages": ["backend/internal/canvas", "backend/internal/assets"],
+  "openapi_source": "openapi/zenart.v1.yaml",
+  "canvas_object_contract": {
+    "required_types": ["image", "video", "text", "shape", "frame", "group", "vector", "generated_layer"],
+    "required_fields": ["tenant_id", "workspace_id", "object_type", "body", "transform", "z_index", "locked", "hidden", "asset_ref", "lineage_ref"],
+    "tenant_projection": "UserProjection",
+    "tenant_sql": "TenantScopedListNodesSQL",
+    "secret_like_metadata_rejected": true
+  },
+  "visual_asset_contract": {
+    "required_types": ["image", "video", "audio", "font", "svg", "pdf", "pptx", "psd_manifest", "generated_image", "thumbnail"],
+    "required_fields": ["tenant_id", "object_metadata_id", "storage_ref", "thumbnail_ref", "lineage", "raw_payload_persisted"],
+    "tenant_projection": "UserProjection",
+    "tenant_sql": "TenantScopedListAssetsSQL",
+    "storage_object_key_policy": "object_key_must_not_be_url_query_fragment_or_secret",
+    "raw_provider_payload_persisted": false
+  },
+  "tenant_isolation": {
+    "migration_constraints": [
+      "fk_canvas_nodes_tenant_workspace",
+      "fk_canvas_edges_tenant_from_node",
+      "fk_assets_tenant_object",
+      "fk_object_metadata_tenant_project",
+      "idx_canvas_nodes_tenant_id_unique",
+      "idx_assets_tenant_id_unique"
+    ],
+    "user_projection_checks_tenant": true,
+    "list_queries_require_tenant_predicate": true
+  },
+  "runtime_wiring": {
+    "result_sink": "backend/internal/task/PostgresBatchResultSink",
+    "required_persistence": ["object_metadata", "assets", "canvas_nodes"],
+    "required_metadata": ["storage_ref", "thumbnail_ref", "lineage", "trace_projection"],
+    "raw_provider_payload_saved": false
+  },
+  "non_launch_status": {
+    "local_contract": "pass",
+    "staging_runtime_evidence": "open",
+    "production_security_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_security_gate": false
+  }
+}

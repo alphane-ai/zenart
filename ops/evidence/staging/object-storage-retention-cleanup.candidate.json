@@ -1,0 +1,494 @@
+{
+  "admin_dev_roles": "admin_operator",
+  "admin_tenant_id": "tenant_local",
+  "admin_user_id": "local_admin_zenari.ai",
+  "audit_linkage": {
+    "audit_endpoint_covers_cleanup_refs": {
+      "expired_export_cleanup": [
+        "audit_f6e1252a2046bcbe22d5f552",
+        "audit_fd7eed6e0058a24a0e86f7b9"
+      ],
+      "orphan_cleanup": [
+        "audit_06a3cc50ea91896f05301ecf",
+        "audit_fbe16ac43aacfa44f806a650"
+      ]
+    },
+    "audit_endpoint_missing_cleanup_refs": {
+      "expired_export_cleanup": [],
+      "orphan_cleanup": []
+    },
+    "audit_endpoint_refs": [
+      "audit_06a3cc50ea91896f05301ecf",
+      "audit_f6e1252a2046bcbe22d5f552",
+      "audit_fbe16ac43aacfa44f806a650",
+      "audit_fd7eed6e0058a24a0e86f7b9"
+    ],
+    "audit_endpoint_request_id_cleanup_refs_by_probe": {
+      "expired_export_cleanup": [
+        "audit_f6e1252a2046bcbe22d5f552",
+        "audit_fd7eed6e0058a24a0e86f7b9"
+      ],
+      "orphan_cleanup": [
+        "audit_06a3cc50ea91896f05301ecf",
+        "audit_fbe16ac43aacfa44f806a650"
+      ]
+    },
+    "audit_endpoint_request_id_missing_cleanup_refs": [],
+    "audit_endpoint_request_id_missing_cleanup_refs_by_probe": {
+      "expired_export_cleanup": [],
+      "orphan_cleanup": []
+    },
+    "audit_endpoint_semantic_cleanup_refs": [
+      "audit_06a3cc50ea91896f05301ecf",
+      "audit_f6e1252a2046bcbe22d5f552",
+      "audit_fbe16ac43aacfa44f806a650",
+      "audit_fd7eed6e0058a24a0e86f7b9"
+    ],
+    "audit_endpoint_semantic_cleanup_refs_by_probe": {
+      "expired_export_cleanup": [
+        "audit_f6e1252a2046bcbe22d5f552",
+        "audit_fd7eed6e0058a24a0e86f7b9"
+      ],
+      "orphan_cleanup": [
+        "audit_06a3cc50ea91896f05301ecf",
+        "audit_fbe16ac43aacfa44f806a650"
+      ]
+    },
+    "audit_endpoint_semantic_missing_cleanup_refs": [],
+    "cleanup_audit_refs": [
+      "audit_06a3cc50ea91896f05301ecf",
+      "audit_f6e1252a2046bcbe22d5f552",
+      "audit_fbe16ac43aacfa44f806a650",
+      "audit_fd7eed6e0058a24a0e86f7b9"
+    ],
+    "cleanup_audit_refs_by_probe": {
+      "expired_export_cleanup": [
+        "audit_f6e1252a2046bcbe22d5f552",
+        "audit_fd7eed6e0058a24a0e86f7b9"
+      ],
+      "orphan_cleanup": [
+        "audit_06a3cc50ea91896f05301ecf",
+        "audit_fbe16ac43aacfa44f806a650"
+      ]
+    },
+    "missing_cleanup_audit_refs": [],
+    "request_id_verified": true,
+    "semantic_verified": true,
+    "verified": true
+  },
+  "base_url": "https://staging.zenari.ai",
+  "blocked_checks": [
+    "release_sha_missing"
+  ],
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "coverage": [
+    {
+      "admin_identity_bound": true,
+      "area": "retention_policy",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "evidence_refs": [
+        "ops/evidence/staging/object-storage-retention-cleanup.candidate.ndjson",
+        "ops/evidence/staging/object-storage-retention-cleanup.candidate.json"
+      ],
+      "expected_tokens": [
+        "retention policy",
+        "versioning",
+        "retention_until",
+        "tenant"
+      ],
+      "release_sha_bound": false,
+      "request_ids": [
+        "stage0-object-retention-cleanup-retention_policy"
+      ],
+      "response_bytes": 670,
+      "runtime_probe": "Staging object storage retention cleanup probe verifies retention policy with release-SHA-bound admin runtime evidence and audit context.",
+      "source_results": [
+        {
+          "body_path": "ops/evidence/staging/object-storage-retention-cleanup.retention_policy.body",
+          "check_id": "retention_policy",
+          "expected_tokens": [
+            "retention policy",
+            "versioning",
+            "retention_until",
+            "tenant"
+          ],
+          "headers_path": "ops/evidence/staging/object-storage-retention-cleanup.retention_policy.headers",
+          "http_status": 200,
+          "matched_tokens": [
+            "retention policy",
+            "versioning",
+            "retention_until",
+            "tenant"
+          ],
+          "method": "GET",
+          "missing_tokens": [],
+          "reason": "ok",
+          "request_id": "stage0-object-retention-cleanup-retention_policy",
+          "request_id_echoed": true,
+          "request_id_header": "X-Request-ID",
+          "response_bytes": 670,
+          "response_request_id_values": [
+            "stage0-object-retention-cleanup-retention_policy"
+          ],
+          "status": "passed",
+          "url": "https://staging.zenari.ai/api/admin/v1/object-storage/retention-policy"
+        }
+      ],
+      "status": "pass"
+    },
+    {
+      "admin_identity_bound": true,
+      "area": "expired_export_cleanup",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "evidence_refs": [
+        "ops/evidence/staging/object-storage-retention-cleanup.candidate.ndjson",
+        "ops/evidence/staging/object-storage-retention-cleanup.candidate.json"
+      ],
+      "expected_tokens": [
+        "expired export cleanup",
+        "deleted",
+        "retained",
+        "audit"
+      ],
+      "release_sha_bound": false,
+      "request_ids": [
+        "stage0-object-retention-cleanup-expired_export_cleanup"
+      ],
+      "response_bytes": 640,
+      "runtime_probe": "Staging object storage retention cleanup probe verifies expired export cleanup with release-SHA-bound admin runtime evidence and audit context.",
+      "source_results": [
+        {
+          "body_path": "ops/evidence/staging/object-storage-retention-cleanup.expired_export_cleanup.body",
+          "check_id": "expired_export_cleanup",
+          "expected_tokens": [
+            "expired export cleanup",
+            "deleted",
+            "retained",
+            "audit"
+          ],
+          "headers_path": "ops/evidence/staging/object-storage-retention-cleanup.expired_export_cleanup.headers",
+          "http_status": 202,
+          "matched_tokens": [
+            "expired export cleanup",
+            "deleted",
+            "retained",
+            "audit"
+          ],
+          "method": "POST",
+          "missing_tokens": [],
+          "reason": "ok",
+          "request_id": "stage0-object-retention-cleanup-expired_export_cleanup",
+          "request_id_echoed": true,
+          "request_id_header": "X-Request-ID",
+          "response_bytes": 640,
+          "response_request_id_values": [
+            "stage0-object-retention-cleanup-expired_export_cleanup"
+          ],
+          "status": "passed",
+          "url": "https://staging.zenari.ai/api/admin/v1/object-storage/cleanup/expired-exports"
+        }
+      ],
+      "status": "pass"
+    },
+    {
+      "admin_identity_bound": true,
+      "area": "orphan_cleanup",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "evidence_refs": [
+        "ops/evidence/staging/object-storage-retention-cleanup.candidate.ndjson",
+        "ops/evidence/staging/object-storage-retention-cleanup.candidate.json"
+      ],
+      "expected_tokens": [
+        "orphan cleanup",
+        "deleted",
+        "retained",
+        "audit"
+      ],
+      "release_sha_bound": false,
+      "request_ids": [
+        "stage0-object-retention-cleanup-orphan_cleanup"
+      ],
+      "response_bytes": 632,
+      "runtime_probe": "Staging object storage retention cleanup probe verifies orphan cleanup with release-SHA-bound admin runtime evidence and audit context.",
+      "source_results": [
+        {
+          "body_path": "ops/evidence/staging/object-storage-retention-cleanup.orphan_cleanup.body",
+          "check_id": "orphan_cleanup",
+          "expected_tokens": [
+            "orphan cleanup",
+            "deleted",
+            "retained",
+            "audit"
+          ],
+          "headers_path": "ops/evidence/staging/object-storage-retention-cleanup.orphan_cleanup.headers",
+          "http_status": 202,
+          "matched_tokens": [
+            "orphan cleanup",
+            "deleted",
+            "retained",
+            "audit"
+          ],
+          "method": "POST",
+          "missing_tokens": [],
+          "reason": "ok",
+          "request_id": "stage0-object-retention-cleanup-orphan_cleanup",
+          "request_id_echoed": true,
+          "request_id_header": "X-Request-ID",
+          "response_bytes": 632,
+          "response_request_id_values": [
+            "stage0-object-retention-cleanup-orphan_cleanup"
+          ],
+          "status": "passed",
+          "url": "https://staging.zenari.ai/api/admin/v1/object-storage/cleanup/orphans"
+        }
+      ],
+      "status": "pass"
+    },
+    {
+      "admin_identity_bound": true,
+      "area": "audit_refs",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "evidence_refs": [
+        "ops/evidence/staging/object-storage-retention-cleanup.candidate.ndjson",
+        "ops/evidence/staging/object-storage-retention-cleanup.candidate.json"
+      ],
+      "expected_tokens": [
+        "audit",
+        "object_storage_cleanup",
+        "admin",
+        "tenant"
+      ],
+      "release_sha_bound": false,
+      "request_ids": [
+        "stage0-object-retention-cleanup-audit_refs"
+      ],
+      "response_bytes": 3478,
+      "runtime_probe": "Staging object storage retention cleanup probe verifies audit refs with release-SHA-bound admin runtime evidence and audit context.",
+      "source_results": [
+        {
+          "body_path": "ops/evidence/staging/object-storage-retention-cleanup.audit_refs.body",
+          "check_id": "audit_refs",
+          "expected_tokens": [
+            "audit",
+            "object_storage_cleanup",
+            "admin",
+            "tenant"
+          ],
+          "headers_path": "ops/evidence/staging/object-storage-retention-cleanup.audit_refs.headers",
+          "http_status": 200,
+          "matched_tokens": [
+            "audit",
+            "object_storage_cleanup",
+            "admin",
+            "tenant"
+          ],
+          "method": "GET",
+          "missing_tokens": [],
+          "reason": "ok",
+          "request_id": "stage0-object-retention-cleanup-audit_refs",
+          "request_id_echoed": true,
+          "request_id_header": "X-Request-ID",
+          "response_bytes": 3478,
+          "response_request_id_values": [
+            "stage0-object-retention-cleanup-audit_refs"
+          ],
+          "status": "passed",
+          "url": "https://staging.zenari.ai/api/admin/v1/audit?subject=object_storage_cleanup&limit=20"
+        }
+      ],
+      "status": "pass"
+    }
+  ],
+  "csrf": {
+    "header_name": "X-Zenari-CSRF",
+    "origin": "https://staging.zenari.ai",
+    "ready": true
+  },
+  "do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
+  "environment": "staging",
+  "evidence_id": "object-storage-retention-cleanup",
+  "gate_impact": {
+    "can_clear_release_gate_check": false,
+    "can_clear_retention_cleanup_checklist_item": false,
+    "check_level_item": "Private Beta/Staging object retention/cleanup runtime evidence \u901a\u8fc7\uff1astaging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`\u3002",
+    "preserved_do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
+    "preserved_release_gate_check_id": "staging_object_storage_signed_downloads",
+    "remaining_release_gate_blockers_after_pass": [
+      "staging_object_storage_signed_downloads"
+    ],
+    "requires_release_gate_fixture_update_after_pass": false
+  },
+  "input_readiness": {
+    "admin_tenant_id_ready": true,
+    "admin_user_id_ready": true,
+    "allow_local_devport_evidence": false,
+    "auth_ready": true,
+    "canonical_pass_path": false,
+    "canonical_write_requested": true,
+    "csrf_ready": true,
+    "preflight_stage1": false,
+    "probe_urls_ready": true,
+    "production_like_staging_targets": true,
+    "release_sha_matches_signed_url": false,
+    "release_sha_provided": false,
+    "signed_url_evidence_ready": true,
+    "use_dev_identity_headers": false
+  },
+  "kind": "object_storage_retention_cleanup",
+  "local_devport_debug": false,
+  "probe_contract": {
+    "allow_local_devport_evidence_env": "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 writes debug-only evidence under ops/evidence/staging/local-devport/ and cannot clear staging gates",
+    "blocked_report": "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
+    "blocked_results": "ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson",
+    "blocked_without_runtime_inputs": true,
+    "canonical_outputs_are_atomic": true,
+    "canonical_pass_report": "ops/evidence/staging/object-storage-retention-cleanup.json",
+    "canonical_pass_results": "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+    "contract_id": "object_storage_retention_cleanup_runtime_probe",
+    "do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
+    "environment": "staging",
+    "failed_strict_candidate_writes_blocked_evidence_only": true,
+    "local_blocked_command": "DRY_RUN=1 scripts/staging_object_storage_retention_cleanup_smoke.sh || test \"$?\" = 2",
+    "local_devport_debug_command": "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 BASE_URL=http://127.0.0.1:31080 USE_DEV_IDENTITY_HEADERS=1 SMOKE_ADMIN_USER_ID=<admin-user> SMOKE_ADMIN_TENANT_ID=<tenant> CSRF_ORIGIN=http://localhost:26081 scripts/staging_object_storage_retention_cleanup_smoke.sh",
+    "local_devport_report": "ops/evidence/staging/local-devport/object-storage-retention-cleanup.local-devport.json",
+    "local_devport_results": "ops/evidence/staging/local-devport/object-storage-retention-cleanup.local-devport.ndjson",
+    "non_canonical_reports_are_validation_only": true,
+    "pass_evidence_written_only_after_strict_validator_accepts": true,
+    "preflight_can_clear_stage1_staging_runtime_gate": false,
+    "preflight_command": "OBJECT_RETENTION_MODE=preflight_stage1 scripts/staging_object_storage_retention_cleanup_smoke.sh || test \"$?\" = 2",
+    "preflight_does_not_run_cleanup": true,
+    "preflight_report": "ops/evidence/staging/object-storage-retention-cleanup.preflight.json",
+    "preflight_results": "ops/evidence/staging/object-storage-retention-cleanup.preflight.ndjson",
+    "probe_routes": {
+      "audit_refs": {
+        "default_path": "/api/admin/v1/audit?subject=object_storage_cleanup&limit=20",
+        "env_var": "AUDIT_REFS_URL",
+        "method": "GET"
+      },
+      "expired_export_cleanup": {
+        "body": {
+          "dry_run": true,
+          "limit": 25,
+          "rationale": "stage0 retention cleanup smoke expired_export_cleanup"
+        },
+        "default_path": "/api/admin/v1/object-storage/cleanup/expired-exports",
+        "env_var": "EXPIRED_EXPORT_CLEANUP_URL",
+        "method": "POST"
+      },
+      "orphan_cleanup": {
+        "body": {
+          "dry_run": true,
+          "limit": 25,
+          "rationale": "stage0 retention cleanup smoke orphan_cleanup"
+        },
+        "default_path": "/api/admin/v1/object-storage/cleanup/orphans",
+        "env_var": "ORPHAN_CLEANUP_URL",
+        "method": "POST"
+      },
+      "retention_policy": {
+        "default_path": "/api/admin/v1/object-storage/retention-policy",
+        "env_var": "RETENTION_POLICY_URL",
+        "method": "GET"
+      }
+    },
+    "production_like_local_fixture_command": "STAGING_API_URL=https://zenari-staging.example.test:<port> BASE_URL_RESOLVE_ADDR=127.0.0.1 BASE_URL_CA_CERT=<self-signed-ca.pem> RELEASE_SHA=<signed-url-release-sha> ADMIN_BEARER_TOKEN=<token> SMOKE_ADMIN_USER_ID=<admin-user> SMOKE_ADMIN_TENANT_ID=<tenant> CSRF_ORIGIN=https://zenari-staging.example.test:<port> CSRF_HEADER_VALUE=<csrf> scripts/staging_object_storage_retention_cleanup_smoke.sh",
+    "release_gate_check_id": "staging_object_storage_signed_downloads",
+    "request_id_header": "X-Request-ID",
+    "required_checks": [
+      "audit_refs",
+      "expired_export_cleanup",
+      "orphan_cleanup",
+      "retention_policy"
+    ],
+    "required_env": [
+      "STAGING_API_URL or STAGING_BASE_URL or explicit RETENTION_POLICY_URL/EXPIRED_EXPORT_CLEANUP_URL/ORPHAN_CLEANUP_URL/AUDIT_REFS_URL",
+      "optional BASE_URL_RESOLVE_ADDR/STAGING_API_URL_RESOLVE_ADDR/STAGING_BASE_URL_RESOLVE_ADDR and BASE_URL_CA_CERT/STAGING_API_URL_CA_CERT/STAGING_BASE_URL_CA_CERT for production-like local HTTPS fixtures",
+      "RELEASE_SHA matching signed URL evidence",
+      "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE",
+      "SMOKE_ADMIN_USER_ID",
+      "SMOKE_ADMIN_TENANT_ID",
+      "CSRF_ORIGIN or STAGING_ADMIN_URL/ADMIN_URL/STAGING_WEB_URL/WEB_URL",
+      "CSRF_HEADER_VALUE"
+    ],
+    "schema_version": "stage0.rev2.staging.probe_contract",
+    "staging_pass_command": "WRITE_CANONICAL_STAGE1_OBJECT_RETENTION_EVIDENCE=1 STAGING_API_URL=https://<real-staging-admin-or-api> RELEASE_SHA=<signed-url-release-sha> ADMIN_BEARER_TOKEN=<token> SMOKE_ADMIN_USER_ID=<admin-user> SMOKE_ADMIN_TENANT_ID=<tenant> CSRF_ORIGIN=<allowed-origin> CSRF_HEADER_VALUE=<csrf> scripts/staging_object_storage_retention_cleanup_smoke.sh",
+    "success_criteria": [
+      "retention_policy, expired_export_cleanup, orphan_cleanup, and audit_refs all return 200 or 202",
+      "each response body is non-empty and matches the expected retention/cleanup/audit tokens",
+      "each response echoes the per-probe request ID in the configured request-id header",
+      "expired-export and orphan cleanup responses include cleanup audit refs",
+      "the audit endpoint contains those cleanup audit refs with admin, tenant, cleanup semantics, and the exact cleanup probe request IDs",
+      "the generated pass candidate is accepted by scripts/validate_stage1_staging_object_retention_evidence.py before canonical files are replaced",
+      "the canonical pass report and NDJSON paths under ops/evidence/staging/ are used"
+    ]
+  },
+  "release_gate_check_id": "staging_object_storage_signed_downloads",
+  "release_sha": "",
+  "required_checks": [
+    "audit_refs",
+    "expired_export_cleanup",
+    "orphan_cleanup",
+    "retention_policy"
+  ],
+  "results_path": "ops/evidence/staging/object-storage-retention-cleanup.candidate.ndjson",
+  "runtime_input_requirements": {
+    "blocked_input_reason": "RELEASE_SHA must match signed URL split evidence release_sha",
+    "canonical_pass_report": "ops/evidence/staging/object-storage-retention-cleanup.json",
+    "canonical_pass_results": "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+    "pass_file_policy": "canonical pass paths require passing evidence to be written to ops/evidence/staging/object-storage-retention-cleanup.json and ops/evidence/staging/object-storage-retention-cleanup.ndjson; non-canonical paths are validation-only.",
+    "required_auth": "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE with admin_operator access",
+    "required_base_url": "STAGING_API_URL, STAGING_BASE_URL, or explicit probe URL env vars",
+    "required_csrf_header": "X-Zenari-CSRF header with CSRF_HEADER_VALUE for state-changing object cleanup POST probes",
+    "required_csrf_origin": "CSRF_ORIGIN, STAGING_ADMIN_URL, ADMIN_URL, STAGING_WEB_URL, or WEB_URL matching an allowed staging origin for POST cleanup probes",
+    "required_probe_routes": {
+      "audit_refs": {
+        "default_path": "/api/admin/v1/audit?subject=object_storage_cleanup&limit=20",
+        "env_var": "AUDIT_REFS_URL",
+        "method": "GET"
+      },
+      "expired_export_cleanup": {
+        "body": {
+          "dry_run": true,
+          "limit": 25,
+          "rationale": "stage0 retention cleanup smoke expired_export_cleanup"
+        },
+        "default_path": "/api/admin/v1/object-storage/cleanup/expired-exports",
+        "env_var": "EXPIRED_EXPORT_CLEANUP_URL",
+        "method": "POST"
+      },
+      "orphan_cleanup": {
+        "body": {
+          "dry_run": true,
+          "limit": 25,
+          "rationale": "stage0 retention cleanup smoke orphan_cleanup"
+        },
+        "default_path": "/api/admin/v1/object-storage/cleanup/orphans",
+        "env_var": "ORPHAN_CLEANUP_URL",
+        "method": "POST"
+      },
+      "retention_policy": {
+        "default_path": "/api/admin/v1/object-storage/retention-policy",
+        "env_var": "RETENTION_POLICY_URL",
+        "method": "GET"
+      }
+    },
+    "required_release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+    "required_request_id_echo": "each probe must send X-Request-ID and receive the same value in response headers",
+    "required_smoke_admin_tenant_id": "SMOKE_ADMIN_TENANT_ID bound to the staging tenant whose objects and audit refs are probed",
+    "required_smoke_admin_user_id": "SMOKE_ADMIN_USER_ID bound to the admin operator executing the cleanup probes"
+  },
+  "schema_version": "stage0.rev2.staging.object_storage_retention_cleanup",
+  "split_evidence": {
+    "canonical_pass_paths": false,
+    "release_sha_matches_signed_url": false,
+    "retention_cleanup_ready": false,
+    "retention_cleanup_runtime_ready": true,
+    "signed_url_evidence": "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json",
+    "signed_url_ready": true,
+    "signed_url_reason": "signed_url_runtime_evidence_ready",
+    "signed_url_release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a"
+  },
+  "status": "blocked",
+  "use_dev_identity_headers": false,
+  "validated_by_role": "admin_operator"
+}

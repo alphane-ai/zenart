@@ -18,6 +18,9 @@ import (
 	"github.com/alphane-ai/zenart/backend/internal/store"
 )
 
+const stage0StripeSecretFixture = "sk_test_" + "abcdefghijklmnopqrstuvwxyz123456"
+const stage0ProviderSecretFixture = "sk-ant-" + "abcdefghijklmnopqrstuvwxyz123456"
+
 func TestCreateSupportTicketPersistsTenantUserAndLinks(t *testing.T) {
 	db := &fakeDB{}
 	repo := NewRepository(db)
@@ -25,12 +28,14 @@ func TestCreateSupportTicketPersistsTenantUserAndLinks(t *testing.T) {
 	ticket, err := repo.CreateSupportTicket(context.Background(), "tenant_1", "user_1", SupportTicketCreate{
 		ProjectID:      "project_1",
 		TaskID:         "task_1",
+		BatchID:        "batch_1",
 		TraceID:        "trace_1",
 		AssetID:        "asset_1",
 		Category:       "export_failure",
 		Body:           "The export failed.",
 		LinkedExportID: "export_1",
 		QuotaBucketID:  "quota_1",
+		BillingRefID:   "billing:stripe:in_1",
 		Metadata:       map[string]any{"trace_id": "trace_1", "api_key": "secret"},
 	})
 	if err != nil {
@@ -48,6 +53,9 @@ func TestCreateSupportTicketPersistsTenantUserAndLinks(t *testing.T) {
 	if ticket.TaskID == nil || *ticket.TaskID != "task_1" {
 		t.Fatalf("ticket TaskID = %v", ticket.TaskID)
 	}
+	if ticket.BatchID == nil || *ticket.BatchID != "batch_1" {
+		t.Fatalf("ticket BatchID = %v", ticket.BatchID)
+	}
 	if ticket.TraceID == nil || *ticket.TraceID != "trace_1" {
 		t.Fatalf("ticket TraceID = %v", ticket.TraceID)
 	}
@@ -57,13 +65,16 @@ func TestCreateSupportTicketPersistsTenantUserAndLinks(t *testing.T) {
 	if ticket.QuotaBucketID == nil || *ticket.QuotaBucketID != "quota_1" {
 		t.Fatalf("ticket QuotaBucketID = %v", ticket.QuotaBucketID)
 	}
+	if ticket.BillingRefID == nil || *ticket.BillingRefID != "billing:stripe:in_1" {
+		t.Fatalf("ticket BillingRefID = %v", ticket.BillingRefID)
+	}
 	if ticket.Metadata["api_key"] != "[REDACTED]" {
 		t.Fatalf("ticket api_key metadata = %v, want redacted", ticket.Metadata["api_key"])
 	}
 	if len(db.execs) != 2 || !strings.Contains(db.execs[0].sql, "INSERT INTO support_tickets") {
 		t.Fatalf("support ticket insert not recorded: %#v", db.execs)
 	}
-	for _, column := range []string{"task_id", "trace_id", "asset_id", "linked_export_id", "quota_bucket_id"} {
+	for _, column := range []string{"task_id", "batch_id", "trace_id", "asset_id", "linked_export_id", "quota_bucket_id", "billing_reference_id"} {
 		if !strings.Contains(db.execs[0].sql, column) {
 			t.Fatalf("support ticket insert missing evidence column %s: %s", column, db.execs[0].sql)
 		}
@@ -80,6 +91,7 @@ func TestCreateSupportTicketRequiresRev2EvidenceLinks(t *testing.T) {
 	_, err := repo.CreateSupportTicket(context.Background(), "tenant_1", "user_1", SupportTicketCreate{
 		ProjectID:      "project_1",
 		TaskID:         "task_1",
+		BatchID:        "batch_1",
 		TraceID:        "trace_1",
 		AssetID:        "asset_1",
 		Category:       "export_failure",
@@ -103,6 +115,7 @@ func TestListSupportTicketsReturnsEvidenceLinks(t *testing.T) {
 			"user_1",
 			"project_1",
 			"task_1",
+			"batch_1",
 			"trace_1",
 			"asset_1",
 			"export_failure",
@@ -110,6 +123,7 @@ func TestListSupportTicketsReturnsEvidenceLinks(t *testing.T) {
 			"The export failed.",
 			"export_1",
 			"quota_1",
+			"billing:stripe:in_1",
 			[]byte(`{"source":"report_problem"}`),
 			now,
 			now,
@@ -130,6 +144,9 @@ func TestListSupportTicketsReturnsEvidenceLinks(t *testing.T) {
 	if ticket.TaskID == nil || *ticket.TaskID != "task_1" {
 		t.Fatalf("TaskID = %v, want task_1", ticket.TaskID)
 	}
+	if ticket.BatchID == nil || *ticket.BatchID != "batch_1" {
+		t.Fatalf("BatchID = %v, want batch_1", ticket.BatchID)
+	}
 	if ticket.TraceID == nil || *ticket.TraceID != "trace_1" {
 		t.Fatalf("TraceID = %v, want trace_1", ticket.TraceID)
 	}
@@ -142,6 +159,9 @@ func TestListSupportTicketsReturnsEvidenceLinks(t *testing.T) {
 	if ticket.QuotaBucketID == nil || *ticket.QuotaBucketID != "quota_1" {
 		t.Fatalf("QuotaBucketID = %v, want quota_1", ticket.QuotaBucketID)
 	}
+	if ticket.BillingRefID == nil || *ticket.BillingRefID != "billing:stripe:in_1" {
+		t.Fatalf("BillingRefID = %v, want billing:stripe:in_1", ticket.BillingRefID)
+	}
 }
 
 func TestListSupportTicketsRedactsStoredSecrets(t *testing.T) {
@@ -153,6 +173,7 @@ func TestListSupportTicketsRedactsStoredSecrets(t *testing.T) {
 			"user_1",
 			"project_1",
 			"task_1",
+			"batch_1",
 			"trace_1",
 			"asset_1",
 			"export_failure",
@@ -160,6 +181,7 @@ func TestListSupportTicketsRedactsStoredSecrets(t *testing.T) {
 			"provider failed with Bearer abcdefghijklmnop",
 			"export_1",
 			"quota_1",
+			"billing:stripe:in_1",
 			[]byte(`{"download_url":"https://storage.local/export.zip?X-Amz-Signature=abcdef","api_key":"secret"}`),
 			now,
 			now,
@@ -182,6 +204,293 @@ func TestListSupportTicketsRedactsStoredSecrets(t *testing.T) {
 	}
 	if !strings.Contains(string(body), security.Redacted) {
 		t.Fatalf("support ticket = %s, want redaction marker", string(body))
+	}
+}
+
+func TestCreatePackagePersistsItemsAndRedactsManifest(t *testing.T) {
+	db := &fakeDB{queryRows: []rowSet{{rows: [][]any{{"ecommerce_growth_pack"}}}}}
+	repo := NewRepository(db)
+
+	pkg, err := repo.CreatePackage(context.Background(), "tenant_1", "user_1", "project_1", PackageCreate{
+		Manifest: map[string]any{"download_url": "https://storage.local/export.zip?X-Amz-Signature=abcdef"},
+		Items: []PackageItemCreate{{
+			"sourceId": "candidate_1",
+			"title":    "Hero option",
+			"type":     "candidate",
+			"provenance": map[string]any{
+				"api_key": "secret-value",
+			},
+		}},
+	})
+	if err != nil {
+		t.Fatalf("CreatePackage() error = %v", err)
+	}
+	if pkg.TenantID != "tenant_1" || pkg.ProjectID != "project_1" || pkg.Status != "draft" {
+		t.Fatalf("package = %#v, want principal tenant project draft", pkg)
+	}
+	if len(pkg.Items) != 1 || pkg.Items[0].Type != "candidate" || pkg.Items[0].Provenance["source_id"] != "candidate_1" {
+		t.Fatalf("items = %#v, want candidate source item", pkg.Items)
+	}
+	body, err := json.Marshal(pkg)
+	if err != nil {
+		t.Fatalf("marshal package: %v", err)
+	}
+	for _, leaked := range []string{"X-Amz-Signature=abcdef", "secret-value"} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("package = %s, leaked %s", string(body), leaked)
+		}
+	}
+	if !strings.Contains(string(body), security.Redacted) {
+		t.Fatalf("package = %s, want redaction marker", string(body))
+	}
+	if len(db.queryRowsUsed) != 1 || !strings.Contains(db.queryRowsUsed[0].sql, "FROM projects") {
+		t.Fatalf("project tenant query not recorded: %#v", db.queryRowsUsed)
+	}
+	if len(db.execs) != 2 {
+		t.Fatalf("exec count = %d, want package and item inserts", len(db.execs))
+	}
+	if !strings.Contains(db.execs[0].sql, "INSERT INTO packages") || db.execs[0].args[1] != "tenant_1" || db.execs[0].args[3] != "user_1" {
+		t.Fatalf("package insert = %#v, want principal tenant/user", db.execs[0])
+	}
+	if !strings.Contains(db.execs[1].sql, "INSERT INTO package_items") || db.execs[1].args[1] != "tenant_1" || db.execs[1].args[5] != "candidate" {
+		t.Fatalf("package item insert = %#v, want tenant candidate item", db.execs[1])
+	}
+}
+
+func TestListPackagesReturnsItemsAndSafeProjection(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeDB{queryRows: []rowSet{
+		{rows: [][]any{{
+			"package_1",
+			"tenant_1",
+			"project_1",
+			"draft",
+			[]byte(`{"download_url":"https://storage.local/export.zip?X-Amz-Signature=abcdef","qa_report":{"status":"pass"},"provenance":{"api_key":"secret-value"}}`),
+			now,
+			now,
+		}}},
+		{rows: [][]any{{
+			"package_item_1",
+			"asset_1",
+			nil,
+			"asset",
+			0,
+			[]byte(`{"source":"local","secret":"secret-value"}`),
+			now,
+		}}},
+	}}
+	repo := NewRepository(db)
+
+	page, err := repo.ListPackages(context.Background(), "tenant_1", "project_1", "draft", 25)
+	if err != nil {
+		t.Fatalf("ListPackages() error = %v", err)
+	}
+	if len(page.Items) != 1 {
+		t.Fatalf("package count = %d, want 1", len(page.Items))
+	}
+	pkg := page.Items[0]
+	if len(pkg.Items) != 1 || pkg.Items[0].AssetID == nil || *pkg.Items[0].AssetID != "asset_1" {
+		t.Fatalf("package items = %#v, want asset item", pkg.Items)
+	}
+	body, err := json.Marshal(pkg)
+	if err != nil {
+		t.Fatalf("marshal package: %v", err)
+	}
+	for _, leaked := range []string{"X-Amz-Signature=abcdef", "secret-value"} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("package = %s, leaked %s", string(body), leaked)
+		}
+	}
+	if !strings.Contains(string(body), security.Redacted) {
+		t.Fatalf("package = %s, want redaction marker", string(body))
+	}
+	if len(db.queryRowsUsed) != 2 {
+		t.Fatalf("query count = %d, want package and item queries", len(db.queryRowsUsed))
+	}
+	if db.queryRowsUsed[0].args[0] != "tenant_1" || db.queryRowsUsed[0].args[1] != "project_1" || db.queryRowsUsed[0].args[2] != 25 || db.queryRowsUsed[0].args[3] != "draft" {
+		t.Fatalf("package query args = %#v, want tenant, project, limit, status", db.queryRowsUsed[0].args)
+	}
+}
+
+func TestListSkillsUsesTenantOrGlobalScope(t *testing.T) {
+	now := time.Now().UTC()
+	tenantID := "tenant_1"
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"skill_1",
+			&tenantID,
+			"Tenant Skill",
+			"design",
+			"platform",
+			"medium",
+			"active",
+			"1.0.0",
+			now,
+			now,
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	page, err := repo.ListSkills(context.Background(), "tenant_1", "active", 25)
+	if err != nil {
+		t.Fatalf("ListSkills() error = %v", err)
+	}
+	if len(page.Items) != 1 || page.Items[0].ID != "skill_1" || page.Items[0].ActiveVersion != "1.0.0" {
+		t.Fatalf("skills = %#v, want tenant skill with active version", page.Items)
+	}
+	query := db.queryRowsUsed[0]
+	if !strings.Contains(query.sql, "(s.tenant_id IS NULL OR s.tenant_id = $1)") || !strings.Contains(query.sql, "skill_release_channels") {
+		t.Fatalf("skill query missing tenant/global or active channel joins: %s", query.sql)
+	}
+	if query.args[0] != "tenant_1" || query.args[1] != 25 || query.args[2] != "active" {
+		t.Fatalf("query args = %#v, want tenant, limit, status", query.args)
+	}
+}
+
+func TestListSkillVersionsBuildsReleaseGateFromLatestEval(t *testing.T) {
+	now := time.Now().UTC()
+	evalSuiteID := "eval_suite_1"
+	rollbackID := "skillver_rollback"
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"skillver_1",
+			"skill_1",
+			"1.0.0",
+			"active",
+			&evalSuiteID,
+			"eval_result_1",
+			"pass",
+			true,
+			true,
+			true,
+			0,
+			"Release notes",
+			&rollbackID,
+			now,
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	page, err := repo.ListSkillVersions(context.Background(), "tenant_1", "skill_1", 25)
+	if err != nil {
+		t.Fatalf("ListSkillVersions() error = %v", err)
+	}
+	if len(page.Items) != 1 {
+		t.Fatalf("version count = %d, want 1", len(page.Items))
+	}
+	version := page.Items[0]
+	if !version.ReleaseGate.EligibleForCanary || !version.ReleaseGate.EligibleForActive || !version.ReleaseGate.EvalContractComplete {
+		t.Fatalf("release gate = %#v, want canary/active eligible complete gate", version.ReleaseGate)
+	}
+	if version.ReleaseGate.LastEvalResultID == nil || *version.ReleaseGate.LastEvalResultID != "eval_result_1" {
+		t.Fatalf("last eval result = %#v, want eval_result_1", version.ReleaseGate.LastEvalResultID)
+	}
+	query := db.queryRowsUsed[0]
+	for _, snippet := range []string{"LEFT JOIN LATERAL", "er.tenant_id = $1", "er.subject_type = 'skill_version'", "(s.tenant_id IS NULL OR s.tenant_id = $1)"} {
+		if !strings.Contains(query.sql, snippet) {
+			t.Fatalf("skill version query missing %q: %s", snippet, query.sql)
+		}
+	}
+}
+
+func TestListEvalResultsFiltersLatestAndRedactsSummary(t *testing.T) {
+	now := time.Now().UTC()
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"eval_result_1",
+			"tenant_1",
+			"eval_suite_1",
+			"skill_version",
+			"skillver_1",
+			"1.0.0",
+			"blocked",
+			[]byte(`{"summary":{"total_fixtures":1,"trace_complete":true,"download_url":"https://storage.local/eval.json?X-Amz-Signature=abcdef"},"fixture_results":[{"fixture_id":"fx_1","api_key":"secret"}],"runner_contract":{"runner":"scripts/run_stage0_eval.py","runner_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"storage_contract":{"table":"eval_results"}}`),
+			"scripts/run_stage0_eval.py",
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			now,
+			now,
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	page, err := repo.ListEvalResults(context.Background(), EvalResultFilters{
+		TenantID:       "tenant_1",
+		SuiteID:        "eval_suite_1",
+		Status:         "blocked",
+		SubjectType:    "skill_version",
+		SubjectID:      "skillver_1",
+		SubjectVersion: "1.0.0",
+		LatestOnly:     true,
+		Limit:          25,
+	})
+	if err != nil {
+		t.Fatalf("ListEvalResults() error = %v", err)
+	}
+	if len(page.Items) != 1 {
+		t.Fatalf("eval result count = %d, want 1", len(page.Items))
+	}
+	result := page.Items[0]
+	if result.Subject.CandidateStatusAfterEval != "blocked" || len(result.FixtureResults) != 1 {
+		t.Fatalf("result = %#v, want blocked result with fixture projection", result)
+	}
+	body, err := json.Marshal(result)
+	if err != nil {
+		t.Fatalf("marshal eval result: %v", err)
+	}
+	for _, leaked := range []string{"X-Amz-Signature=abcdef", `"api_key":"secret"`} {
+		if strings.Contains(string(body), leaked) {
+			t.Fatalf("eval result = %s, leaked %s", string(body), leaked)
+		}
+	}
+	if !strings.Contains(string(body), security.Redacted) {
+		t.Fatalf("eval result = %s, want redaction marker", string(body))
+	}
+	query := db.queryRowsUsed[0]
+	for _, snippet := range []string{"tenant_id = $1", "eval_suite_id", "subject_type", "subject_id", "subject_version", "DISTINCT ON"} {
+		if !strings.Contains(query.sql, snippet) {
+			t.Fatalf("eval query missing %q: %s", snippet, query.sql)
+		}
+	}
+	if query.args[0] != "tenant_1" || query.args[1] != 25 {
+		t.Fatalf("query args = %#v, want tenant and limit first", query.args)
+	}
+}
+
+func TestGetEvalResultArtifactReturnsSafeAdminRetrievalMetadata(t *testing.T) {
+	now := time.Date(2026, 6, 22, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{{
+		rows: [][]any{{
+			"eval_result_1",
+			"tenant_1",
+			"eval_suite_1",
+			"skill_version",
+			"skillver_1",
+			"1.0.0",
+			"pass",
+			[]byte(`{"summary":{"total_fixtures":1,"trace_complete":true},"fixture_results":[{"fixture_id":"fx_1"}],"runner_contract":{"runner_sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"storage_contract":{"table":"eval_results"}}`),
+			"scripts/run_stage0_eval.py",
+			"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			now,
+			now,
+		}},
+	}}}
+	repo := NewRepository(db)
+
+	artifact, err := repo.GetEvalResultArtifact(context.Background(), "tenant_1", "eval_result_1", now)
+	if err != nil {
+		t.Fatalf("GetEvalResultArtifact() error = %v", err)
+	}
+	if artifact.ObjectKey != "tenants/tenant_1/eval-results/eval_result_1.json" || artifact.ContentType != "application/json" {
+		t.Fatalf("artifact object = %#v, want tenant-scoped JSON object", artifact)
+	}
+	if artifact.AccessPolicy["direct_object_access_allowed"] != false || artifact.AccessPolicy["audit_access_required"] != true || artifact.AuditRequired != true {
+		t.Fatalf("artifact access policy = %#v audit=%v, want admin audited indirect access", artifact.AccessPolicy, artifact.AuditRequired)
+	}
+	if artifact.DownloadURL == "" || strings.Contains(artifact.DownloadURL, "secret") || strings.Contains(artifact.DownloadURL, "Signature") {
+		t.Fatalf("download URL = %q, want safe admin retrieval URL without signed object secrets", artifact.DownloadURL)
+	}
+	if artifact.ExpiresAt.Sub(now) != 15*time.Minute {
+		t.Fatalf("expires = %v, want 15 minute TTL", artifact.ExpiresAt.Sub(now))
 	}
 }
 
@@ -331,6 +640,197 @@ func TestRunRuntimeSafetyPolicyRequiresAtLeastOneSubject(t *testing.T) {
 	}
 }
 
+func TestListSafetyReviewQueueUsesTenantStatusAndSafeProjection(t *testing.T) {
+	now := time.Date(2026, 6, 22, 10, 0, 0, 0, time.UTC)
+	ruleID := "safety_rule_1"
+	db := &fakeDB{queryRows: []rowSet{{rows: [][]any{{
+		"safety_decision_1",
+		"tenant_1",
+		ruleID,
+		"export",
+		"export_1",
+		SafetyPointExport,
+		"require_admin_review",
+		"active safety rule matched enforcement point",
+		"financial-claim-review:v1",
+		"v1",
+		"medium",
+		"pending",
+		"",
+		"",
+		"",
+		"",
+		now,
+		nil,
+	}}}}}
+	repo := NewRepository(db)
+
+	page, err := repo.ListSafetyReviewQueue(context.Background(), "tenant_1", "pending", 25)
+	if err != nil {
+		t.Fatalf("ListSafetyReviewQueue() error = %v", err)
+	}
+	if len(page.Items) != 1 {
+		t.Fatalf("items = %d, want 1", len(page.Items))
+	}
+	query := db.queryRowsUsed[0]
+	if query.args[0] != "tenant_1" || query.args[1] != 25 || query.args[2] != "pending" {
+		t.Fatalf("query args = %#v, want tenant/status scoped", query.args)
+	}
+	item := page.Items[0]
+	if item.ID != "safety_review_safety_decision_1" || !item.OverrideEligible || !item.AuditRequired {
+		t.Fatalf("review item = %#v, want eligible audited review item", item)
+	}
+	if item.SafeProjection["raw_prompt_persisted"] != false || item.SafeProjection["secret_material_persisted"] != false || item.SafeProjection["admin_only"] != true {
+		t.Fatalf("safe projection = %#v", item.SafeProjection)
+	}
+	if !containsString(item.RequiredEvidence, "safety_decisions/safety_decision_1") || !containsString(item.RequiredEvidence, "safety_rules/safety_rule_1") {
+		t.Fatalf("required evidence = %#v", item.RequiredEvidence)
+	}
+}
+
+func TestRecordSafetyReviewDecisionRedactsMetadataAndChecksTenant(t *testing.T) {
+	now := time.Date(2026, 6, 22, 11, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{
+		{rows: nil},
+		{rows: [][]any{{"safety_decision_1"}}},
+	}}
+	repo := NewRepository(db)
+
+	result, err := repo.RecordSafetyReviewDecision(context.Background(), SafetyReviewDecisionInput{
+		TenantID:         "tenant_1",
+		SafetyDecisionID: "safety_decision_1",
+		ReviewerID:       "admin_reviewer_1",
+		Decision:         "approved",
+		Rationale:        "reviewed masked export warning",
+		AuditRef:         "audit_1",
+		IdempotencyKey:   "review-1",
+		Metadata:         map[string]any{"ticket_id": "sup_1", "api_key": stage0StripeSecretFixture},
+		CreatedAt:        now,
+	})
+	if err != nil {
+		t.Fatalf("RecordSafetyReviewDecision() error = %v", err)
+	}
+	if result.Decision != "approved" || result.UserVisibleOutcome != "safety_review_approved" {
+		t.Fatalf("result = %#v", result)
+	}
+	if len(db.queryRowsUsed) != 2 || db.queryRowsUsed[1].args[0] != "tenant_1" || db.queryRowsUsed[1].args[1] != "safety_decision_1" {
+		t.Fatalf("tenant ownership query = %#v", db.queryRowsUsed)
+	}
+	if len(db.execs) != 1 || !strings.Contains(db.execs[0].sql, "INSERT INTO safety_review_decisions") {
+		t.Fatalf("execs = %#v, want safety review insert", db.execs)
+	}
+	metadata, ok := db.execs[0].args[8].([]byte)
+	if !ok {
+		t.Fatalf("metadata arg = %T, want []byte", db.execs[0].args[8])
+	}
+	if strings.Contains(string(metadata), "sk_test_") || !strings.Contains(string(metadata), security.Redacted) {
+		t.Fatalf("metadata = %s, want redacted secret", string(metadata))
+	}
+}
+
+func TestRecordExportOverrideDecisionRedactsChecksTenantAndIsIdempotent(t *testing.T) {
+	now := time.Date(2026, 6, 22, 12, 0, 0, 0, time.UTC)
+	db := &fakeDB{queryRows: []rowSet{
+		{rows: nil},
+		{rows: [][]any{{
+			"export_1",
+			"tenant_1",
+			"package_1",
+			"project_1",
+			nil,
+			"zip",
+			"failed",
+			"failed",
+			nil,
+			[]byte(`{"trace_id":"trace_1"}`),
+			[]byte(`{"retention_until":"2026-07-01T00:00:00Z"}`),
+			[]byte(`{"message":"failed"}`),
+			now,
+			now,
+			[]byte(`{}`),
+		}}},
+	}}
+	repo := NewRepository(db)
+
+	result, err := repo.RecordExportOverrideDecision(context.Background(), ExportOverrideDecisionInput{
+		TenantID:       "tenant_1",
+		ExportID:       "export_1",
+		SourceType:     "qa_result",
+		SourceID:       "qa_1",
+		TraceID:        "trace_1",
+		RequestedBy:    "admin_reviewer_1",
+		RequestedRole:  "admin_reviewer",
+		ResolvedBy:     "admin_reviewer_1",
+		ResolvedRole:   "admin_reviewer",
+		Outcome:        "approved",
+		Rationale:      "approved after reviewing ticket",
+		AuditLogID:     "audit_1",
+		IdempotencyKey: "override-1",
+		Metadata:       map[string]any{"ticket_id": "sup_1", "api_key": stage0StripeSecretFixture},
+		CreatedAt:      now,
+	})
+	if err != nil {
+		t.Fatalf("RecordExportOverrideDecision() error = %v", err)
+	}
+	if result.Outcome != "approved" || !result.SourceGateResolved || result.FinalExportAllowed {
+		t.Fatalf("result = %#v, want approved source gate without final export opening", result)
+	}
+	if len(db.queryRowsUsed) != 2 || !strings.Contains(db.queryRowsUsed[1].sql, "FROM exports") || db.queryRowsUsed[1].args[0] != "tenant_1" || db.queryRowsUsed[1].args[1] != "export_1" {
+		t.Fatalf("queries = %#v, want idempotency then tenant-scoped export lookup", db.queryRowsUsed)
+	}
+	if len(db.execs) != 1 || !strings.Contains(db.execs[0].sql, "INSERT INTO export_override_decisions") {
+		t.Fatalf("execs = %#v, want export override insert", db.execs)
+	}
+	metadata := string(db.execs[0].args[16].([]byte))
+	if strings.Contains(metadata, "sk_test_") || !strings.Contains(metadata, security.Redacted) {
+		t.Fatalf("metadata = %s, want redacted secret", metadata)
+	}
+
+	existingDB := &fakeDB{queryRows: []rowSet{{rows: [][]any{{
+		"export_override_1",
+		"tenant_1",
+		"export_1",
+		"qa_result",
+		"qa_1",
+		"trace_1",
+		"admin_reviewer",
+		"admin_reviewer",
+		"denied",
+		"missing_approval_audit",
+		false,
+		false,
+		"audit_1",
+		"override-1",
+		[]byte(`{"ticket_id":"sup_1"}`),
+		now,
+	}}}}}
+	existing, err := NewRepository(existingDB).RecordExportOverrideDecision(context.Background(), ExportOverrideDecisionInput{
+		TenantID:       "tenant_1",
+		ExportID:       "export_1",
+		SourceType:     "qa_result",
+		SourceID:       "qa_1",
+		TraceID:        "trace_1",
+		RequestedBy:    "admin_reviewer_1",
+		RequestedRole:  "admin_reviewer",
+		ResolvedBy:     "admin_reviewer_1",
+		ResolvedRole:   "admin_reviewer",
+		Outcome:        "denied",
+		DenialReason:   "missing_approval_audit",
+		Rationale:      "denied until audit is attached",
+		AuditLogID:     "audit_1",
+		IdempotencyKey: "override-1",
+	})
+	if err != nil {
+		t.Fatalf("idempotent RecordExportOverrideDecision() error = %v", err)
+	}
+	if existing.ID != "export_override_1" || existing.Outcome != "denied" || existing.DenialReason == nil || *existing.DenialReason != "missing_approval_audit" {
+		t.Fatalf("existing = %#v, want stored idempotent decision", existing)
+	}
+	if len(existingDB.execs) != 0 || len(existingDB.queryRowsUsed) != 1 {
+		t.Fatalf("idempotent replay should not touch export or insert: queries=%#v execs=%#v", existingDB.queryRowsUsed, existingDB.execs)
+	}
+}
+
 func TestCreateExportRequiresTenantScopedPackage(t *testing.T) {
 	db := &fakeDB{}
 	repo := NewRepository(db)
@@ -464,7 +964,7 @@ func TestCreateUploadRedactsMalwareScannerBoundary(t *testing.T) {
 		result: security.MalwareScanResult{
 			Status:    security.MalwareScanStatusClean,
 			Provider:  "scanner hf_abcdefghijklmnopqrstuvwxyz123456",
-			Signature: "sig sk-ant-abcdefghijklmnopqrstuvwxyz123456",
+			Signature: "sig " + stage0ProviderSecretFixture,
 			Rationale: "looked up with Bearer abcdefghijklmnop",
 			Metadata: map[string]string{
 				"api_key": "secret",
@@ -515,7 +1015,7 @@ func TestCreateUploadRedactsMalwareScannerBoundary(t *testing.T) {
 	}
 	for _, leaked := range []string{
 		"hf_abcdefghijklmnopqrstuvwxyz123456",
-		"sk-ant-abcdefghijklmnopqrstuvwxyz123456",
+		stage0ProviderSecretFixture,
 		"abcdefghijklmnop",
 		"secret",
 		"abcdef",
@@ -532,7 +1032,7 @@ func TestCreateUploadRejectsUnsupportedMalwareStatusWithRedactedError(t *testing
 	db := &fakeDB{}
 	repo := NewRepository(db)
 	signed := false
-	secretStatus := "infected sk-ant-abcdefghijklmnopqrstuvwxyz123456"
+	secretStatus := "infected " + stage0ProviderSecretFixture
 
 	_, err := repo.CreateUpload(context.Background(), UploadOptions{
 		TenantID:            "tenant_1",
@@ -554,7 +1054,7 @@ func TestCreateUploadRejectsUnsupportedMalwareStatusWithRedactedError(t *testing
 	if !errors.Is(err, ErrValidation) {
 		t.Fatalf("CreateUpload() error = %v, want ErrValidation", err)
 	}
-	if strings.Contains(err.Error(), "sk-ant-abcdefghijklmnopqrstuvwxyz123456") || strings.Contains(err.Error(), secretStatus) {
+	if strings.Contains(err.Error(), stage0ProviderSecretFixture) || strings.Contains(err.Error(), secretStatus) {
 		t.Fatalf("CreateUpload() error = %q, leaked scanner-supplied unsupported status secret", err.Error())
 	}
 	if !strings.Contains(err.Error(), security.Redacted) {
@@ -876,7 +1376,7 @@ func TestRecordExportArtifactPersistsObjectMetadataAndDeliveryDescriptors(t *tes
 				"passed",
 				"object_1",
 				[]byte(`{"package_id":"package_1","project_id":"project_1"}`),
-				[]byte(`{"ppt_ready":{"status":"placeholder"},"figma_ready":{"status":"ready","schema":"zenart.figma_layout_spec.v1","layout":{"schema":"zenart.figma_layout_spec.v1"}},"thumbnail":{"status":"ready"}}`),
+				[]byte(`{"ppt_ready":{"status":"placeholder"},"figma_ready":{"status":"ready","schema":"zenari.figma_layout_spec.v1","layout":{"schema":"zenari.figma_layout_spec.v1"}},"thumbnail":{"status":"ready"}}`),
 				nil,
 				now,
 				now,
@@ -917,7 +1417,7 @@ func TestRecordExportArtifactPersistsObjectMetadataAndDeliveryDescriptors(t *tes
 		t.Fatalf("delivery metadata missing PPT/Figma descriptors: %#v", export.Delivery)
 	}
 	figmaReady := export.Delivery["figma_ready"].(map[string]any)
-	if figmaReady["status"] != "ready" || figmaReady["schema"] != "zenart.figma_layout_spec.v1" {
+	if figmaReady["status"] != "ready" || figmaReady["schema"] != "zenari.figma_layout_spec.v1" {
 		t.Fatalf("figma ready descriptor = %#v, want ready v1 layout spec", figmaReady)
 	}
 	if export.Delivery["thumbnail"] == nil {
@@ -1005,7 +1505,7 @@ func TestGetExportRedactsStoredSecretMetadata(t *testing.T) {
 				"failed",
 				"failed",
 				"object_1",
-				[]byte(`{"package_id":"package_1","provider_key":"sk-ant-abcdefghijklmnopqrstuvwxyz123456"}`),
+				[]byte(`{"package_id":"package_1","provider_key":"` + stage0ProviderSecretFixture + `"}`),
 				[]byte(`{"download_url":"https://storage.local/export.zip?X-Amz-Signature=abcdef","ppt_ready":{"status":"ready"}}`),
 				[]byte(`{"message":"provider failed with Bearer abcdefghijklmnop"}`),
 				now,
@@ -1025,7 +1525,7 @@ func TestGetExportRedactsStoredSecretMetadata(t *testing.T) {
 		t.Fatalf("marshal export: %v", err)
 	}
 	for _, leaked := range []string{
-		"sk-ant-abcdefghijklmnopqrstuvwxyz123456",
+		stage0ProviderSecretFixture,
 		"abcdef",
 		"abcdefghijklmnop",
 		"AKIAIOSFODNN7EXAMPLE",
@@ -1054,7 +1554,7 @@ func TestServiceRecordExportArtifactGeneratesAndStoresThumbnail(t *testing.T) {
 				"passed",
 				"object_1",
 				[]byte(`{"package_id":"package_1","project_id":"project_1"}`),
-				[]byte(`{"thumbnail":{"status":"ready"},"figma_ready":{"status":"ready","layout":{"schema":"zenart.figma_layout_spec.v1"}}}`),
+				[]byte(`{"thumbnail":{"status":"ready"},"figma_ready":{"status":"ready","layout":{"schema":"zenari.figma_layout_spec.v1"}}}`),
 				nil,
 				now,
 				now,
@@ -1965,7 +2465,7 @@ func TestServiceCleanupDeletesMarkedObjectsAndMarksRowsDeleted(t *testing.T) {
 			},
 		}},
 	}
-	objects, err := objectstore.NewLocalStore(t.TempDir(), "zenart-test", "secret")
+	objects, err := objectstore.NewLocalStore(t.TempDir(), "zenari-test", "secret")
 	if err != nil {
 		t.Fatalf("NewLocalStore() error = %v", err)
 	}
@@ -2350,7 +2850,7 @@ func TestServiceCleanupRejectsCrossTenantRowsBeforeObjectDelete(t *testing.T) {
 			},
 		}},
 	}
-	objects, err := objectstore.NewLocalStore(t.TempDir(), "zenart-test", "secret")
+	objects, err := objectstore.NewLocalStore(t.TempDir(), "zenari-test", "secret")
 	if err != nil {
 		t.Fatalf("NewLocalStore() error = %v", err)
 	}
@@ -2387,7 +2887,7 @@ func TestServiceCleanupMarksMissingExpiredObjectsDeleted(t *testing.T) {
 			},
 		}},
 	}
-	objects, err := objectstore.NewLocalStore(t.TempDir(), "zenart-test", "secret")
+	objects, err := objectstore.NewLocalStore(t.TempDir(), "zenari-test", "secret")
 	if err != nil {
 		t.Fatalf("NewLocalStore() error = %v", err)
 	}
@@ -3158,7 +3658,7 @@ func TestStartCrawlerRunRequiresApprovalRobotsLegalAndRatePolicy(t *testing.T) {
 
 	run, err := repo.StartCrawlerRun(context.Background(), "tenant_1", "crawler_source_1", CrawlerPolicy{
 		Enabled:          true,
-		UserAgent:        "ZenArtStage0Bot/0.1",
+		UserAgent:        "ZenariStage0Bot/0.1",
 		GlobalRPS:        0.2,
 		SourceRPS:        0.1,
 		RawRetentionDays: 14,
@@ -3185,7 +3685,7 @@ func TestStartCrawlerRunRequiresApprovalRobotsLegalAndRatePolicy(t *testing.T) {
 	if !ok {
 		t.Fatalf("summary arg type = %T, want []byte", db.execs[0].args[4])
 	}
-	for _, fragment := range []string{`"user_agent":"ZenArtStage0Bot/0.1"`, `"global_rps":0.2`, `"source_rps":0.1`, `"raw_retention_days":14`, `"robots_policy"`} {
+	for _, fragment := range []string{`"user_agent":"ZenariStage0Bot/0.1"`, `"global_rps":0.2`, `"source_rps":0.1`, `"raw_retention_days":14`, `"robots_policy"`} {
 		if !strings.Contains(string(summary), fragment) {
 			t.Fatalf("summary = %s, missing %s", string(summary), fragment)
 		}
@@ -3198,7 +3698,7 @@ func TestStartCrawlerRunRejectsCrossTenantSource(t *testing.T) {
 
 	_, err := repo.StartCrawlerRun(context.Background(), "tenant_1", "crawler_source_cross_tenant", CrawlerPolicy{
 		Enabled:          true,
-		UserAgent:        "ZenArtStage0Bot/0.1",
+		UserAgent:        "ZenariStage0Bot/0.1",
 		GlobalRPS:        0.2,
 		SourceRPS:        0.1,
 		RawRetentionDays: 14,
@@ -3222,7 +3722,7 @@ func TestStartCrawlerRunBlocksUnapprovedRobotsDeniedAndPrivateHosts(t *testing.T
 	now := time.Now().UTC()
 	policy := CrawlerPolicy{
 		Enabled:          true,
-		UserAgent:        "ZenArtStage0Bot/0.1",
+		UserAgent:        "ZenariStage0Bot/0.1",
 		GlobalRPS:        0.2,
 		SourceRPS:        0.1,
 		RawRetentionDays: 14,
@@ -3318,7 +3818,7 @@ func TestStartCrawlerRunBlocksDNSRebindingToPrivateIP(t *testing.T) {
 
 	_, err := repo.StartCrawlerRun(context.Background(), "tenant_1", "crawler_source_1", CrawlerPolicy{
 		Enabled:          true,
-		UserAgent:        "ZenArtStage0Bot/0.1",
+		UserAgent:        "ZenariStage0Bot/0.1",
 		GlobalRPS:        0.2,
 		SourceRPS:        0.1,
 		RawRetentionDays: 14,
@@ -3355,7 +3855,7 @@ func TestStartCrawlerRunBlocksWhenRateLimitExceeded(t *testing.T) {
 
 	_, err := repo.StartCrawlerRun(context.Background(), "tenant_1", "crawler_source_1", CrawlerPolicy{
 		Enabled:          true,
-		UserAgent:        "ZenArtStage0Bot/0.1",
+		UserAgent:        "ZenariStage0Bot/0.1",
 		GlobalRPS:        0.2,
 		SourceRPS:        0.1,
 		RawRetentionDays: 14,
@@ -3409,7 +3909,7 @@ func TestImportCrawlerFindingRequiresProvenanceRetentionAndExactTextWarning(t *t
 		},
 	}, CrawlerPolicy{
 		Enabled:          true,
-		UserAgent:        "ZenArtStage0Bot/0.1",
+		UserAgent:        "ZenariStage0Bot/0.1",
 		GlobalRPS:        0.2,
 		SourceRPS:        0.1,
 		RawRetentionDays: 14,
@@ -3488,7 +3988,7 @@ func TestImportCrawlerFindingRejectsOffSourceHost(t *testing.T) {
 		},
 	}, CrawlerPolicy{
 		Enabled:          true,
-		UserAgent:        "ZenArtStage0Bot/0.1",
+		UserAgent:        "ZenariStage0Bot/0.1",
 		GlobalRPS:        0.2,
 		SourceRPS:        0.1,
 		RawRetentionDays: 14,
@@ -3517,7 +4017,7 @@ func TestImportCrawlerFindingRejectsMissingProvenance(t *testing.T) {
 		},
 	}, CrawlerPolicy{
 		Enabled:          true,
-		UserAgent:        "ZenArtStage0Bot/0.1",
+		UserAgent:        "ZenariStage0Bot/0.1",
 		GlobalRPS:        0.2,
 		SourceRPS:        0.1,
 		RawRetentionDays: 14,
@@ -3548,7 +4048,7 @@ func TestImportCrawlerFindingRejectsMismatchedProvenance(t *testing.T) {
 		},
 	}, CrawlerPolicy{
 		Enabled:          true,
-		UserAgent:        "ZenArtStage0Bot/0.1",
+		UserAgent:        "ZenariStage0Bot/0.1",
 		GlobalRPS:        0.2,
 		SourceRPS:        0.1,
 		RawRetentionDays: 14,
@@ -3648,10 +4148,12 @@ func (f *fakeDB) Query(_ context.Context, sql string, args ...any) (store.Rows, 
 
 func (f *fakeDB) QueryRow(_ context.Context, sql string, args ...any) store.Row {
 	f.queryRowsUsed = append(f.queryRowsUsed, queryCall{sql: sql, args: args})
-	if len(f.queryRows) > 0 && len(f.queryRows[0].rows) > 0 {
-		row := f.queryRows[0].rows[0]
+	if len(f.queryRows) > 0 {
+		rows := f.queryRows[0]
 		f.queryRows = f.queryRows[1:]
-		return fakeRow{row: row}
+		if len(rows.rows) > 0 {
+			return fakeRow{row: rows.rows[0]}
+		}
 	}
 	return fakeRow{err: pgx.ErrNoRows}
 }
@@ -3820,4 +4322,13 @@ func assign(dest any, value any) {
 	default:
 		panic("unsupported scan destination")
 	}
+}
+
+func containsString(values []string, want string) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
 }

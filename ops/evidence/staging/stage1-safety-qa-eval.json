@@ -1,0 +1,140 @@
+{
+  "admin_review_audit_present": true,
+  "api_url": "https://staging.zenari.ai",
+  "batch_runtime": {
+    "batch_id": "batch_dff7458131bbc87ab10ca77b",
+    "blocked_child_refunded": true,
+    "safety_review_reason_visible": true
+  },
+  "blocked_checks": [],
+  "blocked_reasons": [],
+  "checks": [
+    {
+      "check_id": "batch_blocked_child_refund",
+      "http_status": 200,
+      "method": "GET",
+      "path": "/api/v1/batch-generations/batch_dff7458131bbc87ab10ca77b/children",
+      "reason": "ok_or_expected_block",
+      "request_id": "stage1-safety-qa-eval-batch_blocked_child_refund",
+      "response_bytes": 2240,
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "batch_safety_review_reason",
+      "http_status": 200,
+      "method": "GET",
+      "path": "/api/v1/batch-generations/batch_dff7458131bbc87ab10ca77b/progress",
+      "reason": "ok_or_expected_block",
+      "request_id": "stage1-safety-qa-eval-batch_safety_review_reason",
+      "response_bytes": 216,
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "edit_tool_policy_projection",
+      "http_status": 201,
+      "method": "POST",
+      "path": "/api/admin/v1/safety/decisions",
+      "reason": "ok_or_expected_block",
+      "request_id": "stage1-safety-qa-eval-edit_tool_policy_projection",
+      "response_bytes": 393,
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "asset_import_policy_projection",
+      "http_status": 201,
+      "method": "POST",
+      "path": "/api/admin/v1/safety/decisions",
+      "reason": "ok_or_expected_block",
+      "request_id": "stage1-safety-qa-eval-asset_import_policy_projection",
+      "response_bytes": 385,
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "export_fail_closed",
+      "http_status": 202,
+      "method": "POST",
+      "path": "/api/v1/packages/package_4b089bfb9836db5a35a32113/exports",
+      "reason": "ok_or_expected_block",
+      "request_id": "stage1-safety-qa-eval-export_fail_closed",
+      "response_bytes": 691,
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "admin_review_override",
+      "http_status": 202,
+      "method": "POST",
+      "path": "/api/admin/v1/exports/export_103dceafabb4e0f4a85e96cd/regenerate",
+      "reason": "ok_or_expected_block",
+      "request_id": "stage1-safety-qa-eval-admin_review_override",
+      "response_bytes": 444,
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "support_ticket_redaction",
+      "http_status": 201,
+      "method": "POST",
+      "path": "/api/v1/support/tickets",
+      "reason": "ok_or_expected_block",
+      "request_id": "stage1-safety-qa-eval-support_ticket_redaction",
+      "response_bytes": 914,
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "evidence_no_secret_material",
+      "http_status": 200,
+      "method": "LOCAL",
+      "path": "redaction-scan",
+      "reason": "local_results_secret_scan",
+      "request_id": "stage1-safety-qa-eval-evidence_no_secret_material",
+      "response_bytes": 0,
+      "secret_leak_detected": false,
+      "status": "passed"
+    }
+  ],
+  "environment": "staging",
+  "gate_impact": {
+    "can_clear_stage1_safety_qa_gate": true,
+    "preserved_release_gate_check_id": null,
+    "remaining_blockers": []
+  },
+  "kind": "safety_qa_eval",
+  "local_devport_debug": false,
+  "open_items": [],
+  "probe_contract": {
+    "allow_local_devport_evidence_env": "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 writes debug-only safety/QA/eval evidence under ops/evidence/staging/local-devport/ and cannot clear staging gates",
+    "canonical_pass_report": "ops/evidence/staging/stage1-safety-qa-eval.json",
+    "canonical_pass_results": "ops/evidence/staging/stage1-safety-qa-eval.ndjson",
+    "local_devport_report": "ops/evidence/staging/local-devport/stage1-safety-qa-eval.local-devport.json",
+    "local_devport_results": "ops/evidence/staging/local-devport/stage1-safety-qa-eval.local-devport.ndjson",
+    "production_like_local_fixture_command": "API_URL=https://zenari-staging.example.test:<port> API_URL_RESOLVE_ADDR=127.0.0.1 API_URL_CA_CERT=<self-signed-ca.pem> WEB_URL=https://zenari-staging.example.test:<web-port> WEB_URL_RESOLVE_ADDR=127.0.0.1 WEB_URL_CA_CERT=<self-signed-ca.pem> ADMIN_URL=https://zenari-staging.example.test:<admin-port> ADMIN_URL_RESOLVE_ADDR=127.0.0.1 ADMIN_URL_CA_CERT=<self-signed-ca.pem> ALLOW_LOCAL_DEVPORT_EVIDENCE=1 USE_DEV_IDENTITY_HEADERS=1 scripts/stage1_safety_qa_eval_smoke.sh"
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_safety_payload_persisted": false,
+  "release_sha": null,
+  "results_path": "ops/evidence/staging/stage1-safety-qa-eval.ndjson",
+  "runtime_input_readiness": {
+    "admin_auth_ready": true,
+    "allow_local_devport_evidence": false,
+    "batch_runtime_ready": true,
+    "canonical_pass_path": true,
+    "csrf_ready": true,
+    "export_runtime_ready": true,
+    "staging_api_url_ready": true,
+    "use_dev_identity_headers": false,
+    "user_auth_ready": true
+  },
+  "schema_version": "stage1.safety_qa_eval.v1",
+  "secret_material_persisted": false,
+  "status": "pass",
+  "support_ticket_raw_body_projected_to_admin_evidence": false,
+  "use_dev_identity_headers": false,
+  "user_download_for_blocked_export": false
+}

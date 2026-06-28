@@ -43,7 +43,7 @@
         "method": "POST",
         "path": "/projects/{project_id}/chat/sessions",
         "credentialMode": "include",
-        "csrfHeaderName": "X-ZenArt-CSRF",
+        "csrfHeaderName": "X-Zenari-CSRF",
         "idempotencyRequired": true
       },
       {
@@ -51,7 +51,7 @@
         "method": "POST",
         "path": "/chat/sessions/{chat_session_id}/messages",
         "credentialMode": "include",
-        "csrfHeaderName": "X-ZenArt-CSRF",
+        "csrfHeaderName": "X-Zenari-CSRF",
         "idempotencyRequired": true
       },
       {
@@ -59,7 +59,7 @@
         "method": "POST",
         "path": "/projects/{project_id}/candidate-sets",
         "credentialMode": "include",
-        "csrfHeaderName": "X-ZenArt-CSRF",
+        "csrfHeaderName": "X-Zenari-CSRF",
         "idempotencyRequired": true
       },
       {
@@ -75,7 +75,7 @@
         "method": "PUT",
         "path": "/projects/{project_id}/selected-direction",
         "credentialMode": "include",
-        "csrfHeaderName": "X-ZenArt-CSRF",
+        "csrfHeaderName": "X-Zenari-CSRF",
         "idempotencyRequired": true
       },
       {
@@ -83,7 +83,7 @@
         "method": "POST",
         "path": "/projects/{project_id}/packages",
         "credentialMode": "include",
-        "csrfHeaderName": "X-ZenArt-CSRF",
+        "csrfHeaderName": "X-Zenari-CSRF",
         "idempotencyRequired": true
       },
       {
@@ -91,7 +91,7 @@
         "method": "POST",
         "path": "/packages/{package_id}/exports",
         "credentialMode": "include",
-        "csrfHeaderName": "X-ZenArt-CSRF",
+        "csrfHeaderName": "X-Zenari-CSRF",
         "idempotencyRequired": true
       },
       {

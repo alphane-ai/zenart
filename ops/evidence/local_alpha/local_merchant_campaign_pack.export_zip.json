@@ -9,7 +9,7 @@
     "25.20"
   ],
   "created_by_lane": "lane1",
-  "created_at": "2026-06-03T17:11:44.647Z",
+  "created_at": "2026-06-22T11:58:28.429Z",
   "environment": "local_alpha",
   "workflow_id": "local_merchant_campaign_pack",
   "fixture_id": "fx_local_merchant_campaign_golden",
@@ -30,16 +30,16 @@
   "status": "pass",
   "runner": "web/tests/local-alpha-ecommerce-evidence.spec.ts",
   "command": "npm run smoke:local-alpha-workflow-evidence",
-  "file_name": "zenart-001.zip",
-  "byte_size": 14007,
-  "sha256": "4ae63e414606236a123f0400c89a80fdccaa18f62008c3501103ce32a7cd3bda",
+  "file_name": "zenari-001.zip",
+  "byte_size": 19667,
+  "sha256": "9f53fe49428105a3934c772c2d5054320b96ae8ba101b374f57b8c99ffc30848",
   "payloads": [
     "ai-content-disclaimer.json",
-    "assets/README.txt",
-    "assets/delivery_cover.png",
-    "assets/store_print_poster.pdf",
-    "assets/wechat_moment.png",
-    "assets/xiaohongshu_post.png",
+    "assets/local-rendered-asset-manifest.json",
+    "assets/rendered/delivery_cover-png.svg",
+    "assets/rendered/store_print_poster-pdf.svg",
+    "assets/rendered/wechat_moment-png.svg",
+    "assets/rendered/xiaohongshu_post-png.svg",
     "manifest.json",
     "metadata.json",
     "ppt-ready-metadata.json",
@@ -56,11 +56,11 @@
     "provenance.json",
     "ai-content-disclaimer.json",
     "ppt-ready-metadata.json",
-    "assets/README.txt",
-    "assets/wechat_moment.png",
-    "assets/xiaohongshu_post.png",
-    "assets/store_print_poster.pdf",
-    "assets/delivery_cover.png",
+    "assets/local-rendered-asset-manifest.json",
+    "assets/rendered/wechat_moment-png.svg",
+    "assets/rendered/xiaohongshu_post-png.svg",
+    "assets/rendered/store_print_poster-pdf.svg",
+    "assets/rendered/delivery_cover-png.svg",
     "metadata.json",
     "qa_report.json",
     "trace_provenance.json"
@@ -128,6 +128,6 @@
   "trace_provenance": {
     "workflow_id": "local_merchant_campaign_pack",
     "workflow_fixture_id": "fx_local_merchant_campaign_golden",
-    "generated_by": "zenart-web-dev-client"
+    "generated_by": "zenari-web-dev-client"
   }
 }

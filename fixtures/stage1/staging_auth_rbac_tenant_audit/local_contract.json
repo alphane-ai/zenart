@@ -1,0 +1,69 @@
+{
+  "schema_version": "stage1.staging_auth_rbac_tenant_audit.contract.v1",
+  "fixture_id": "stage1_staging_auth_rbac_tenant_audit_exact_contract",
+  "kind": "staging_auth_rbac_tenant_audit_exact_evidence_contract",
+  "canonical_evidence_path": "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+  "strict_schema_version": "stage0.rev2",
+  "release_gate_status": "contract_ready_exact_staging_auth_rbac_tenant_audit_evidence",
+  "required_environment": "staging",
+  "required_release_gate_check_id": "staging_auth_rbac_tenant_audit",
+  "required_do_not_launch_condition_id": "tenant_isolation_not_enforced",
+  "required_coverage_areas": [
+    "admin_session_boundary",
+    "tenant_isolation_denial",
+    "admin_rbac_runtime",
+    "immutable_audit_linkage"
+  ],
+  "required_runtime_request_ids": [
+    "staging-auth-rbac-tenant-audit-20260527T1515Z-admin-cookie-boundary",
+    "staging-auth-rbac-tenant-audit-20260527T1515Z-cross-tenant-denial",
+    "staging-auth-rbac-tenant-audit-20260527T1515Z-rbac-overrides",
+    "staging-auth-rbac-tenant-audit-20260527T1515Z-audit-immutability"
+  ],
+  "required_admin_rbac_evidence_ids": [
+    "rbac-release-001",
+    "rbac-crawler-001",
+    "rbac-prompt-001",
+    "rbac-provider-001",
+    "rbac-provider-002",
+    "rbac-quota-001",
+    "rbac-safety-001",
+    "rbac-export-001"
+  ],
+  "required_audit_refs": [
+    "au-001",
+    "au-004",
+    "au-005",
+    "au-006",
+    "au-007",
+    "au-008",
+    "au-012",
+    "au-015"
+  ],
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false
+  },
+  "strict_evidence_policy": {
+    "external_user_admin_api_denial_required": true,
+    "independent_admin_session_required": true,
+    "cross_tenant_denial_required": true,
+    "governed_admin_rbac_runtime_required": true,
+    "expired_override_denial_required": true,
+    "immutable_audit_linkage_required": true,
+    "all_admin_rbac_evidence_rows_consumed": true,
+    "private_beta_gate_check_pass_required": true,
+    "tenant_isolation_dnl_cleared_required": true,
+    "allow_blocked_status": false,
+    "allow_local_devport_debug": false,
+    "allow_local_devport_evidence": false,
+    "allow_dry_run": false,
+    "allow_raw_or_secret_payloads": false
+  }
+}

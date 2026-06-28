@@ -1,0 +1,22 @@
+{
+  "blocked": false,
+  "code": "unauthorized",
+  "details": {
+    "taxonomy": {
+      "blocked": false,
+      "category": "auth",
+      "retryable": false,
+      "user_actionable": true
+    }
+  },
+  "field_errors": [],
+  "message": "authentication is required",
+  "request_id": "stage1-safety-qa-local-devport-current-20260622T205511Z-edit_tool_policy_projection",
+  "retryable": false,
+  "taxonomy": {
+    "blocked": false,
+    "category": "auth",
+    "retryable": false,
+    "user_actionable": true
+  }
+}

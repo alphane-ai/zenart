@@ -1,0 +1,22 @@
+{
+  "blocked": false,
+  "code": "unauthorized",
+  "details": {
+    "taxonomy": {
+      "blocked": false,
+      "category": "auth",
+      "retryable": false,
+      "user_actionable": true
+    }
+  },
+  "field_errors": [],
+  "message": "authentication is required",
+  "request_id": "stage0-object-retention-cleanup-audit_refs",
+  "retryable": false,
+  "taxonomy": {
+    "blocked": false,
+    "category": "auth",
+    "retryable": false,
+    "user_actionable": true
+  }
+}

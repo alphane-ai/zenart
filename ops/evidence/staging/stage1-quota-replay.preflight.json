@@ -1,0 +1,68 @@
+{
+  "blocked_checks": [
+    "staging_database_endpoint_ready"
+  ],
+  "can_clear_quota_replay_slot": false,
+  "can_clear_stage1_staging_runtime_gate": false,
+  "canonical_pass_path": false,
+  "canonical_pass_report": "ops/evidence/staging/stage1-quota-replay.json",
+  "canonical_pass_results": "ops/evidence/staging/stage1-quota-replay.ndjson",
+  "database_url_persisted": false,
+  "environment": "staging",
+  "generated_at": "2026-06-27T13:18:35+00:00",
+  "input_readiness": {
+    "batch_id_provided": true,
+    "staging_api_url_ready": true,
+    "staging_database_endpoint_ready": false,
+    "tenant_id_provided": true
+  },
+  "input_refs": {
+    "batch_id_hash": "5ba5953d3eca3d24",
+    "tenant_id_hash": "82195ea7d0d317f5"
+  },
+  "kind": "stage1_staging_quota_replay_preflight",
+  "next_command_contract": {
+    "command": "python3 scripts/generate_stage1_staging_quota_replay_evidence.py",
+    "requires_env": [
+      "STAGING_DATABASE_URL",
+      "STAGING_API_URL or STAGING_QUOTA_REPLAY_API_URL",
+      "STAGING_QUOTA_REPLAY_TENANT_ID",
+      "STAGING_QUOTA_REPLAY_BATCH_ID"
+    ],
+    "requires_non_local_https_staging_api": true,
+    "requires_real_deployed_postgres": true
+  },
+  "preflight_report": "ops/evidence/staging/stage1-quota-replay.preflight.json",
+  "release_gate_check_id": "staging_quota_replay",
+  "safe_projection_policy": {
+    "authorization_header_persisted": false,
+    "cookie_persisted": false,
+    "database_url_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "secret_material_persisted": false,
+    "signed_url_persisted": false
+  },
+  "schema_version": "stage1.staging_quota_replay.preflight.v1",
+  "status": "blocked",
+  "target_summaries": {
+    "staging_api_url": {
+      "host": "staging.zenari.ai",
+      "issues": [],
+      "port_present": false,
+      "ready": true,
+      "scheme": "https"
+    },
+    "staging_database_endpoint": {
+      "host": "127.0.0.1",
+      "issues": [
+        "reserved_or_local_host"
+      ],
+      "port_present": true,
+      "ready": false,
+      "scheme": "postgres"
+    }
+  }
+}

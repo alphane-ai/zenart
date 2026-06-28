@@ -1,0 +1,32 @@
+{
+  "allow_local_devport_evidence": false,
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "ops/evidence/non_clearing/templates/production-source-probes/production-security-launch-source.template.json status is not pass/passed"
+  ],
+  "canonical_pass_path": false,
+  "check_level_only": false,
+  "cookie_persisted": false,
+  "dry_run": false,
+  "environment": "production",
+  "gate_impact": {
+    "can_clear_security_launch_check": false,
+    "preserved_release_gate_check_id": "production_security_launch_checks",
+    "remaining_blockers": [
+      "ops/evidence/non_clearing/templates/production-source-probes/production-security-launch-source.template.json status is not pass/passed"
+    ]
+  },
+  "generated_at": "2026-06-28T17:48:17+00:00",
+  "kind": "production_security_launch_checks",
+  "local_devport_debug": false,
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_security_launch_checks",
+  "release_sha": "0123456789abcdef0123456789abcdef01234567",
+  "schema_version": "stage1.production_security_launch.blocked.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "blocked"
+}

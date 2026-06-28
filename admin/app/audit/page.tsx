@@ -36,6 +36,7 @@ import type {
   AuditEvent,
   ProductionActivationReviewAuditCoverage,
   ProductionSecurityLaunchCheckCoverage,
+  AuditSearchExportManifest,
   StagingAuthRbacTenantAuditCoverage
 } from "@/lib/types";
 
@@ -90,8 +91,88 @@ export default async function AuditPage() {
       name: "Release and canary changes",
       filter: "action:started skill canary OR surface:skill_release",
       evidence: "Must preserve eval, canary, release, smoke, and rollback evidence."
+    },
+    {
+      name: "Provider and routing changes",
+      filter: "target:provider OR action:routing OR evidence:ph-*",
+      evidence: "Must preserve provider health, routing strategy, cost, and secret-reference evidence without raw provider payloads."
     }
   ];
+  const auditSearchFacets = [
+    ["Actor", "local-dev-admin"],
+    ["Target", "ex-887"],
+    ["Risk", "all/high/critical"],
+    ["Second Review Status", "required/completed/blocked"],
+    ["Evidence Ref", "rx-41, tr-1004, sup-2201"]
+  ];
+  const filteredAuditEvents = events.filter((event) => {
+    const searchable = [
+      event.actor,
+      event.action,
+      event.target,
+      event.risk,
+      event.secondReviewStatus,
+      event.rationale,
+      ...event.evidenceRefs
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return (
+      event.risk === "high" ||
+      event.risk === "critical" ||
+      event.secondReviewStatus === "required" ||
+      event.secondReviewStatus === "blocked" ||
+      searchable.includes("export") ||
+      searchable.includes("quota") ||
+      searchable.includes("provider") ||
+      searchable.includes("canary")
+    );
+  });
+  const highRiskCount = filteredAuditEvents.filter((event) => event.risk === "high" || event.risk === "critical").length;
+  const secondReviewOpenCount = filteredAuditEvents.filter(
+    (event) => event.secondReviewStatus === "required" || event.secondReviewStatus === "blocked"
+  ).length;
+  const immutableCount = filteredAuditEvents.filter((event) => event.immutable).length;
+  const auditFieldAllowlist = [
+    "id",
+    "createdAt",
+    "actor",
+    "action",
+    "target",
+    "risk",
+    "rationale",
+    "immutable",
+    "secondReviewStatus",
+    "evidenceRefs"
+  ];
+  const auditDeniedFields = [
+    "raw_payload",
+    "provider_payload",
+    "hidden_prompt",
+    "secret",
+    "api_key",
+    "authorization",
+    "cookie",
+    "signed_url",
+    "stripe_payload",
+    "webhook_signature"
+  ];
+  const auditExportManifest: AuditSearchExportManifest = {
+    schema: "stage1.audit-search-export-local-contract.v1",
+    route: "/audit",
+    exportedAt: "2026-06-23T00:00:00+08:00",
+    resultCount: filteredAuditEvents.length,
+    highRiskCount,
+    secondReviewOpenCount,
+    immutableCount,
+    fieldAllowlist: auditFieldAllowlist,
+    deniedFields: auditDeniedFields,
+    filterPresets: filterPresets.map((preset) => preset.name),
+    canClearStagingGate: false,
+    canClearProductionGate: false,
+    canCloseDoNotLaunch: false
+  };
   const rbacRuntimeStats = [
     {
       label: "Denied Mutations",
@@ -121,11 +202,11 @@ export default async function AuditPage() {
         title="Audit Log Search"
         description="Searchable audit record surface for review, override, support, quota, abuse, safety, and release operations."
       />
-      <section className="panel">
+      <section className="panel" data-audit-search-contract="stage1.audit-search-export-local-contract">
         <div className="panel-header">
           <div>
             <h3>Search</h3>
-            <p>Filters are static until the backend API lands, but the route and data contract are in place.</p>
+            <p>Filters use the public-safe audit projection and preserve immutable evidence refs while excluding raw payload, secret, signed URL, and provider internals.</p>
           </div>
         </div>
         <div className="panel-body">
@@ -148,6 +229,26 @@ export default async function AuditPage() {
             </div>
           </div>
         </div>
+        <div className="panel-header">
+          <div>
+            <h3>Search Facets</h3>
+            <p>Facet values document the safe search contract that future backend audit queries must preserve.</p>
+          </div>
+        </div>
+        <div className="panel-body filter-presets">
+          {auditSearchFacets.map(([label, value]) => (
+            <article className="record-card" key={label}>
+              <header>
+                <div>
+                  <h4>{label}</h4>
+                  <p className="mono">{value}</p>
+                </div>
+                <StatusBadge value="info" label="facet" />
+              </header>
+              <p>Search facet is projected from audit fields only and never reads raw provider, Stripe, cookie, or signed URL payloads.</p>
+            </article>
+          ))}
+        </div>
         <div className="panel-body filter-presets">
           {filterPresets.map((preset) => (
             <article className="record-card" key={preset.name}>
@@ -162,8 +263,81 @@ export default async function AuditPage() {
             </article>
           ))}
         </div>
+        <StatGrid
+          stats={[
+            {
+              label: "Filtered Results",
+              value: auditExportManifest.resultCount,
+              detail: "Audit rows matching high-risk, review, provider, release, quota, or export filters."
+            },
+            {
+              label: "High Risk",
+              value: auditExportManifest.highRiskCount,
+              detail: "High or critical audit events in the current safe projection."
+            },
+            {
+              label: "Open Second Review",
+              value: auditExportManifest.secondReviewOpenCount,
+              detail: "Required or blocked second-review events that cannot be treated as launch clearance."
+            },
+            {
+              label: "Immutable Rows",
+              value: auditExportManifest.immutableCount,
+              detail: "Filtered events with immutable=true in the admin projection."
+            }
+          ]}
+        />
+        <div className="panel-body filter-presets">
+          <article
+            className="record-card"
+            data-audit-export-manifest={auditExportManifest.schema}
+            data-audit-filter-result-count={auditExportManifest.resultCount}
+            data-audit-filter-high-risk-count={auditExportManifest.highRiskCount}
+            data-audit-filter-second-review-open-count={auditExportManifest.secondReviewOpenCount}
+            data-audit-filter-immutable-count={auditExportManifest.immutableCount}
+          >
+            <header>
+              <div>
+                <h4>Audit Export Manifest</h4>
+                <p className="mono">{auditExportManifest.schema}</p>
+              </div>
+              <StatusBadge value="info" label="local contract" />
+            </header>
+            <p className="mono">
+              route={auditExportManifest.route}; exported_at={auditExportManifest.exportedAt}; staging_gate={String(auditExportManifest.canClearStagingGate)};
+              production_gate={String(auditExportManifest.canClearProductionGate)}; dnl={String(auditExportManifest.canCloseDoNotLaunch)}
+            </p>
+          </article>
+          <article className="record-card" data-audit-export-field-allowlist={auditFieldAllowlist.join(",")}>
+            <header>
+              <div>
+                <h4>Allowed Export Fields</h4>
+                <p className="mono">{auditFieldAllowlist.join(", ")}</p>
+              </div>
+              <StatusBadge value="approved" label="allowlist" />
+            </header>
+            <p>Only public-safe audit identity, action, rationale, second-review, immutability, and evidence refs are exportable.</p>
+          </article>
+          <article className="record-card" data-audit-export-denied-fields={auditDeniedFields.join(",")}>
+            <header>
+              <div>
+                <h4>Denied Raw Fields</h4>
+                <p className="mono">{auditDeniedFields.join(", ")}</p>
+              </div>
+              <StatusBadge value="blocked" label="blocked" />
+            </header>
+            <p>Denied fields are never projected to the admin export contract, support context, release readiness, or launch evidence.</p>
+          </article>
+        </div>
+        <div className="panel-header">
+          <div>
+            <h3>Filtered Audit Results</h3>
+            <p>Rows below are the exportable safe projection for investigation and review handoff; they are not launch evidence.</p>
+          </div>
+          <StatusBadge value="info" label={`${filteredAuditEvents.length} rows`} />
+        </div>
         <DataTable<AuditEvent>
-          rows={events}
+          rows={filteredAuditEvents}
           columns={[
             { key: "created", header: "Created", render: (row) => row.createdAt },
             { key: "actor", header: "Actor", render: (row) => row.actor },

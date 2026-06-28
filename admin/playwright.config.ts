@@ -1,0 +1,40 @@
+import { defineConfig, devices } from "@playwright/test";
+
+delete process.env.NO_COLOR;
+
+const port = Number(process.env.ADMIN_PLAYWRIGHT_PORT ?? 26181);
+const baseURL = process.env.ADMIN_PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
+const managedWebServer = process.env.ADMIN_PLAYWRIGHT_BASE_URL
+  ? undefined
+  : {
+      command: `npm run dev -- --hostname 127.0.0.1 --port ${port}`,
+      url: baseURL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000
+    };
+
+export default defineConfig({
+  testDir: "./tests",
+  timeout: 60_000,
+  expect: {
+    timeout: 8_000
+  },
+  fullyParallel: false,
+  retries: process.env.CI ? 1 : 0,
+  reporter: process.env.CI ? [["dot"], ["html", { open: "never" }]] : "list",
+  use: {
+    baseURL,
+    trace: "retain-on-failure"
+  },
+  webServer: managedWebServer,
+  projects: [
+    {
+      name: "chrome",
+      use: {
+        ...devices["Desktop Chrome"],
+        channel: process.env.PLAYWRIGHT_BROWSER_CHANNEL ?? "chrome",
+        viewport: { width: 1800, height: 1200 }
+      }
+    }
+  ]
+});

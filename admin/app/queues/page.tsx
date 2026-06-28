@@ -5,13 +5,17 @@ import {
   getFailedTaskControls,
   getFailedTaskRuntimeDecisions,
   getFailedTaskSubmissionContracts,
-  getQueueHealth
+  getQueueHealth,
+  getStage1BatchChildTasks,
+  getStage1BatchQueueRuntime
 } from "@/lib/admin-api";
 import type {
   FailedTaskControl,
   FailedTaskRuntimeDecision,
   FailedTaskSubmissionContract,
-  QueueHealth
+  QueueHealth,
+  Stage1BatchChildTask,
+  Stage1BatchQueueRuntime
 } from "@/lib/types";
 
 function actionTone(task: FailedTaskControl) {
@@ -23,7 +27,9 @@ function actionTone(task: FailedTaskControl) {
 }
 
 export default async function QueuesPage() {
-  const [queues, failedTasks, failedTaskRuntime, failedTaskSubmissionContracts] = await Promise.all([
+  const [stage1BatchRuntime, stage1BatchChildren, queues, failedTasks, failedTaskRuntime, failedTaskSubmissionContracts] = await Promise.all([
+    getStage1BatchQueueRuntime(),
+    getStage1BatchChildTasks(),
     getQueueHealth(),
     getFailedTaskControls(),
     getFailedTaskRuntimeDecisions(),
@@ -36,6 +42,76 @@ export default async function QueuesPage() {
         title="Queue and Dead-letter Dashboard"
         description="Operational visibility for pending, running, failed, and dead-letter queue work."
       />
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Stage 1 Batch Queue Runtime</h3>
+            <p>Batch operations surface child status, worker claim leases, provider strategy group capacity, quota policy, retry idempotency, and drain behavior for launch readiness review.</p>
+          </div>
+        </div>
+        <DataTable<Stage1BatchQueueRuntime>
+          rows={stage1BatchRuntime}
+          columns={[
+            { key: "batch", header: "Batch", render: (row) => <span className="mono">{row.batchId}</span> },
+            { key: "tenant", header: "Tenant", render: (row) => <span className="mono">{row.tenantId}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} /> },
+            { key: "progress", header: "Progress", render: (row) => `${row.succeeded}/${row.requestedCount} succeeded · ${row.running} running · ${row.retryable} retryable` },
+            { key: "provider", header: "Provider/Model", render: (row) => `${row.providerId} · ${row.modelId}` },
+            { key: "strategy", header: "Provider Strategy Group", render: (row) => <span className="mono">{row.providerStrategyGroupId}</span> },
+            { key: "selection", header: "Selection Policy", render: (row) => <StatusBadge value={row.providerSelectionPolicy} label={row.providerSelectionPolicy} /> },
+            { key: "provider-concurrency", header: "Provider Concurrency", render: (row) => row.providerConcurrency },
+            { key: "model-concurrency", header: "Provider/Model Concurrency", render: (row) => row.providerModelConcurrency },
+            { key: "worker", header: "Worker", render: (row) => <span className="mono">{row.workerId}</span> },
+            { key: "claim-timeout", header: "Claim Timeout", render: (row) => `${row.claimTimeoutSeconds}s` },
+            { key: "oldest", header: "Oldest Child Age", render: (row) => `${row.oldestChildAgeMinutes} min` },
+            { key: "claim-lease", header: "Claim Lease Policy", render: (row) => row.claimLeasePolicy },
+            { key: "drain", header: "Drain Policy", render: (row) => row.drainPolicy },
+            { key: "quota", header: "Quota Policy", render: (row) => row.quotaPolicy },
+            { key: "dead-letter", header: "Dead-letter Policy", render: (row) => row.deadLetterPolicy },
+            { key: "idempotency", header: "Provider Idempotency Scope", render: (row) => row.idempotencyScope },
+            { key: "action", header: "Operator Action", render: (row) => row.nextOperatorAction },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Stage 1 Batch Child Tasks</h3>
+            <p>Child task rows expose retry budget, claim attempts, safety blocks, dead letters, quota commit/refund, result placement, and provider usage linkage.</p>
+          </div>
+        </div>
+        <DataTable<Stage1BatchChildTask>
+          rows={stage1BatchChildren}
+          columns={[
+            { key: "child", header: "Child", render: (row) => <span className="mono">{row.id}</span> },
+            { key: "batch", header: "Batch", render: (row) => <span className="mono">{row.batchId}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} /> },
+            { key: "fanout", header: "Fanout Stage", render: (row) => <StatusBadge value={row.fanoutStage} label={row.fanoutStage} /> },
+            { key: "provider", header: "Provider/Model", render: (row) => `${row.providerId} · ${row.modelId}` },
+            { key: "retry", header: "Retry Budget", render: (row) => `${row.retryCount}/${row.maxRetries}` },
+            { key: "retry-state", header: "Retry State", render: (row) => <StatusBadge value={row.retryState} label={row.retryState} /> },
+            { key: "dead-letter", header: "Dead Letter", render: (row) => <StatusBadge value={row.deadLetterState} label={row.deadLetterState} /> },
+            { key: "worker", header: "Worker", render: (row) => <span className="mono">{row.workerId}</span> },
+            { key: "claim-attempt", header: "Claim Attempt", render: (row) => row.claimAttempt },
+            { key: "claim-expires", header: "Claim Expires At", render: (row) => <span className="mono">{row.claimExpiresAt}</span> },
+            { key: "failure", header: "Failure Code", render: (row) => <span className="mono">{row.failureCode}</span> },
+            { key: "review", header: "Review Reason", render: (row) => <span className="mono">{row.reviewReason}</span> },
+            { key: "quota", header: "Quota Estimate/Commit/Refund", render: (row) => `${row.quotaEstimateUnits}/${row.quotaCommittedUnits}/${row.quotaRefundedUnits}` },
+            { key: "asset", header: "Asset", render: (row) => <span className="mono">{row.resultAssetId}</span> },
+            { key: "canvas", header: "Canvas Object", render: (row) => <span className="mono">{row.canvasObjectId}</span> },
+            { key: "trace", header: "Trace", render: (row) => <span className="mono">{row.visibleTraceRef}</span> },
+            { key: "usage", header: "Provider Usage", render: (row) => <span className="mono">{row.providerUsageRef}</span> },
+            { key: "idempotency", header: "Idempotency Key", render: (row) => <span className="mono">{row.idempotencyKey}</span> },
+            { key: "operator", header: "Operator Action", render: (row) => row.operatorAction },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.evidenceRefs.join(", ") },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
+
       <section className="panel">
         <div className="panel-header">
           <div>

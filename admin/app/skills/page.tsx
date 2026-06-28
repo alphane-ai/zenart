@@ -7,6 +7,7 @@ import type { Skill } from "@/lib/types";
 
 export default async function SkillRegistryPage() {
   const skills = await getSkills();
+  const source = skills.some((row) => row.source === "api") ? "api" : "fixture";
 
   return (
     <>
@@ -25,6 +26,7 @@ export default async function SkillRegistryPage() {
             <h3>Registered Skills</h3>
             <p>Skills remain inactive until review, eval, release, and rollback metadata are complete.</p>
           </div>
+          <StatusBadge value={source === "api" ? "healthy" : "warning"} label={source === "api" ? "live api" : "fixture fallback"} />
         </div>
         <DataTable<Skill>
           rows={skills}
@@ -35,6 +37,7 @@ export default async function SkillRegistryPage() {
             { key: "owner", header: "Owner", render: (row) => row.owner },
             { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} /> },
             { key: "risk", header: "Risk", render: (row) => <StatusBadge value={row.risk} /> },
+            { key: "source", header: "Source", render: (row) => <StatusBadge value={row.source === "api" ? "healthy" : "warning"} label={row.source === "api" ? "api" : "fixture"} /> },
             { key: "updated", header: "Updated", render: (row) => row.updatedAt }
           ]}
         />

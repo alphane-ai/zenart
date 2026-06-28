@@ -1,0 +1,65 @@
+{
+  "id": "batch_dfd63af58153cd7e422656ef",
+  "tenant_id": "tenant_local",
+  "user_id": "user_local_user",
+  "project_id": "project_local_ecommerce_growth",
+  "workspace_id": "ws_stage1_smoke",
+  "prompt_context": {
+    "text": "Zenari provider sandbox smoke: generate a simple launch poster concept.",
+    "model_hints": [
+      "glm-4.5"
+    ],
+    "tool_hint": "image.generate"
+  },
+  "requested_count": 1,
+  "allowed_models": [
+    "glm-4.5"
+  ],
+  "quota_reservation_id": "quota_reservation_4920d38fbd5fc5d4efc23e76",
+  "quota_estimated_units": 4,
+  "quota_committed_units": 0,
+  "quota_refunded_units": 0,
+  "trace_id": "trace_batch_26fa2a59fe3ca9ddc0ef636d",
+  "status": "queued",
+  "children": [
+    {
+      "id": "child_b8c41f2dd14e3a4217b00833",
+      "batch_id": "batch_dfd63af58153cd7e422656ef",
+      "tenant_id": "tenant_local",
+      "status": "queued",
+      "provider_id": "zenari-image-sandbox",
+      "model_id": "glm-4.5",
+      "tool_type": "image.generate",
+      "seed": "batch_dfd63af58153cd7e422656ef_01",
+      "retry_count": 0,
+      "max_retries": 2,
+      "quota_estimate_units": 4,
+      "quota_committed_units": 0,
+      "quota_refunded_units": 0,
+      "trace_id": "trace_child_fe4a0c583e5f68426291e1ea",
+      "visible_trace_ref": "trace_projection_34175142fc30967d634ab3ea",
+      "metadata": {
+        "fanout_index": "0",
+        "routing_considered": "zenari-image-sandbox",
+        "routing_fallback_providers": "dev",
+        "routing_selection_policy": "weighted",
+        "routing_selection_reason": "weighted_slot",
+        "routing_strategy_group_id": "image-generation-default",
+        "source": "api"
+      },
+      "created_at": "2026-06-22T23:25:37.077538Z",
+      "updated_at": "2026-06-22T23:25:37.077538Z"
+    }
+  ],
+  "metadata": {
+    "fanout_stage": "queued_children_created_by_api",
+    "idempotency_fingerprint": "889049bfd5ef7a55fe46e51967d74fe056e8595afe4a4f7c459a03e0e3615211",
+    "routing_selection_policy": "weighted",
+    "routing_strategy_group_id": "image-generation-default",
+    "routing_strategy_group_name": "Zenari image generation default",
+    "scheduler_note": "worker_policy_fanout_pending",
+    "source": "api"
+  },
+  "created_at": "2026-06-22T23:25:37.077538Z",
+  "updated_at": "2026-06-22T23:25:37.077538Z"
+}

@@ -1,13 +1,15 @@
-name: zenart-stage0
+name: zenari-stage0
 
 x-backend-env: &backend-env
-  ZENART_ENV: ${ZENART_ENV:-local}
-  SERVICE_NAME: ${SERVICE_NAME:-zenart-backend}
+  APP_BRAND_NAME: ${APP_BRAND_NAME:-zenari.ai}
+  APP_PUBLIC_DOMAIN: ${APP_PUBLIC_DOMAIN:-zenari.ai}
+  ZENARI_ENV: ${ZENARI_ENV:-local}
+  SERVICE_NAME: ${SERVICE_NAME:-zenari-backend}
   HTTP_ADDR: ${HTTP_ADDR:-:8080}
   HTTP_READ_HEADER_TIMEOUT: ${HTTP_READ_HEADER_TIMEOUT:-5s}
-  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:3001}
+  CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:26080,http://localhost:26081}
   CONTENT_SECURITY_POLICY: ${CONTENT_SECURITY_POLICY:-default-src 'none'; frame-ancestors 'none'; base-uri 'none'}
-  CSRF_HEADER_NAME: ${CSRF_HEADER_NAME:-X-ZenArt-CSRF}
+  CSRF_HEADER_NAME: ${CSRF_HEADER_NAME:-X-Zenari-CSRF}
   CSRF_HEADER_VALUE: ${CSRF_HEADER_VALUE:-same-site-origin-check}
   MAX_UPLOAD_BYTES: ${MAX_UPLOAD_BYTES:-26214400}
   ALLOWED_UPLOAD_CONTENT_TYPES: ${ALLOWED_UPLOAD_CONTENT_TYPES:-image/png,image/jpeg,image/webp,image/gif,application/pdf}
@@ -17,7 +19,7 @@ x-backend-env: &backend-env
   MALWARE_SCAN_API_KEY: ${MALWARE_SCAN_API_KEY:-}
   MALWARE_SCAN_TIMEOUT: ${MALWARE_SCAN_TIMEOUT:-5s}
   MALWARE_SCAN_FAIL_CLOSED: ${MALWARE_SCAN_FAIL_CLOSED:-false}
-  DATABASE_URL: ${DATABASE_URL:-postgres://zenart:zenart@postgres:5432/zenart?sslmode=disable}
+  DATABASE_URL: ${DATABASE_URL:-postgres://zenari:zenari@postgres:5432/zenari?sslmode=disable}
   POSTGRES_CHECK_TIMEOUT: ${POSTGRES_CHECK_TIMEOUT:-2s}
   REDIS_ADDR: ${REDIS_ADDR:-redis:6379}
   REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -25,22 +27,31 @@ x-backend-env: &backend-env
   REDIS_CHECK_TIMEOUT: ${REDIS_CHECK_TIMEOUT:-2s}
   OBJECT_STORAGE_PROVIDER: ${OBJECT_STORAGE_PROVIDER:-s3-compatible}
   OBJECT_STORAGE_ENDPOINT: ${OBJECT_STORAGE_ENDPOINT:-http://minio:9000}
-  OBJECT_STORAGE_PUBLIC_ENDPOINT: ${OBJECT_STORAGE_PUBLIC_ENDPOINT:-http://localhost:9000}
+  OBJECT_STORAGE_PUBLIC_ENDPOINT: ${OBJECT_STORAGE_PUBLIC_ENDPOINT:-http://localhost:26900}
   OBJECT_STORAGE_REGION: ${OBJECT_STORAGE_REGION:-us-east-1}
-  OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-zenart-local}
+  OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-zenari-local}
   OBJECT_STORAGE_ACCESS_KEY: ${OBJECT_STORAGE_ACCESS_KEY:-minioadmin}
   OBJECT_STORAGE_SECRET_KEY: ${OBJECT_STORAGE_SECRET_KEY:-minioadmin}
   OBJECT_STORAGE_USE_SSL: ${OBJECT_STORAGE_USE_SSL:-false}
   OBJECT_STORAGE_FORCE_PATH_STYLE: ${OBJECT_STORAGE_FORCE_PATH_STYLE:-true}
-  OBJECT_STORAGE_LOCAL_ROOT: ${OBJECT_STORAGE_LOCAL_ROOT:-/var/lib/zenart/objectstore}
+  OBJECT_STORAGE_LOCAL_ROOT: ${OBJECT_STORAGE_LOCAL_ROOT:-/var/lib/zenari/objectstore}
   OBJECT_STORAGE_SIGNING_KEY: ${OBJECT_STORAGE_SIGNING_KEY:-stage0-local-object-signing-key-32}
   OBJECT_STORAGE_DOWNLOAD_URL_TTL: ${OBJECT_STORAGE_DOWNLOAD_URL_TTL:-10m}
   OBJECT_STORAGE_CHECK_TIMEOUT: ${OBJECT_STORAGE_CHECK_TIMEOUT:-2s}
   WORKER_CLEANUP_INTERVAL: ${WORKER_CLEANUP_INTERVAL:-1h}
   WORKER_CLEANUP_TIMEOUT: ${WORKER_CLEANUP_TIMEOUT:-30s}
   WORKER_CLEANUP_BATCH_LIMIT: ${WORKER_CLEANUP_BATCH_LIMIT:-100}
+  WORKER_BATCH_ENABLED: ${WORKER_BATCH_ENABLED:-false}
+  WORKER_BATCH_TENANT_ID: ${WORKER_BATCH_TENANT_ID:-tenant_1}
+  WORKER_BATCH_POLL_INTERVAL: ${WORKER_BATCH_POLL_INTERVAL:-2s}
+  WORKER_BATCH_CLAIM_LIMIT: ${WORKER_BATCH_CLAIM_LIMIT:-4}
+  WORKER_BATCH_CLAIM_TIMEOUT: ${WORKER_BATCH_CLAIM_TIMEOUT:-15m}
+  WORKER_BATCH_MAX_TENANT_CONCURRENCY: ${WORKER_BATCH_MAX_TENANT_CONCURRENCY:-4}
+  WORKER_BATCH_PROVIDER_MAX_CONCURRENCY: ${WORKER_BATCH_PROVIDER_MAX_CONCURRENCY:-zenari-image-sandbox=4}
+  WORKER_BATCH_PROVIDER_MODEL_MAX_CONCURRENCY: ${WORKER_BATCH_PROVIDER_MODEL_MAX_CONCURRENCY:-zenari-image-sandbox:glm-5.2=4}
+  WORKER_BATCH_ALLOWED_PROVIDER_MODEL_TOOLS: ${WORKER_BATCH_ALLOWED_PROVIDER_MODEL_TOOLS:-zenari-image-sandbox:glm-5.2:image.generate}
   STAGE0_ACCESS_MODE: ${STAGE0_ACCESS_MODE:-local}
-  SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-__Host-zenart_session}
+  SESSION_COOKIE_NAME: ${SESSION_COOKIE_NAME:-__Host-zenari_session}
   SESSION_SECRET: ${SESSION_SECRET:-stage0-local-session-secret-minimum-32-bytes}
   SESSION_TTL: ${SESSION_TTL:-24h}
   SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
@@ -48,26 +59,53 @@ x-backend-env: &backend-env
   SESSION_COOKIE_DOMAIN: ${SESSION_COOKIE_DOMAIN:-}
   DEV_IDENTITY_HEADERS_ENABLED: ${DEV_IDENTITY_HEADERS_ENABLED:-true}
   ADMIN_DEV_IDENTITY_HEADERS_ENABLED: ${ADMIN_DEV_IDENTITY_HEADERS_ENABLED:-false}
-  ADMIN_SESSION_COOKIE_NAME: ${ADMIN_SESSION_COOKIE_NAME:-__Host-zenart_admin_session}
+  ADMIN_SESSION_COOKIE_NAME: ${ADMIN_SESSION_COOKIE_NAME:-__Host-zenari_admin_session}
   ADMIN_SESSION_SECRET: ${ADMIN_SESSION_SECRET:-stage0-local-admin-session-secret-minimum-32-bytes}
   ADMIN_SESSION_TTL: ${ADMIN_SESSION_TTL:-8h}
   LOCAL_SEED_USER_EMAIL: ${LOCAL_SEED_USER_EMAIL:-local.user@example.com}
   LOCAL_SEED_ADMIN_EMAIL: ${LOCAL_SEED_ADMIN_EMAIL:-local.admin@example.com}
   CHECKOUT_PROVIDER: ${CHECKOUT_PROVIDER:-mock}
   WEEKLY_QUOTA_UNITS: ${WEEKLY_QUOTA_UNITS:-1000}
+  LLM_PROVIDER: ${LLM_PROVIDER:-openai-compatible}
+  LLM_OPENAI_BASE_URL: ${LLM_OPENAI_BASE_URL:-https://api.z.ai/api/coding/paas/v4}
+  LLM_OPENAI_API_KEY: ${LLM_OPENAI_API_KEY:-${ZAI_API_KEY:-${OPENAI_API_KEY:-}}}
+  LLM_OPENAI_MODEL: ${LLM_OPENAI_MODEL:-glm-5.2}
+  LLM_REQUEST_TIMEOUT: ${LLM_REQUEST_TIMEOUT:-60s}
+  LLM_ENABLE_LIVE_CALLS: ${LLM_ENABLE_LIVE_CALLS:-false}
+  RATELIMIT_ENABLED: ${RATELIMIT_ENABLED:-true}
+  RATELIMIT_STORE: ${RATELIMIT_STORE:-memory}
+  RATELIMIT_USER_REQUESTS_PER_MINUTE: ${RATELIMIT_USER_REQUESTS_PER_MINUTE:-60}
+  RATELIMIT_TENANT_REQUESTS_PER_MINUTE: ${RATELIMIT_TENANT_REQUESTS_PER_MINUTE:-240}
+  RATELIMIT_PROVIDER_REQUESTS_PER_MINUTE: ${RATELIMIT_PROVIDER_REQUESTS_PER_MINUTE:-120}
+  RATELIMIT_ADMIN_ACTIONS_PER_MINUTE: ${RATELIMIT_ADMIN_ACTIONS_PER_MINUTE:-30}
+  RATELIMIT_PROVIDER_DAILY_SPEND_CAP_CENTS: ${RATELIMIT_PROVIDER_DAILY_SPEND_CAP_CENTS:-${PROVIDER_DAILY_SPEND_CAP_CENTS:-0}}
+  RATELIMIT_PROVIDER_EMERGENCY_KILL_SWITCH: ${RATELIMIT_PROVIDER_EMERGENCY_KILL_SWITCH:-${PROVIDER_EMERGENCY_KILL_SWITCH:-false}}
+  STRIPE_MODE: ${STRIPE_MODE:-test}
+  STRIPE_API_BASE_URL: ${STRIPE_API_BASE_URL:-https://api.stripe.com}
+  STRIPE_API_KEY: ${STRIPE_API_KEY:-}
+  STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+  STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+  STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+  BILLING_WEBHOOK_SECRET: ${BILLING_WEBHOOK_SECRET:-}
+  STRIPE_SANDBOX_PRODUCT_ID: ${STRIPE_SANDBOX_PRODUCT_ID:-}
+  STRIPE_DEFAULT_PRICE_ID: ${STRIPE_DEFAULT_PRICE_ID:-}
+  STRIPE_SUCCESS_URL: ${STRIPE_SUCCESS_URL:-http://localhost:26080/billing?stripe=success}
+  STRIPE_CANCEL_URL: ${STRIPE_CANCEL_URL:-http://localhost:26080/billing?stripe=cancel}
+  STRIPE_PORTAL_RETURN_URL: ${STRIPE_PORTAL_RETURN_URL:-http://localhost:26080/billing}
+  STRIPE_SANDBOX_SELFTEST_REQUIRED: ${STRIPE_SANDBOX_SELFTEST_REQUIRED:-true}
   TASK_SCHEMA_VERSION: ${TASK_SCHEMA_VERSION:-1}
   LOG_FORMAT: ${LOG_FORMAT:-json}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   OTEL_ENABLED: ${OTEL_ENABLED:-false}
   OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://otel-collector:4318}
   CRAWLER_ENABLED: ${CRAWLER_ENABLED:-false}
-  CRAWLER_USER_AGENT: ${CRAWLER_USER_AGENT:-ZenArtStage0Bot/0.1}
+  CRAWLER_USER_AGENT: ${CRAWLER_USER_AGENT:-ZenariStage1Bot/1.0}
   CRAWLER_GLOBAL_RPS: ${CRAWLER_GLOBAL_RPS:-0.2}
   CRAWLER_SOURCE_RPS: ${CRAWLER_SOURCE_RPS:-0.1}
   CRAWLER_RAW_RETENTION_DAYS: ${CRAWLER_RAW_RETENTION_DAYS:-14}
   CRAWLER_BLOCKLIST_HOSTS: ${CRAWLER_BLOCKLIST_HOSTS:-localhost,127.0.0.1,169.254.169.254}
   METRICS_ENABLED: ${METRICS_ENABLED:-true}
-  METRICS_PORT: ${METRICS_PORT:-9090}
+  METRICS_PORT: ${METRICS_PORT:-31990}
 
 x-backend-build: &backend-build
   context: ./backend
@@ -77,11 +115,11 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-zenart}
-      POSTGRES_USER: ${POSTGRES_USER:-zenart}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zenart}
+      POSTGRES_DB: ${POSTGRES_DB:-zenari}
+      POSTGRES_USER: ${POSTGRES_USER:-zenari}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zenari}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-26432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -94,7 +132,7 @@ services:
     image: redis:7-alpine
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${REDIS_PORT:-26379}:6379"
     volumes:
       - redis-data:/data
     healthcheck:
@@ -110,8 +148,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     ports:
-      - "${MINIO_API_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "${MINIO_API_PORT:-26900}:9000"
+      - "${MINIO_CONSOLE_PORT:-26901}:9001"
     volumes:
       - minio-data:/data
     healthcheck:
@@ -126,7 +164,7 @@ services:
       minio:
         condition: service_healthy
     environment:
-      OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-zenart-local}
+      OBJECT_STORAGE_BUCKET: ${OBJECT_STORAGE_BUCKET:-zenari-local}
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
     entrypoint:
@@ -137,8 +175,11 @@ services:
         mc mb --ignore-existing "local/$${OBJECT_STORAGE_BUCKET}"
 
   backend:
+    # API, worker, and crawler intentionally share one backend image. Worker and
+    # crawler are runtime entrypoints, not independent Stage 1 release images.
+    image: ${BACKEND_IMAGE:-zenari-backend:local}
     build: *backend-build
-    command: ["/app/server"]
+    entrypoint: ["/app/server"]
     environment: *backend-env
     depends_on:
       postgres:
@@ -148,16 +189,16 @@ services:
       minio-init:
         condition: service_completed_successfully
     ports:
-      - "${BACKEND_PORT:-8080}:8080"
-      - "${METRICS_PORT:-9090}:9090"
+      - "${BACKEND_PORT:-31080}:8080"
+      - "${METRICS_PORT:-31990}:31990"
 
   worker:
-    build: *backend-build
-    command: ["/app/worker"]
+    image: ${BACKEND_IMAGE:-zenari-backend:local}
+    entrypoint: ["/app/worker"]
     environment:
       <<: *backend-env
-      SERVICE_NAME: zenart-worker
-      METRICS_PORT: ${WORKER_METRICS_PORT:-9091}
+      SERVICE_NAME: zenari-worker
+      METRICS_PORT: ${WORKER_METRICS_PORT:-31991}
       WORKER_CLEANUP_INTERVAL: ${WORKER_CLEANUP_INTERVAL:-1h}
     depends_on:
       postgres:
@@ -167,15 +208,15 @@ services:
       minio-init:
         condition: service_completed_successfully
     ports:
-      - "${WORKER_METRICS_PORT:-9091}:${WORKER_METRICS_PORT:-9091}"
+      - "${WORKER_METRICS_PORT:-31991}:${WORKER_METRICS_PORT:-31991}"
 
   crawler:
-    build: *backend-build
-    command: ["/app/crawler"]
+    image: ${BACKEND_IMAGE:-zenari-backend:local}
+    entrypoint: ["/app/crawler"]
     environment:
       <<: *backend-env
-      SERVICE_NAME: zenart-crawler
-      METRICS_PORT: ${CRAWLER_METRICS_PORT:-9092}
+      SERVICE_NAME: zenari-crawler
+      METRICS_PORT: ${CRAWLER_METRICS_PORT:-31992}
     depends_on:
       postgres:
         condition: service_healthy
@@ -184,35 +225,56 @@ services:
       minio-init:
         condition: service_completed_successfully
     ports:
-      - "${CRAWLER_METRICS_PORT:-9092}:${CRAWLER_METRICS_PORT:-9092}"
+      - "${CRAWLER_METRICS_PORT:-31992}:${CRAWLER_METRICS_PORT:-31992}"
 
   web:
     profiles: ["frontend"]
     build:
       context: ./web
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:31080}
+        NEXT_PUBLIC_STAGE0_ACCESS_MODE: ${NEXT_PUBLIC_STAGE0_ACCESS_MODE:-local}
+        NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
     environment:
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+      NEXT_PUBLIC_APP_BRAND_NAME: ${NEXT_PUBLIC_APP_BRAND_NAME:-zenari.ai}
+      NEXT_PUBLIC_APP_DOMAIN: ${NEXT_PUBLIC_APP_DOMAIN:-zenari.ai}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:31080}
       NEXT_PUBLIC_STAGE0_ACCESS_MODE: ${NEXT_PUBLIC_STAGE0_ACCESS_MODE:-local}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
     depends_on:
       backend:
         condition: service_started
     ports:
-      - "${WEB_PORT:-3000}:3000"
+      - "${WEB_PORT:-26080}:3000"
 
   admin:
     profiles: ["frontend"]
     build:
       context: ./admin
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_ADMIN_API_BASE_URL: ${NEXT_PUBLIC_ADMIN_API_BASE_URL:-http://localhost:31080}
+        NEXT_PUBLIC_ADMIN_AUTH_MODE: ${NEXT_PUBLIC_ADMIN_AUTH_MODE:-local}
+        NEXT_PUBLIC_ADMIN_BASE_PATH: ${NEXT_PUBLIC_ADMIN_BASE_PATH:-}
+        PUBLIC_ADMIN_ORIGIN: ${PUBLIC_ADMIN_ORIGIN:-http://localhost:26081}
     environment:
-      NEXT_PUBLIC_ADMIN_API_BASE_URL: ${NEXT_PUBLIC_ADMIN_API_BASE_URL:-http://localhost:8080}
+      NEXT_PUBLIC_APP_BRAND_NAME: ${NEXT_PUBLIC_APP_BRAND_NAME:-zenari.ai}
+      NEXT_PUBLIC_APP_DOMAIN: ${NEXT_PUBLIC_APP_DOMAIN:-zenari.ai}
+      ADMIN_API_BASE_URL: ${ADMIN_API_BASE_URL:-http://backend:8080}
+      ADMIN_DEV_IDENTITY_HEADERS_ENABLED: ${ADMIN_DEV_IDENTITY_HEADERS_ENABLED:-false}
+      SMOKE_ADMIN_USER_ID: ${SMOKE_ADMIN_USER_ID:-local_admin_zenari.ai}
+      SMOKE_ADMIN_TENANT_ID: ${SMOKE_ADMIN_TENANT_ID:-tenant_local}
+      LOCAL_ADMIN_ROLES: ${LOCAL_ADMIN_ROLES:-admin_superadmin}
+      NEXT_PUBLIC_ADMIN_API_BASE_URL: ${NEXT_PUBLIC_ADMIN_API_BASE_URL:-http://localhost:31080}
       NEXT_PUBLIC_ADMIN_AUTH_MODE: ${NEXT_PUBLIC_ADMIN_AUTH_MODE:-local}
+      NEXT_PUBLIC_ADMIN_BASE_PATH: ${NEXT_PUBLIC_ADMIN_BASE_PATH:-}
+      PUBLIC_ADMIN_ORIGIN: ${PUBLIC_ADMIN_ORIGIN:-http://localhost:26081}
     depends_on:
       backend:
         condition: service_started
     ports:
-      - "${ADMIN_PORT:-3001}:3000"
+      - "${ADMIN_PORT:-26081}:3001"
 
 volumes:
   postgres-data:

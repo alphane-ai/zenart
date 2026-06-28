@@ -1,0 +1,68 @@
+{
+  "schema_version": "stage1.support_ticket_linking.contract.v1",
+  "kind": "backend_support_ticket_linking_contract",
+  "contract_version": 1,
+  "blueprint_items": ["BE-12", "AD-12", "OP-13", "QA-9", "BL-8"],
+  "backend_package": "backend/internal/support",
+  "repository_package": "backend/internal/stage0",
+  "openapi_source": "openapi/zenart.v1.yaml",
+  "required_evidence_links": [
+    "project_id",
+    "task_id",
+    "batch_id",
+    "trace_id",
+    "asset_id",
+    "linked_export_id",
+    "quota_bucket_id",
+    "billing_reference_id"
+  ],
+  "redaction_contract": {
+    "ticket_body_redacted_before_persistence": true,
+    "metadata_redacted_before_persistence": true,
+    "list_projection_redacts_stored_body": true,
+    "list_projection_redacts_stored_metadata": true,
+    "raw_provider_payload_allowed": false,
+    "raw_prompt_allowed": false,
+    "raw_billing_payload_allowed": false,
+    "raw_secret_projection_allowed": false
+  },
+  "runtime_wiring": {
+    "create_route": "POST /api/v1/support/tickets",
+    "admin_list_route": "GET /api/admin/v1/support/tickets",
+    "create_repository": "stage0.Repository.CreateSupportTicket",
+    "list_repository": "stage0.Repository.ListSupportTickets",
+    "analytics_event": "support_ticket_created",
+    "admin_surface": "admin/app/support",
+    "user_surface": "web/components/workspace-app.tsx"
+  },
+  "database_contract": {
+    "base_table": "support_tickets",
+    "stage0_evidence_migration": "backend/migrations/0006_support_ticket_evidence_links.sql",
+    "stage1_evidence_migration": "backend/migrations/0018_stage1_support_ticket_links.sql",
+    "required_constraint": "chk_support_tickets_required_evidence",
+    "tenant_scoped_indexes": [
+      "idx_support_tickets_tenant_project",
+      "idx_support_tickets_tenant_task",
+      "idx_support_tickets_tenant_batch",
+      "idx_support_tickets_tenant_trace",
+      "idx_support_tickets_tenant_asset",
+      "idx_support_tickets_tenant_export",
+      "idx_support_tickets_tenant_quota",
+      "idx_support_tickets_tenant_billing_ref"
+    ]
+  },
+  "non_launch_status": {
+    "local_contract": "pass",
+    "staging_support_workflow_evidence": "open",
+    "production_security_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_security_gate": false
+  },
+  "required_staging_evidence": [
+    "deployed user support ticket creation with project/task/batch/trace/asset/export/quota/billing links",
+    "deployed admin support ticket listing shows safe evidence links without raw secrets",
+    "redaction replay proves raw provider payloads, prompts, billing payloads, and secrets stay out of support tickets",
+    "production security launch check covers support ticket body, metadata, analytics, and admin table projections"
+  ],
+  "release_note": "Local BE-12 support ticket linking/redaction contract only; deployed support workflow and production security evidence remain required before launch."
+}

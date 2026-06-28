@@ -1,0 +1,264 @@
+{
+  "authorization_header_persisted": false,
+  "canonical_pass_path": true,
+  "checks": [
+    {
+      "check_id": "chat_task",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-chat_task.ndjson",
+        "ops/evidence/staging/20260624T100913Z-all-92780-chat_task.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 2393,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "worker_generation",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.ndjson",
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 859,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "zip_export",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-zip_export.ndjson",
+        "ops/evidence/staging/20260624T100913Z-all-92780-zip_export.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 1188,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "signed_download",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-signed_download.ndjson",
+        "ops/evidence/staging/20260624T100913Z-all-92780-signed_download.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 824,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "crawler_throttle",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.ndjson",
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 801,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "quota_contention",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-quota_contention.ndjson",
+        "ops/evidence/staging/20260624T100913Z-all-92780-quota_contention.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 882,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "workspace_rendering",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-workspace_rendering.ndjson",
+        "ops/evidence/staging/20260624T100913Z-all-92780-workspace_rendering.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 805,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    }
+  ],
+  "cookie_persisted": false,
+  "environment": "staging",
+  "evidence_kind": "load",
+  "gate_impact": {
+    "can_clear_stage1_production_launch_gate": false
+  },
+  "generated_at": "2026-06-24T11:37:01+00:00",
+  "kind": "load",
+  "modes": [
+    {
+      "check_id": "chat_task",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-chat_task.ndjson",
+        "ops/evidence/staging/20260624T100913Z-all-92780-chat_task.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 2393,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "worker_generation",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.ndjson",
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 859,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "zip_export",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-zip_export.ndjson",
+        "ops/evidence/staging/20260624T100913Z-all-92780-zip_export.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 1188,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "signed_download",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-signed_download.ndjson",
+        "ops/evidence/staging/20260624T100913Z-all-92780-signed_download.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 824,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "crawler_throttle",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.ndjson",
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 801,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "quota_contention",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-quota_contention.ndjson",
+        "ops/evidence/staging/20260624T100913Z-all-92780-quota_contention.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 882,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    },
+    {
+      "check_id": "workspace_rendering",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-workspace_rendering.ndjson",
+        "ops/evidence/staging/20260624T100913Z-all-92780-workspace_rendering.json"
+      ],
+      "metrics": {
+        "billing_webhook_failure_rate": 0,
+        "error_rate": 0.0,
+        "export_success_rate": 1.0,
+        "p95_ms": 805,
+        "provider_fallback_rate": 0,
+        "queue_delay_p95_ms": 0,
+        "request_count": 20
+      },
+      "status": "passed"
+    }
+  ],
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "schema_version": "stage1.strict_load_evidence.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_evidence_ref": "ops/evidence/staging/stage1-load.json",
+  "status": "passed"
+}

@@ -1,129 +1,42 @@
 {
-  "schema_version": "stage0.rev2",
-  "evidence_id": "production_billing_refund_credit_webhook_20260527T1945Z",
+  "allow_local_devport_evidence": false,
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "source_probe_missing: ops/evidence/production/billing-paid-lifecycle-source.json"
+  ],
+  "blocked_runtime_summary": "Production refund/credit/webhook evidence remains blocked until live Stripe proof covers refund, credit, quota reset, webhook idempotency, failed export refund, quota projection, and audit refs.",
+  "canonical_pass_path": false,
+  "cookie_persisted": false,
+  "dry_run": false,
   "environment": "production",
-  "status": "blocked",
-  "validated_at": "2026-05-27T19:45:00Z",
-  "validated_by_role": "admin_superadmin",
-  "release_gate_check_id": "production_paid_billing_lifecycle",
-  "do_not_launch_condition_id": "paid_billing_or_comp_only_mode_missing",
-  "summary": "Stripe/payment provider integration is deferred. Production remains invite/comp-only, so refund, paid credit, paid quota reset, failed-export refund, and Stripe webhook idempotency are blocked no-go evidence rather than paid launch proof.",
-  "runtime_request_ids": [
-    "production-paid-billing-20260527T1945Z-refund-credit-quota-reset",
-    "production-paid-billing-20260527T1945Z-webhook-idempotency",
-    "production-paid-billing-20260527T1945Z-gate-preservation"
-  ],
-  "quota_mutation_probes": [
-    {
-      "probe_id": "refund_credit_quota_reset",
-      "status": "blocked",
-      "quota_account_ids": [
-        "usr-301",
-        "usr-318"
-      ],
-      "support_ticket_ids": [
-        "sup-2201",
-        "sup-2209"
-      ],
-      "assertions": [
-        "refund_requires_stripe_charge",
-        "comp_credit_reason_attached",
-        "paid_quota_reset_deferred",
-        "failed_export_refund_requires_paid_export"
-      ]
-    },
-    {
-      "probe_id": "webhook_idempotency",
-      "status": "blocked",
-      "event_kinds": [
-        "checkout.session.completed",
-        "customer.subscription.updated",
-        "invoice.payment_failed",
-        "refund.created",
-        "quota.reset"
-      ],
-      "assertions": [
-        "stripe_webhook_endpoint_disabled",
-        "subscription_mutation_requires_stripe",
-        "paid_quota_mutation_deferred"
-      ]
-    }
-  ],
-  "coverage": [
-    {
-      "area": "refund_credit_quota_reset",
-      "status": "blocked",
-      "runtime_probe": "Production refund and credit replay verified Stripe refunds are deferred, admin comp credit has support reason, paid quota reset is disabled, failed-export refund requires paid export evidence, and paid lifecycle rows remain open.",
-      "deployment_evidence": "ops/evidence/production/billing-refund-credit-webhook.json records blocked refund_ref, comp_admin_credit_ref, quota_reset_ref, failed_export_refund_ref, and deferred paid quota transaction probes for production accounts.",
-      "billing_audit_evidence": "Refund and credit evidence links quota account usr-301, support ticket sup-2201, failed export ex-887, quota audit au-004, and billing audit au-022 to prove deferred paid balance mutation state has support context and immutable audit.",
-      "linked_admin_artifacts": [
-        "admin/app/quota/page.tsx",
-        "admin/app/support/page.tsx",
-        "admin/app/exports/page.tsx"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/billing-refund-credit-webhook.json",
-        "ops/evidence/production/billing-lifecycle.json",
-        "usr-301",
-        "sup-2201",
-        "ex-887",
-        "au-004",
-        "au-022"
-      ]
-    },
-    {
-      "area": "webhook_idempotency",
-      "status": "blocked",
-      "runtime_probe": "Production webhook replay verified Stripe webhook endpoint remains disabled in invite/comp-only mode and duplicate checkout, subscription.updated, invoice.payment_failed, refund.created, and quota_reset events cannot mutate paid subscription or quota state without Stripe evidence.",
-      "deployment_evidence": "ops/evidence/production/billing-refund-credit-webhook.json records deferred webhook_event_ids, replay hashes, disabled endpoint response, and unchanged comp-only quota/subscription state after duplicate event delivery attempts.",
-      "billing_audit_evidence": "Webhook idempotency evidence links audit au-022, quota retry evidence from failed task controls, and support ticket sup-2209 so deferred billing event replay is traceable in admin support and quota pages.",
-      "linked_admin_artifacts": [
-        "admin/app/quota/page.tsx",
-        "admin/app/support/page.tsx",
-        "admin/app/queues/page.tsx"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/billing-refund-credit-webhook.json",
-        "ops/evidence/production/billing-lifecycle.json",
-        "sup-2209",
-        "task-export-489",
-        "au-022"
-      ]
-    },
-    {
-      "area": "gate_blocker_preservation",
-      "status": "blocked",
-      "runtime_probe": "Production release-gate replay preserves production_paid_billing_lifecycle and paid_billing_or_comp_only_mode_missing because Stripe is deferred, while also preserving backup rollback, CI, and staging blockers.",
-      "deployment_evidence": "The production gate fixture cites both exact billing lifecycle files as deferred no-go evidence, keeps the paid billing check blocked, and keeps aggregate no-go status until real Stripe, backup/rollback, and upstream gate evidence pass.",
-      "billing_audit_evidence": "Gate preservation links audits au-004 and au-022, support tickets sup-2201 and sup-2209, and remaining blocker ids so comp-only billing policy cannot imply paid billing, backup, rollback, CI, staging, or global production readiness.",
-      "linked_admin_artifacts": [
-        "admin/app/quota/page.tsx",
-        "admin/app/operations/page.tsx",
-        "admin/tests/admin-governance.test.mjs"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/billing-lifecycle.json",
-        "ops/evidence/production/billing-refund-credit-webhook.json",
-        "au-004",
-        "au-022",
-        "production_backup_rollback_incident"
-      ]
-    }
-  ],
-  "audit_refs": [
-    "au-004",
-    "au-022"
-  ],
   "gate_impact": {
-    "can_clear_aggregate_production_gate": false,
-    "aggregate_production_gate_status": "blocked_by_other_production_runtime_items",
+    "can_clear_billing_lifecycle_subitem": false,
     "can_clear_refund_credit_webhook_subitem": false,
-    "checklist_items": [
-      "Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。"
-    ],
+    "preserved_release_gate_check_id": "production_paid_billing_lifecycle",
     "remaining_blockers": [
-      "production_paid_billing_lifecycle",
-      "production_backup_rollback_incident"
+      "source_probe_missing: ops/evidence/production/billing-paid-lifecycle-source.json"
     ]
-  }
+  },
+  "generated_at": "2026-06-24T12:03:49+00:00",
+  "invite_comp_only_substitute": false,
+  "kind": "production_billing_refund_credit_webhook",
+  "local_devport_debug": false,
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_paid_billing_lifecycle",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "required_runtime_semantics": [
+    "refund",
+    "credit",
+    "quota reset",
+    "webhook",
+    "idempotency",
+    "failed export refund"
+  ],
+  "schema_version": "stage1.production_billing_refund_credit_webhook.blocked.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "blocked"
 }

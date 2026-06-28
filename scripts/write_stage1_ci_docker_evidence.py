@@ -19,6 +19,8 @@ WORKFLOW_FILE = ".github/workflows/stage0-rev2-ci.yml"
 RELEASE_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 RUN_URL_RE = re.compile(r"^https://github\.com/.+/actions/runs/[0-9]+")
 REQUIRED_IMAGES = ("web", "admin", "backend")
+REQUIRED_IMAGE_SET = set(REQUIRED_IMAGES)
+FORBIDDEN_RELEASE_IMAGES = {"manager", "worker", "crawler", "migrate"}
 SAFE_FALSE_FIELDS = {
     "secret_material_persisted",
     "raw_prompt_persisted",
@@ -102,7 +104,10 @@ def validate_source_report(report: dict[str, Any]) -> None:
     require(report.get("exit_code") == 0, "source report exit_code must be 0")
     image_set = report.get("image_set")
     require(isinstance(image_set, list), "source report image_set must be a list")
-    require(set(REQUIRED_IMAGES) <= set(image_set), "source report image_set must include web/admin/backend")
+    normalized_image_set = {str(item) for item in image_set}
+    require(normalized_image_set == REQUIRED_IMAGE_SET, "source report image_set must be exactly web/admin/backend")
+    forbidden = sorted(normalized_image_set & FORBIDDEN_RELEASE_IMAGES)
+    require(not forbidden, f"source report image_set must not include non-release images: {forbidden}")
 
 
 def build_run_url(repository: str | None, run_id: str | None) -> str:

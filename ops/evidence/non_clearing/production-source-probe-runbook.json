@@ -1,0 +1,341 @@
+{
+  "authorization_header_persisted": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "cookie_persisted": false,
+  "environment": "production",
+  "gate_impact": {
+    "can_clear_stage1_production_launch_gate": false,
+    "can_close_do_not_launch": false,
+    "non_clearing_evidence_only": true,
+    "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete"
+  },
+  "generated_at": "2026-06-28T17:50:45+00:00",
+  "kind": "stage1_production_source_probe_runbook",
+  "non_clearing_runbook": true,
+  "operator_next_actions": [
+    "Execute steps only after real production inputs are available; staging, local, sandbox, and templates remain non-clearing.",
+    "After every canonical source is written, run each strict validator and then run the aggregate production launch validator.",
+    "Keep production launch no_go until strict production evidence replaces every missing or invalid input in the checklist.",
+    "Do not persist secret values, authorization headers, cookies, signed URLs, raw prompts, or raw provider/Stripe payloads."
+  ],
+  "pipeline_state": {
+    "aggregate_attempted": false,
+    "blocked_checks": [
+      "billing_source_probe: stage1 production source probe wrote blocked diagnostic: ops/evidence/production/source-probe-diagnostics.billing.json",
+      "security_source_probe: stage1 production source probe wrote blocked diagnostic: ops/evidence/production/source-probe-diagnostics.security.json",
+      "legal_support_source_probe: stage1 production source probe blocked: production web URL host zenari.ai did not resolve via system resolver: [Errno 8] nodename nor servname provided, or not known",
+      "governance_source_probe: stage1 production source probe wrote blocked diagnostic: ops/evidence/production/source-probe-diagnostics.governance.json"
+    ],
+    "canonical_sources_may_be_written": false,
+    "canonical_sources_requested": false,
+    "release_gate_decision": "no_go",
+    "status": "blocked"
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "schema_version": "stage1.production_source_probe_runbook.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_refs": {
+    "production_launch_input_packet": "ops/evidence/non_clearing/production-launch-input-packet.json",
+    "production_launch_operator_brief": "ops/evidence/non_clearing/production-launch-operator-brief.json",
+    "production_launch_source_pipeline": "ops/evidence/non_clearing/production-launch-source-pipeline.json",
+    "production_missing_input_checklist": "ops/evidence/non_clearing/production-missing-input-checklist.json"
+  },
+  "status": "blocked",
+  "steps": [
+    {
+      "acceptable_evidence_sources": [
+        "production_https_dns_or_cloudflare_cutover_evidence"
+      ],
+      "blocked_until": [
+        "ops/evidence/non_clearing/production-dns-readiness.json reports production system resolver pass",
+        "ops/evidence/non_clearing/production-dns-cutover-plan.json is ready_to_apply, applied, or observed_applied",
+        "ops/evidence/non_clearing/production-dns-readiness.json reports public A or AAAA readiness for zenari.ai",
+        "all required https_probe.production_paths are pass with HTTP status below 400",
+        "scripts/stage1_production_source_probe.py --legal-support writes ops/evidence/production/production-legal-support-source.json",
+        "scripts/generate_stage1_production_legal_support_evidence.py writes strict production legal/support evidence",
+        "python3 scripts/validate_stage1_production_legal_support_evidence.py passes without --allow-preflight"
+      ],
+      "blocking_input_count": 2,
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "completion_percent": 50.0,
+      "coverage_group": "production_dns",
+      "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.legal-support.json",
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_domain",
+        "localhost",
+        "raw_dns_plan_without_observed_https_probe"
+      ],
+      "evidence_generator": "python3 scripts/generate_stage1_production_legal_support_evidence.py --source ops/evidence/production/production-legal-support-source.json",
+      "first_blocker": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+      "gate_ids": [
+        "stage1_production_launch_preflight",
+        "production_legal_support_policy"
+      ],
+      "missing_or_invalid_inputs": [
+        "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+        "CLOUDFLARE_API_TOKEN or CF_API_TOKEN"
+      ],
+      "operator_next_action": "Finish production DNS/HTTPS cutover and rerun the legal/support source probe against public production pages.",
+      "operator_packet_ref": "ops/evidence/non_clearing/production-legal-support-operator-packet.json",
+      "order": 1,
+      "probe_id": "production_legal_support_policy",
+      "proof_template_ref": null,
+      "ready_to_execute": false,
+      "required_before": [],
+      "required_configured": 2,
+      "required_total": 4,
+      "source_output_path": "ops/evidence/production/production-legal-support-source.json",
+      "source_probe_command": "python3 scripts/stage1_production_source_probe.py --legal-support --release-sha $(git rev-parse HEAD) --production-web-url https://zenari.ai --write-canonical-source",
+      "source_template_ref": "ops/evidence/non_clearing/templates/production-source-probes/production-legal-support-source.template.json",
+      "status": "blocked",
+      "step_id": "production_dns_https",
+      "strict_validator": "python3 scripts/validate_stage1_production_legal_support_evidence.py"
+    },
+    {
+      "acceptable_evidence_sources": [
+        "live_stripe_production_billing_evidence"
+      ],
+      "blocked_until": [
+        "Stripe sandbox/test configuration is replaced with production live-mode billing proof inputs",
+        "STRIPE_MODE is live in the production runtime, not test",
+        "STRIPE_SECRET_KEY or STRIPE_API_KEY is a live Stripe key in the production runtime",
+        "all required live Stripe artifact IDs are supplied to stage1_stripe_live_billing_proof.py",
+        "webhook replay/idempotency evidence shows zero replay and duplicate mutations",
+        "stage1_production_source_probe.py --billing writes ops/evidence/production/billing-paid-lifecycle-source.json",
+        "generate_stage1_production_billing_evidence.py writes strict lifecycle and refund/webhook evidence",
+        "validate_stage1_production_billing_evidence.py passes without --allow-preflight"
+      ],
+      "blocking_input_count": 20,
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "completion_percent": 0.0,
+      "coverage_group": "billing",
+      "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.billing.json",
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "stripe_sandbox_test_mode",
+        "stripe_test_keys"
+      ],
+      "evidence_generator": "python3 scripts/generate_stage1_production_billing_evidence.py --source ops/evidence/production/billing-paid-lifecycle-source.json",
+      "first_blocker": "billing_proof_missing",
+      "gate_ids": [
+        "stage1_production_launch_preflight",
+        "production_paid_billing_lifecycle"
+      ],
+      "missing_or_invalid_inputs": [
+        "STRIPE_MODE",
+        "STRIPE_SECRET_KEY or STRIPE_API_KEY",
+        "STRIPE_PUBLISHABLE_KEY or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+        "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID",
+        "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID",
+        "STAGE1_PROD_BILLING_PRICE_ID",
+        "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID",
+        "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID",
+        "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_SEAT_QUANTITY",
+        "STAGE1_PROD_BILLING_SYNCED_QUANTITY",
+        "STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID",
+        "STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID",
+        "STAGE1_PROD_BILLING_REFUND_CHARGE_ID",
+        "STAGE1_PROD_BILLING_REFUND_ID",
+        "STAGE1_PROD_BILLING_QUOTA_RESET_INVOICE_ID",
+        "STAGE1_PROD_BILLING_WEBHOOK_EVENT_IDS",
+        "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_ID"
+      ],
+      "operator_next_action": "Collect sanitized live Stripe production proof, validate it, then write the billing canonical source.",
+      "operator_packet_ref": "ops/evidence/non_clearing/production-billing-operator-packet.json",
+      "order": 2,
+      "probe_id": "production_paid_billing_lifecycle",
+      "proof_template_ref": "ops/evidence/non_clearing/templates/billing-live-proof.template.json",
+      "ready_to_execute": false,
+      "required_before": [
+        "production_dns_https"
+      ],
+      "required_configured": 0,
+      "required_total": 20,
+      "source_output_path": "ops/evidence/production/billing-paid-lifecycle-source.json",
+      "source_probe_command": "python3 scripts/stage1_production_source_probe.py --billing --release-sha $(git rev-parse HEAD) --billing-proof <sanitized-live-billing-proof.json> --write-canonical-source",
+      "source_template_ref": "ops/evidence/non_clearing/templates/production-source-probes/billing-paid-lifecycle-source.template.json",
+      "status": "blocked",
+      "step_id": "production_paid_billing_lifecycle",
+      "strict_validator": "python3 scripts/validate_stage1_production_billing_evidence.py"
+    },
+    {
+      "acceptable_evidence_sources": [
+        "production_https_runtime_security_evidence"
+      ],
+      "blocked_until": [
+        "production runtime evidence ref proves secure HttpOnly session cookie with SameSite lax/strict",
+        "production runtime evidence ref proves CSRF/same-site mutation denial",
+        "production runtime evidence ref proves zero raw secret exposure",
+        "production runtime evidence ref proves admin privacy projections hide raw private payloads",
+        "production runtime evidence ref proves provider keys are not exposed to frontend/user/export/support surfaces",
+        "production runtime evidence ref proves Stripe live/test separation",
+        "production runtime evidence ref proves rate limit, spend cap, and kill switch readiness",
+        "production runtime evidence ref proves CSP header presence",
+        "production runtime evidence ref proves RBAC tenant isolation cross-tenant denials",
+        "stage1_production_source_probe.py --security writes ops/evidence/production/production-security-launch-source.json",
+        "generate_stage1_production_security_launch_evidence.py writes strict production security evidence",
+        "validate_stage1_production_security_launch_evidence.py passes without --allow-preflight"
+      ],
+      "blocking_input_count": 10,
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "completion_percent": 0.0,
+      "coverage_group": "security",
+      "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.security.json",
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_security_scan_only",
+        "dependency_scan_without_production_runtime_probe"
+      ],
+      "evidence_generator": "python3 scripts/generate_stage1_production_security_launch_evidence.py --source ops/evidence/production/production-security-launch-source.json",
+      "first_blocker": "security_proof_missing",
+      "gate_ids": [
+        "stage1_production_launch_preflight",
+        "production_security_launch_checks"
+      ],
+      "missing_or_invalid_inputs": [
+        "STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF",
+        "STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF",
+        "STAGE1_PROD_SECURITY_SECRET_REDACTION_REF",
+        "STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF",
+        "STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF",
+        "STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF",
+        "STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF",
+        "STAGE1_PROD_SECURITY_CSP_HEADERS_REF",
+        "STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF",
+        "STAGE1_PROD_SECURITY_AUDIT_REF"
+      ],
+      "operator_next_action": "Attach sanitized production security runtime refs and write the security canonical source.",
+      "operator_packet_ref": "ops/evidence/non_clearing/production-security-operator-packet.json",
+      "order": 3,
+      "probe_id": "production_security_launch_checks",
+      "proof_template_ref": "ops/evidence/non_clearing/templates/production-source-probes/production-security-proof.template.json",
+      "ready_to_execute": false,
+      "required_before": [
+        "production_dns_https"
+      ],
+      "required_configured": 0,
+      "required_total": 10,
+      "source_output_path": "ops/evidence/production/production-security-launch-source.json",
+      "source_probe_command": "python3 scripts/stage1_production_source_probe.py --security --release-sha $(git rev-parse HEAD) --security-proof <sanitized-production-security-proof.json> --write-canonical-source",
+      "source_template_ref": "ops/evidence/non_clearing/templates/production-source-probes/production-security-launch-source.template.json",
+      "status": "blocked",
+      "step_id": "production_security_launch_checks",
+      "strict_validator": "python3 scripts/validate_stage1_production_security_launch_evidence.py"
+    },
+    {
+      "acceptable_evidence_sources": [
+        "production_governance_audit_release_evidence"
+      ],
+      "blocked_until": [
+        "production activation runtime request IDs and immutable audit refs are provided",
+        "activation high-risk RBAC, reviewer rationale, second review, audit immutability, and activation gate refs all pass",
+        "production abuse runtime request IDs and immutable audit refs are provided",
+        "abuse account hold, rate limit, spend cap or kill switch, and RBAC audit refs all pass",
+        "production skill runtime request IDs and immutable audit refs are provided",
+        "skill owner/risk, eval suite, safety refs, canary metrics, rollback target, and release notes refs all pass",
+        "stage1_production_source_probe.py --governance writes ops/evidence/production/production-governance-release-source.json",
+        "generate_stage1_production_governance_release_evidence.py writes strict production governance/release evidence",
+        "validate_stage1_production_governance_release_evidence.py passes without --allow-preflight"
+      ],
+      "blocking_input_count": 26,
+      "can_be_satisfied_by_existing_sandbox_or_staging_resources": false,
+      "completion_percent": 0.0,
+      "coverage_group": "governance",
+      "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.governance.json",
+      "disallowed_substitutes": [
+        "local_debug_evidence",
+        "staging_preflight_evidence",
+        "blocked_probe_evidence",
+        "placeholder_values",
+        "staging_admin_review_only",
+        "draft_release_notes"
+      ],
+      "evidence_generator": "python3 scripts/generate_stage1_production_governance_release_evidence.py --source ops/evidence/production/production-governance-release-source.json",
+      "first_blocker": "governance_proof_missing",
+      "gate_ids": [
+        "stage1_production_launch_preflight",
+        "production_governance_release"
+      ],
+      "missing_or_invalid_inputs": [
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RBAC_AUDIT_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_RUNTIME_REQUEST_IDS",
+        "STAGE1_PROD_GOVERNANCE_SKILL_AUDIT_REFS",
+        "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_ID",
+        "STAGE1_PROD_GOVERNANCE_SKILL_SUITE_ID",
+        "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_ID",
+        "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_ID",
+        "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_SAMPLE_SIZE",
+        "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_RISK_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_EVAL_SUITE_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_SAFETY_REFS_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_METRICS_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_REF"
+      ],
+      "operator_next_action": "Attach sanitized production activation, abuse, and skill-release refs before writing governance source.",
+      "operator_packet_ref": "ops/evidence/non_clearing/production-governance-operator-packet.json",
+      "order": 4,
+      "probe_id": "production_governance_release",
+      "proof_template_ref": "ops/evidence/non_clearing/templates/production-source-probes/production-governance-proof.template.json",
+      "ready_to_execute": false,
+      "required_before": [
+        "production_dns_https"
+      ],
+      "required_configured": 0,
+      "required_total": 26,
+      "source_output_path": "ops/evidence/production/production-governance-release-source.json",
+      "source_probe_command": "python3 scripts/stage1_production_source_probe.py --governance --release-sha $(git rev-parse HEAD) --governance-proof <sanitized-production-governance-proof.json> --write-canonical-source",
+      "source_template_ref": "ops/evidence/non_clearing/templates/production-source-probes/production-governance-release-source.template.json",
+      "status": "blocked",
+      "step_id": "production_governance_release",
+      "strict_validator": "python3 scripts/validate_stage1_production_governance_release_evidence.py"
+    }
+  ],
+  "summary": {
+    "blocked_step_count": 4,
+    "blocking_input_count": 58,
+    "production_inputs_completion_percent": 3.3,
+    "production_inputs_configured": 2,
+    "production_inputs_invalid": 3,
+    "production_inputs_missing": 55,
+    "production_inputs_total": 60,
+    "ready_to_execute_count": 0,
+    "runbook_step_count": 4,
+    "stage1_completion_percent": 42.9,
+    "stage1_gates_completed": 6,
+    "stage1_gates_total": 14
+  },
+  "value_redaction": "variable_names_only"
+}

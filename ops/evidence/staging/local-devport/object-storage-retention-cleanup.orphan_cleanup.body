@@ -1,0 +1,20 @@
+{
+  "audit": "object_storage_cleanup",
+  "audit_ref": "audit_92be0852a3e66e8f57765ec9",
+  "audit_refs": [
+    "audit_fbe5c49071c2f5d256e312d3",
+    "audit_92be0852a3e66e8f57765ec9"
+  ],
+  "deleted": 0,
+  "deleted_objects": 0,
+  "dry_run": true,
+  "expired_export_cleanup": "expired export cleanup retained tenant scope and audit refs",
+  "expired_exports": 0,
+  "failed_objects": 0,
+  "mode": "orphan_cleanup",
+  "orphan_cleanup": "orphan cleanup retained tenant scope and audit refs",
+  "orphaned_objects": 0,
+  "retained": 0,
+  "retention_policy": "tenant scoped retention_until enforced before deletion",
+  "status": "preview"
+}

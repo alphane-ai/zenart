@@ -1,0 +1,59 @@
+{
+  "id": "batch_e33214c98cd2ce8a91f5dfcf",
+  "tenant_id": "tenant_local",
+  "user_id": "local_stage1.safety.user_zenari.ai",
+  "project_id": "project_stage1_safety_qa_runtime",
+  "workspace_id": "ws_stage1_smoke",
+  "prompt_context": {
+    "text": "Stage 1 safety QA local devport probe",
+    "tool_hint": "image.generate"
+  },
+  "requested_count": 1,
+  "quota_reservation_id": "quota_reservation_eaf4cf674b65049aab5b56f5",
+  "quota_estimated_units": 4,
+  "quota_committed_units": 0,
+  "quota_refunded_units": 0,
+  "trace_id": "trace_batch_cc00fd995b97269112d1a59d",
+  "status": "queued",
+  "children": [
+    {
+      "id": "child_affcd1d6978c4a577462b4d7",
+      "batch_id": "batch_e33214c98cd2ce8a91f5dfcf",
+      "tenant_id": "tenant_local",
+      "status": "queued",
+      "provider_id": "zenari-image-sandbox",
+      "model_id": "image-fast-v1",
+      "tool_type": "image.generate",
+      "seed": "batch_e33214c98cd2ce8a91f5dfcf_01",
+      "retry_count": 0,
+      "max_retries": 2,
+      "quota_estimate_units": 4,
+      "quota_committed_units": 0,
+      "quota_refunded_units": 0,
+      "trace_id": "trace_child_acc512fed5def1706cc48829",
+      "visible_trace_ref": "trace_projection_90528527d9c96506e806d11e",
+      "metadata": {
+        "fanout_index": "0",
+        "routing_considered": "zenari-image-sandbox",
+        "routing_fallback_providers": "dev",
+        "routing_selection_policy": "weighted",
+        "routing_selection_reason": "weighted_slot",
+        "routing_strategy_group_id": "image-generation-default",
+        "source": "api"
+      },
+      "created_at": "2026-06-23T03:47:23.157285Z",
+      "updated_at": "2026-06-23T03:47:23.157285Z"
+    }
+  ],
+  "metadata": {
+    "fanout_stage": "queued_children_created_by_api",
+    "idempotency_fingerprint": "a48eb5fa5955739da84b8a40cace5debd25bc20dcf99084aec6f7867d6d4f62c",
+    "routing_selection_policy": "weighted",
+    "routing_strategy_group_id": "image-generation-default",
+    "routing_strategy_group_name": "Zenari image generation default",
+    "scheduler_note": "worker_policy_fanout_pending",
+    "source": "api"
+  },
+  "created_at": "2026-06-23T03:47:23.157285Z",
+  "updated_at": "2026-06-23T03:47:23.157285Z"
+}

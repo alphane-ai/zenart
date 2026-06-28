@@ -1,0 +1,88 @@
+{
+  "schema_version": "stage1.export_object_access.local-contract.v1",
+  "fixture_id": "stage1_export_object_access_local_contract",
+  "kind": "export_object_access_local_contract",
+  "blueprint_items": ["AS-1", "AS-10", "AS-12", "FE-16", "AD-10", "OP-5", "VF-5"],
+  "local_contract": {
+    "object_key_scope": "tenant-scoped-storage-key",
+    "product_download_url": "server-mediated-relative-signed-url",
+    "download_route": "GET /api/v1/objects/download",
+    "runtime_signer_wiring": "stage0.NewService(...).WithDownloadURLSigner(api.SignDownloadURL)",
+    "object_store_direct_signing_used_for_export_download": false,
+    "manifest_object_key_persists_signed_url": false,
+    "download_metadata_requires_active_retention": true,
+    "download_metadata_allows_asset_types": ["export", "thumbnail"],
+    "download_audit_required": true,
+    "download_analytics_required": true,
+    "duplicate_query_parameter_rejected": true,
+    "expired_signed_url_rejected": true,
+    "tampered_tenant_key_rejected": true,
+    "invalid_tenant_scope_rejected_before_storage": true,
+    "unsafe_object_key_rejected_before_storage": true,
+    "content_disposition_filename_sanitized": true,
+    "download_response_discloses_object_key_header": false,
+    "signed_url_material_projected_to_audit_or_analytics": false,
+    "retention_cleanup_marks_metadata_deleted": true,
+    "retention_cleanup_deletes_expired_object_and_marker": true,
+    "retention_cleanup_preserves_unexpired_and_cross_tenant_objects": true
+  },
+  "required_backend_tests": {
+    "server": [
+      "TestSignedDownloadEndpointServesTenantScopedLocalObject",
+      "TestSignedDownloadEndpointRequiresAuditRecorder",
+      "TestSignedDownloadEndpointRejectsDuplicateSignedParamsBeforeAuditOrStorage",
+      "TestSignedDownloadEndpointRejectsExpiredObjectMetadata",
+      "TestSignedDownloadEndpointRejectsTamperedTenantKey",
+      "TestSignedDownloadEndpointRejectsInvalidTenantScopeBeforeStorage",
+      "TestSignedDownloadEndpointRejectsUnsafeObjectKeyBeforeStorage",
+      "TestServerSignDownloadURLBuildsBackendMediatedTenantScopedURL",
+      "TestServerSignDownloadURLRejectsUnsafeObjectKey",
+      "TestServerSignDownloadURLRejectsCrossTenantScopedObjectKey",
+      "TestDownloadFilenameFromKeySanitizesHeaderValue"
+    ],
+    "stage0": [
+      "TestRecordExportArtifactPersistsObjectMetadataAndDeliveryDescriptors",
+      "TestGetExportRedactsStoredSecretMetadata",
+      "TestServiceGetExportSignsPersistedObjectKeyThroughBackendSigner",
+      "TestServiceGetExportDoesNotSignExpiredObject",
+      "TestServiceGetExportRequiresBackendMediatedDownloadSigner",
+      "TestServiceGetExportUsesConfiguredDownloadSigner",
+      "TestRequireDownloadableObjectEnforcesRetentionStateAndExpiry"
+    ],
+    "objectstore": [
+      "TestLocalStoreSignedURLIncludesTenantScopedKey",
+      "TestLocalStorePutWritesExpiryMarkerAndDeleteRemovesObject",
+      "TestLocalStoreCleanupExpiredForTenantOnlyDeletesTenantMarkers",
+      "TestLocalStoreCleanupExpiredSkipsUnscopedExpiryMarkers",
+      "TestLocalStoreCleanupExpiredSkipsCrossTenantMarkerForTenantCleanup",
+      "TestS3StoreSignedURLUsesTenantScopedPathStyleKey",
+      "TestS3StoreCleanupExpiredListsMarkersAndDeletesExpiredObjects"
+    ],
+    "export_manifest": [
+      "TestValidateManifestRejectsSignedURLAndSecretLikeFields"
+    ]
+  },
+  "required_source_files": [
+    "backend/internal/app/runtime.go",
+    "backend/internal/server/server.go",
+    "backend/internal/server/server_test.go",
+    "backend/internal/stage0/services.go",
+    "backend/internal/stage0/services_test.go",
+    "backend/internal/objectstore/store.go",
+    "backend/internal/objectstore/store_test.go",
+    "backend/internal/export/manifest.go",
+    "backend/internal/export/manifest_test.go",
+    "fixtures/stage1/export_manifest_render/local_contract.json",
+    "fixtures/stage1/export_ops/local_contract.json"
+  ],
+  "non_launch_status": {
+    "local_export_object_access_contract": "pass",
+    "strict_staging_signed_url_evidence": "open",
+    "strict_staging_retention_cleanup_evidence": "open",
+    "real_provider_asset_bytes": "open",
+    "production_object_storage_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "can_clear_object_storage_do_not_launch": false
+  }
+}

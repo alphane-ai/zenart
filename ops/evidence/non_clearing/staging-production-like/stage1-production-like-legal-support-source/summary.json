@@ -1,0 +1,8 @@
+{
+  "does_not_clear_production_gate": true,
+  "environment": "staging_production_like",
+  "legal_evidence": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-legal-support-source/public-legal-policy.json",
+  "source": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-legal-support-source/production-legal-support-source.json",
+  "status": "pass",
+  "support_evidence": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-legal-support-source/public-support-billing-policy.json"
+}

@@ -8,7 +8,6 @@ OUT_DIR="${OUT_DIR:-ops/evidence/staging}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 RUN_ID="${RUN_ID:-${STAMP}-staging-observability-backup-load-$$}"
 REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
-DRY_RUN="${DRY_RUN:-0}"
 
 RELEASE_SHA="${RELEASE_SHA:-${GITHUB_SHA:-}}"
 EVIDENCE_ENVIRONMENT="${EVIDENCE_ENVIRONMENT:-staging}"
@@ -19,58 +18,6 @@ POST_DEPLOY_SMOKE_EVIDENCE="${POST_DEPLOY_SMOKE_EVIDENCE:-}"
 PRIVATE_BETA_GATE_FIXTURE="${PRIVATE_BETA_GATE_FIXTURE:-fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json}"
 
 mkdir -p "$OUT_DIR"
-
-if [[ "$DRY_RUN" == "1" ]]; then
-  python3 - "$REPORT_PATH" "$RUN_ID" "$RELEASE_SHA" "$EVIDENCE_ENVIRONMENT" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-report_path = Path(sys.argv[1])
-run_id = sys.argv[2]
-release_sha = sys.argv[3].strip()
-environment = sys.argv[4].strip() or "staging"
-report = {
-    "blueprint_source": "Docs/stage0_blueprint_rev2.md",
-    "created_by_lane": "lane5",
-    "created_at": report_path.name.split("-staging-observability-backup-load-")[0],
-    "run_id": run_id,
-    "kind": "staging_observability_backup_load_preflight",
-    "environment": environment,
-    "release_sha": release_sha,
-    "status": "blocked",
-    "dry_run": True,
-    "blocking_reasons": ["dry_run_requires_real_staging_observability_backup_load_inputs"],
-    "blocked_slots": [
-        "observability_evidence",
-        "backup_restore_evidence",
-        "load_evidence",
-        "post_deploy_smoke_evidence",
-    ],
-    "missing_blockers": ["staging_observability_restore_load_missing"],
-    "release_gate_check_id": "staging_observability_backup_load",
-    "blueprint_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence 通过。",
-    "gate_impact": {
-        "aggregate_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence 通过。",
-        "can_clear_aggregate_item": False,
-        "preserved_do_not_launch_condition_id": "staging_observability_restore_load_missing",
-        "preserved_release_gate_check_id": "staging_observability_backup_load",
-        "blocked_slots": [
-            "observability_evidence",
-            "backup_restore_evidence",
-            "load_evidence",
-            "post_deploy_smoke_evidence",
-        ],
-        "closure_blockers": ["dry_run"],
-    },
-    "private_beta_gate": "open_until_this_preflight_passes_with_real_staging_evidence_and_release_gate_fixture_is_updated",
-    "production_gate": "open_until_ci_private_beta_and_production_backup_rollback_post_deploy_evidence_pass",
-}
-report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-print(report_path)
-PY
-  exit 2
-fi
 
 python3 - \
   "$REPORT_PATH" \

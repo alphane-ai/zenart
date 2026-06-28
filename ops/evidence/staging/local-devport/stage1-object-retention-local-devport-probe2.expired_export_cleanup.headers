@@ -1,0 +1,17 @@
+HTTP/1.1 500 Internal Server Error
+Access-Control-Allow-Credentials: true
+Access-Control-Allow-Headers: Content-Type, Authorization, X-Request-ID, X-Zenari-User-ID, X-Zenari-Tenant-ID, X-Zenari-Roles, Idempotency-Key, X-Zenari-CSRF
+Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+Access-Control-Allow-Origin: http://localhost:26081
+Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'
+Content-Type: application/json
+Cross-Origin-Resource-Policy: same-site
+Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+Referrer-Policy: no-referrer
+Vary: Origin
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-Request-Id: stage0-object-retention-cleanup-expired_export_cleanup
+Date: Tue, 23 Jun 2026 03:20:08 GMT
+Content-Length: 535
+

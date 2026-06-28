@@ -1,0 +1,53 @@
+{
+  "schema_version": "stage1.result-placement-contract.v1",
+  "fixture_id": "stage1_result_placement_local_contract",
+  "kind": "batch_result_to_canvas_asset_library_local_contract",
+  "blueprint_source": "Docs/Stage1_20260621_blueprint.md",
+  "blueprint_items": ["FE-11", "WK-9", "AS-3", "AS-8", "VF-2"],
+  "source_files": [
+    "web/lib/result-placement.ts",
+    "web/lib/result-placement.test.ts",
+    "web/lib/api-client.ts",
+    "web/lib/api-client.test.ts",
+    "web/components/workspace-app.tsx",
+    "web/components/workspace-app.smoke.test.tsx"
+  ],
+  "placement_policy": {
+    "source": "succeeded batch child task with asset_id, canvas_object_id, and trace_id",
+    "canvas_node_kind": "generated_layer",
+    "asset_library_lineage_kind": "batch_child_provider_result",
+    "idempotent_by": ["canvas_object_id", "asset_id"],
+    "edge_source": "node-brief",
+    "canvas_version_snapshot_label": "Batch result placement",
+    "raw_provider_payload_projected": false,
+    "failed_or_cancelled_child_projected": false
+  },
+  "required_ui_anchors": [
+    "data-result-placement-contract",
+    "data-result-placement-status",
+    "data-result-placement-projected-child-count",
+    "data-result-placement-canvas-object-count",
+    "data-result-placement-asset-library-entry-count",
+    "data-result-placement-latest-child-id",
+    "data-result-placement-latest-asset-id",
+    "data-result-placement-latest-canvas-object-id",
+    "data-result-placement-latest-trace-id",
+    "data-result-placement-duplicate-count",
+    "data-result-placement-missing-count",
+    "data-result-placement-raw-provider-payload"
+  ],
+  "focused_tests": [
+    "projects successful batch children into canvas nodes and asset library entries",
+    "keeps repeated progress refreshes idempotent",
+    "refreshes batch progress, children, and result ids through the batch API",
+    "exposes Stage 1 canvas toolbar, layers, zoom, drag, and keyboard interaction contract"
+  ],
+  "non_launch_status": {
+    "local_result_placement_contract": "pass",
+    "local_api_refresh_projection": "pass",
+    "staging_backend_result_visibility": "open",
+    "real_provider_asset_bytes": "open",
+    "signed_url_retention_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false
+  }
+}

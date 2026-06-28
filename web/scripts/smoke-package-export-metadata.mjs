@@ -153,7 +153,7 @@ for (const payloadName of [
   "ppt-ready-metadata.json",
   "metadata.json",
   "trace_provenance.json",
-  "assets/README.txt"
+  "assets/local-rendered-asset-manifest.json"
 ]) {
   if (!packageExportPlaywrightSpecSource.includes(payloadName)) {
     fail(`package/export metadata browser smoke missing downloaded ZIP payload assertion for ${payloadName}`);
@@ -505,7 +505,7 @@ for (const requiredPayloadBuilderSnippet of [
   "ai-content-disclaimer.json",
   "ppt-ready-metadata.json",
   "provenance.json",
-  "assets/README.txt",
+  "assets/local-rendered-asset-manifest.json",
   "buildDownloadableExportZipPayloadNames(record)",
   "Unsafe export ZIP payload name",
   "buildExportWorkflowMetadataPayload(record, requiredPayload)",
@@ -806,7 +806,7 @@ if (
 if (
   browserContracts.referenceUpload?.expectedUploadMethod !== "POST" ||
   browserContracts.referenceUpload?.expectedUploadPath !== "/uploads" ||
-  browserContracts.referenceUpload?.expectedUploadCsrfHeader !== "X-ZenArt-CSRF" ||
+  browserContracts.referenceUpload?.expectedUploadCsrfHeader !== "X-Zenari-CSRF" ||
   browserContracts.referenceUpload?.expectedUploadIdempotencyRequired !== "true" ||
   browserContracts.referenceUpload?.expectedPreviewScope !== "tenant-scoped-dev-preview" ||
   browserContracts.referenceUpload?.expectedRejectedReferencePackagedCount !== "0" ||

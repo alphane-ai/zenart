@@ -56,8 +56,8 @@ export const analyticsEventTaxonomy: Record<AnalyticsEventName, string> = {
   frontend_error_reported: "Client captured a sanitized frontend error report."
 };
 
-export const analyticsStorageKey = "zenart.dev.analytics.v1";
-export const frontendErrorStorageKey = "zenart.dev.frontend-errors.v1";
+export const analyticsStorageKey = "zenari.dev.analytics.v1";
+export const frontendErrorStorageKey = "zenari.dev.frontend-errors.v1";
 
 const maxStoredRecords = 100;
 

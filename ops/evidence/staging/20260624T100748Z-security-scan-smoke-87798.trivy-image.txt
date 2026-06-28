@@ -1,0 +1,1 @@
+trivy not installed; image scan runtime remains open

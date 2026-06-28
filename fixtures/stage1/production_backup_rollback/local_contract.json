@@ -1,0 +1,116 @@
+{
+  "schema_version": "stage1.production_backup_rollback.contract.v1",
+  "fixture_id": "stage1_production_backup_rollback_local_contract",
+  "kind": "production_backup_rollback_exact_evidence_contract",
+  "canonical_backup_restore_evidence_path": "ops/evidence/production/backup-restore.json",
+  "canonical_rollback_incident_post_deploy_evidence_path": "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+  "split_preflight_path": "ops/evidence/production/backup-rollback-split.blocked.json",
+  "split_preflight_policy": {
+    "generator_command": "scripts/production_backup_rollback_split_smoke.sh",
+    "validator_command": "python3 scripts/validate_stage1_production_backup_rollback_evidence.py --allow-preflight",
+    "validator_flag": "--allow-preflight",
+    "status_ready_does_not_clear_gate": true,
+    "canonical_split_files_written": false,
+    "can_clear_release_gate_check": false,
+    "requires_ci_gate_go_for_strict_evidence": true,
+    "requires_private_beta_staging_go_for_strict_evidence": true,
+    "requires_canonical_backup_restore_evidence": "ops/evidence/production/backup-restore.json",
+    "requires_canonical_rollback_incident_post_deploy_evidence": "ops/evidence/production/rollback-incident-post-deploy-smoke.json"
+  },
+  "strict_backup_schema_version": "stage1.production_backup_restore.v1",
+  "strict_rollback_schema_version": "stage1.production_rollback_incident_post_deploy.v1",
+  "release_gate_status": "contract_ready_exact_production_backup_rollback_evidence_open",
+  "required_environment": "production",
+  "required_release_gate_check_id": "production_backup_rollback_incident",
+  "required_release_sha_pattern": "^[0-9a-f]{40}$",
+  "required_upstream_gate_refs": [
+    "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+    "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+    "ops/evidence/staging/stage1-runtime.json"
+  ],
+  "required_ci_evidence_refs": [
+    "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+    "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+    "ops/evidence/ci/stage0-rev2-docker-image-build.json"
+  ],
+  "required_backup_restore_sections": [
+    "backup_schedule",
+    "postgres_restore",
+    "object_restore",
+    "asset_lineage",
+    "billing_ledger",
+    "rpo_rto",
+    "audit_refs"
+  ],
+  "required_rollback_sections": [
+    "app_rollback",
+    "feature_flag_rollback",
+    "backend_runtime_worker_rollback",
+    "worker_drain",
+    "migration_compatibility",
+    "incident_alert_path",
+    "post_deploy_smoke",
+    "upstream_gate_dependencies",
+    "audit_refs"
+  ],
+  "required_backup_restore_proofs": [
+    "backup schedule",
+    "Postgres restore",
+    "object restore",
+    "asset lineage",
+    "billing ledger",
+    "RPO/RTO",
+    "audit refs"
+  ],
+  "required_rollback_proofs": [
+    "app rollback",
+    "feature flag rollback",
+    "backend image runtime-worker rollback",
+    "backend release image",
+    "runtime-worker backend target",
+    "/app/worker entrypoint",
+    "worker drain",
+    "migration compatibility",
+    "incident/alert path",
+    "post-deploy smoke",
+    "CI and staging dependencies go",
+    "audit refs"
+  ],
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false
+  },
+  "strict_evidence_policy": {
+    "environment": "production",
+    "status": "pass",
+    "release_sha_full_40_hex": true,
+    "release_sha_must_match_between_split_files": true,
+    "canonical_pass_path_required": true,
+    "backup_gate_impact_can_clear_required": true,
+    "rollback_gate_impact_can_clear_required": true,
+    "backend_runtime_worker_rollback_target_required": true,
+    "upstream_ci_gate_must_be_go": true,
+    "upstream_private_beta_staging_gate_must_be_go": true,
+    "strict_staging_runtime_must_be_pass": true,
+    "allow_local_devport_debug": false,
+    "allow_local_devport_evidence": false,
+    "allow_dry_run": false,
+    "allow_blocked_status": false,
+    "allow_no_go_status": false,
+    "allow_preserved_blockers": false,
+    "allow_raw_or_secret_payloads": false
+  },
+  "remaining_evidence": [
+    "production backup split exact pass evidence at ops/evidence/production/backup-restore.json",
+    "production rollback/incident/post-deploy exact pass evidence at ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+    "CI gate exact pass evidence and gate fixture go",
+    "Stage 1 strict staging runtime evidence and private beta/staging gate fixture go",
+    "production launch aggregate remains no-go until all production launch components pass"
+  ]
+}

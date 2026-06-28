@@ -1,0 +1,94 @@
+{
+  "schema_version": "stage1.api_error_taxonomy.contract.v1",
+  "kind": "backend_api_error_taxonomy_contract",
+  "contract_version": 1,
+  "blueprint_items": ["BE-14", "FE-10", "FE-16", "OP-13"],
+  "backend_package": "backend/internal/api",
+  "openapi_source": "openapi/zenart.v1.yaml",
+  "shared_envelope": {
+    "schema": "ErrorEnvelope",
+    "required_fields": ["code", "message", "request_id", "taxonomy", "retryable", "blocked", "details", "field_errors"],
+    "backward_compatible_fields_preserved": ["code", "message", "request_id", "details", "field_errors"]
+  },
+  "taxonomy_categories": [
+    "validation",
+    "auth",
+    "forbidden",
+    "not_found",
+    "conflict",
+    "retryable",
+    "blocked",
+    "quota_insufficient",
+    "provider_unavailable",
+    "review_required",
+    "internal"
+  ],
+  "blueprint_error_states": [
+    {
+      "state": "retryable",
+      "example_code": "rate_limit_exceeded",
+      "http_status": 429,
+      "retryable": true,
+      "blocked": false
+    },
+    {
+      "state": "blocked",
+      "example_code": "safety_blocked",
+      "http_status": 409,
+      "retryable": false,
+      "blocked": true
+    },
+    {
+      "state": "quota_insufficient",
+      "example_code": "batch_quota_insufficient",
+      "http_status": 402,
+      "retryable": false,
+      "blocked": true
+    },
+    {
+      "state": "provider_unavailable",
+      "example_code": "provider_unavailable",
+      "http_status": 502,
+      "retryable": true,
+      "blocked": false
+    },
+    {
+      "state": "review_required",
+      "example_code": "safety_review_required",
+      "http_status": 409,
+      "retryable": false,
+      "blocked": true
+    }
+  ],
+  "runtime_wiring": {
+    "writer": "backend/internal/server/writeError",
+    "top_level_fields": ["taxonomy", "retryable", "blocked"],
+    "details_projection": "details.taxonomy",
+    "redaction_boundary": "details are redacted before taxonomy is attached"
+  },
+  "required_code_anchors": [
+    "type ErrorTaxonomy",
+    "ErrorCategoryRetryable",
+    "ErrorCategoryBlocked",
+    "ErrorCategoryQuotaInsufficient",
+    "ErrorCategoryProviderUnavailable",
+    "ErrorCategoryReviewRequired",
+    "ClassifyError",
+    "writeError",
+    "ErrorTaxonomy:"
+  ],
+  "non_launch_status": {
+    "local_contract": "pass",
+    "frontend_staging_error_state_evidence": "open",
+    "production_security_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_security_gate": false
+  },
+  "required_staging_evidence": [
+    "frontend handles retryable rate limit and provider unavailable states without raw provider payloads",
+    "frontend handles quota_insufficient and review_required states with stable blocked UI",
+    "deployed API emits taxonomy fields for billing, provider, batch, safety, and auth failures",
+    "production security launch check covers API error redaction and taxonomy stability"
+  ],
+  "release_note": "Local BE-14 API error taxonomy contract only; frontend staging error-state evidence and production security launch evidence remain required before launch."
+}

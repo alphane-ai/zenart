@@ -1,0 +1,60 @@
+{
+  "fixture_id": "stripe_lifecycle_local_reconciliation",
+  "contract_version": 1,
+  "release_gate_status": "contract_ready_staging_stripe_lifecycle_evidence_open",
+  "reconciler": "StripeLifecycleReconciler",
+  "input": {
+    "tenant_id": "tenant_1",
+    "user_id": "user_1",
+    "bucket_id": "monthly_generation",
+    "provider_subscription_id": "sub_test_001",
+    "reset_due_quotas": true
+  },
+  "required_event_types": [
+    "checkout.session.completed",
+    "invoice.paid",
+    "invoice.payment_failed",
+    "customer.subscription.deleted"
+  ],
+  "required_subscription_statuses": [
+    "active",
+    "past_due",
+    "cancelled"
+  ],
+  "required_admin_operations": [
+    "refund_note",
+    "manual_credit"
+  ],
+  "required_quota_transactions": [
+    "admin_credit",
+    "commit"
+  ],
+  "report_contract": {
+    "checkout_seen": true,
+    "invoice_paid_seen": true,
+    "payment_failed_seen": true,
+    "cancel_seen": true,
+    "refund_credit_seen": true,
+    "quota_credit_seen": true,
+    "quota_projection_valid": true,
+    "quota_reset_invoked": true,
+    "webhook_replay_idempotent": true,
+    "secret_material_projected": false,
+    "ready_for_staging_evidence": true
+  },
+  "safe_projection_policy": {
+    "reads_raw_webhook_payload": false,
+    "projects_secret_material": false,
+    "uses_event_summary_counts": true,
+    "uses_admin_operation_summary_counts": true,
+    "uses_quota_transaction_summary_counts": true
+  },
+  "remaining_staging_evidence": [
+    "Stripe test checkout session created against staging API",
+    "Stripe CLI webhook replay proves first delivery mutates and replay does not",
+    "paid, past_due, cancel_at_period_end, subscription_cancelled, refund_credit scenarios captured in ops/evidence/staging/stripe-test-checkout-webhook.json",
+    "invoice and receipt URLs visible in the deployed user billing UI",
+    "quota reset and refund/credit reconciliation verified against deployed Postgres"
+  ],
+  "release_note": "Local Stripe lifecycle reconciliation contract exists for BL-4/BL-5; BL-9 staging Stripe checkout/webhook evidence remains open and must be produced by scripts/stage1_stripe_staging_smoke.sh before launch."
+}

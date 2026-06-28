@@ -22,7 +22,7 @@
     {
       "name": "CI",
       "purpose": "contract, fixture, app, compose, generated-client, image-build, and scan validation",
-      "entrypoint": ".github/workflows/stage0-rev2-ci.yml installed from ops/ci/stage0-rev2-ci.yml",
+      "entrypoint": "ops/ci/stage0-rev2-ci.yml draft; install under .github/workflows only with workflow-scoped token",
       "required_services": [
         "postgres",
         "redis",
@@ -64,8 +64,7 @@
   ],
   "ci_draft": {
     "path": "ops/ci/stage0-rev2-ci.yml",
-    "not_installed_reason": null,
-    "installed_workflow_path": ".github/workflows/stage0-rev2-ci.yml",
+    "not_installed_reason": "resolved: installed workflow exists; runtime PR/main evidence, Playwright evidence, and Docker image build evidence remain required",
     "installation_checklist": "ops/ci/INSTALLATION.md",
     "required_checks": [
       "web_admin_lint_typecheck_unit_build",
@@ -76,8 +75,12 @@
       "api_agent_contract_tests",
       "security_scan_smoke",
       "docker_image_sha_build",
-      "playwright_smoke_wrapper"
-    ]
+      "playwright_smoke_wrapper",
+      "stage1_prelaunch_contract_validators",
+      "stripe_sandbox_selftest_when_ci_test_secrets_present"
+    ],
+    "entrypoint": ".github/workflows/stage0-rev2-ci.yml installed from ops/ci/stage0-rev2-ci.yml and extended with Stage 1 pre-launch contract validation",
+    "installed_workflow": ".github/workflows/stage0-rev2-ci.yml"
   },
   "feature_flags": [
     {
@@ -103,9 +106,9 @@
   ],
   "open_items": [
     {
-      "id": "install_github_actions_workflow",
-      "status": "installed",
-      "owner": "master-integration",
+      "id": "ci_installed_workflow",
+      "status": "installed_pending_runtime_evidence",
+      "owner": "ci owner",
       "evidence": ".github/workflows/stage0-rev2-ci.yml"
     },
     {

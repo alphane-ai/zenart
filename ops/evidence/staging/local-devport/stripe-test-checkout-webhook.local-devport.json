@@ -1,0 +1,261 @@
+{
+  "api_url": "http://127.0.0.1:31080",
+  "blocked_checks": [
+    "local_devport_debug_evidence_cannot_clear_staging_gate"
+  ],
+  "environment": "staging",
+  "evidence_id": "stage1-stripe-staging",
+  "gate_impact": {
+    "can_clear_stripe_staging_gate": false,
+    "preserved_do_not_launch_condition_id": "stripe_staging_lifecycle_runtime_missing",
+    "preserved_release_gate_check_id": "stage1_stripe_test_checkout_webhook",
+    "remaining_blockers": [
+      "local-devport debug evidence cannot clear canonical staging Stripe gate"
+    ]
+  },
+  "kind": "stripe_test_checkout_webhook",
+  "livemode": false,
+  "local_devport_debug": true,
+  "probe_contract": {
+    "allow_local_devport_evidence_env": "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 writes debug-only Stripe evidence under ops/evidence/staging/local-devport/ and cannot clear staging gates",
+    "canonical_pass_report": "ops/evidence/staging/stripe-test-checkout-webhook.json",
+    "canonical_pass_results": "ops/evidence/staging/stripe-test-checkout-webhook.ndjson",
+    "local_devport_report": "ops/evidence/staging/local-devport/stripe-test-checkout-webhook.local-devport.json",
+    "local_devport_results": "ops/evidence/staging/local-devport/stripe-test-checkout-webhook.local-devport.ndjson",
+    "production_like_local_fixture_command": "API_URL=https://zenari-staging.example.test:<port> API_URL_RESOLVE_ADDR=127.0.0.1 API_URL_CA_CERT=<self-signed-ca.pem> WEB_URL=https://zenari-staging.example.test:<web-port> WEB_URL_RESOLVE_ADDR=127.0.0.1 WEB_URL_CA_CERT=<self-signed-ca.pem> ADMIN_URL=https://zenari-staging.example.test:<admin-port> ADMIN_URL_RESOLVE_ADDR=127.0.0.1 ADMIN_URL_CA_CERT=<self-signed-ca.pem> ALLOW_LOCAL_DEVPORT_EVIDENCE=1 USE_DEV_IDENTITY_HEADERS=1 scripts/stage1_stripe_staging_smoke.sh"
+  },
+  "raw_stripe_key_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_webhook_secret_persisted": false,
+  "release_sha": "",
+  "results_path": "ops/evidence/staging/local-devport/stripe-test-checkout-webhook.local-devport.ndjson",
+  "runtime_input_readiness": {
+    "admin_auth_ready": true,
+    "allow_local_devport_evidence": true,
+    "canonical_pass_path": false,
+    "csrf_ready": true,
+    "staging_api_url_ready": true,
+    "stripe_cli_ready": true,
+    "use_dev_identity_headers": true,
+    "user_auth_ready": true,
+    "webhook_forwarding_ready": true
+  },
+  "scenarios": [
+    {
+      "checkout_session": {
+        "id": "cs_test_a1a7Y7jAz9kQ2xi8M5CsDpfj5OkcXUtMSs2LIsQ9IOmbcLlx1bXtCQxM1y",
+        "idempotency_key": "stage1-stripe-staging-checkout_session_created",
+        "livemode": false,
+        "metadata": {
+          "plan_id": "plan_pro",
+          "tenant_id": "tenant_local",
+          "user_id": "user_local_user"
+        },
+        "mode": "subscription",
+        "url": "https://checkout.stripe.com/c/pay/cs_test_a1a7Y7jAz9kQ2xi8M5CsDpfj5OkcXUtMSs2LIsQ9IOmbcLlx1bXtCQxM1y#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDRRbmZkVkJPZnJjPEdoYk0xc0k3b3UyQlVATXxKXzE9SGM8XD1fSXBRVVNcRGtKbG4xaUJ1YWpAdndNaG5mMV9wMGJLamtPfV1HX3VubmJqS0lqZ3dVdnE1NTBOPFxWbTZxJyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl"
+      },
+      "livemode": false,
+      "request_id": "stage1-stripe-staging-checkout_session_created",
+      "scenario_id": "checkout_session_created",
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "event": {
+        "id": "evt_stage1_stripe_staging_checkout_completed",
+        "livemode": false,
+        "type": "checkout.session.completed"
+      },
+      "livemode": false,
+      "request_id": "stage1-stripe-staging-checkout_completed_paid",
+      "scenario_id": "checkout_completed_paid",
+      "secret_leak_detected": false,
+      "status": "passed",
+      "subscription": {
+        "id": "sub_1TlH5jGJcwf9BmgHpehbDDpf",
+        "plan_id": "plan_pro",
+        "provider_ref": "sub_1TlH5jGJcwf9BmgHpehbDDpf",
+        "status": "active"
+      }
+    },
+    {
+      "event": {
+        "id": "evt_stage1_stripe_staging_invoice_paid",
+        "livemode": false,
+        "type": "invoice.paid"
+      },
+      "invoice": {
+        "hosted_invoice_url": "https://invoice.stripe.com/i/acct_1TkcaSGJcwf9BmgH/test_YWNjdF8xVGtjYVNHSmN3ZjlCbWdILF9Va21mdWxUODJ6dGFKOU5xZDNUaGZKWmV6VHZtVUk1LDE3MjcxMTA0OQ0200o7j77cln?s=ap",
+        "id": "in_1TlH5jGJcwf9BmgHCL629q4M",
+        "invoice_pdf": "https://pay.stripe.com/invoice/acct_1TkcaSGJcwf9BmgH/test_YWNjdF8xVGtjYVNHSmN3ZjlCbWdILF9Va21mdWxUODJ6dGFKOU5xZDNUaGZKWmV6VHZtVUk1LDE3MjcxMTA0OQ0200o7j77cln/pdf?s=ap",
+        "livemode": false,
+        "status": "paid"
+      },
+      "livemode": false,
+      "request_id": "stage1-stripe-staging-invoice_paid",
+      "scenario_id": "invoice_paid",
+      "secret_leak_detected": false,
+      "status": "passed",
+      "subscription": {
+        "id": "sub_1TlH5jGJcwf9BmgHpehbDDpf",
+        "plan_id": "plan_pro",
+        "provider_ref": "sub_1TlH5jGJcwf9BmgHpehbDDpf",
+        "status": "active"
+      }
+    },
+    {
+      "account_projection": {
+        "subscription_status": "past_due"
+      },
+      "event": {
+        "id": "evt_stage1_stripe_staging_payment_failed",
+        "livemode": false,
+        "type": "invoice.payment_failed"
+      },
+      "livemode": false,
+      "request_id": "stage1-stripe-staging-invoice_payment_failed",
+      "scenario_id": "invoice_payment_failed",
+      "secret_leak_detected": false,
+      "status": "passed",
+      "subscription": {
+        "id": "sub_1TlH5jGJcwf9BmgHpehbDDpf",
+        "plan_id": "plan_pro",
+        "provider_ref": "sub_1TlH5jGJcwf9BmgHpehbDDpf",
+        "status": "past_due"
+      }
+    },
+    {
+      "account_projection": {
+        "cancel_at_period_end": true
+      },
+      "livemode": false,
+      "request_id": "stage1-stripe-staging-cancel_at_period_end",
+      "scenario_id": "cancel_at_period_end",
+      "secret_leak_detected": false,
+      "status": "passed",
+      "subscription": {
+        "cancel_at_period_end": true,
+        "current_period_end": "2026-07-22T23:17:23Z",
+        "id": "sub_1TlH5jGJcwf9BmgHpehbDDpf",
+        "livemode": false,
+        "status": "active"
+      }
+    },
+    {
+      "account_projection": {
+        "subscription_status": "cancelled"
+      },
+      "event": {
+        "id": "evt_stage1_stripe_staging_subscription_cancelled",
+        "livemode": false,
+        "type": "customer.subscription.deleted"
+      },
+      "livemode": false,
+      "request_id": "stage1-stripe-staging-subscription_cancelled",
+      "scenario_id": "subscription_cancelled",
+      "secret_leak_detected": false,
+      "status": "passed",
+      "subscription": {
+        "id": "sub_1TlH5jGJcwf9BmgHpehbDDpf",
+        "plan_id": "plan_pro",
+        "provider_ref": "sub_1TlH5jGJcwf9BmgHpehbDDpf",
+        "status": "cancelled"
+      }
+    },
+    {
+      "admin_operation": {
+        "idempotency_key": "stage1-stripe-staging-refund_credit",
+        "operation": "refund_note"
+      },
+      "livemode": false,
+      "quota_credit": {
+        "transaction_id": "billing_admin_2b702d7151a7ec72e4904f03",
+        "units": 25
+      },
+      "refund": {
+        "id": "refund_test_manual",
+        "livemode": false,
+        "status": "succeeded"
+      },
+      "request_id": "stage1-stripe-staging-refund_credit",
+      "scenario_id": "refund_credit",
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "duplicate_mutation_count": 0,
+      "event": {
+        "id": "evt_stage1_stripe_staging_checkout_completed",
+        "livemode": false,
+        "type": "checkout.session.completed"
+      },
+      "first_delivery_mutations": 1,
+      "idempotency_verified": true,
+      "livemode": false,
+      "replay_attempted": true,
+      "replay_delivery_mutations": 0,
+      "request_id": "stage1-stripe-staging-webhook_replay_idempotency",
+      "scenario_id": "webhook_replay_idempotency",
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "livemode": false,
+      "quota": {
+        "bucket_id": "quota_local_user_monthly",
+        "limit_units": 125,
+        "reserved_units": 0,
+        "transactions": [
+          {
+            "id": "billing_admin_2b702d7151a7ec72e4904f03",
+            "kind": "manual_credit",
+            "units": 25
+          }
+        ],
+        "used_units": 0
+      },
+      "request_id": "stage1-stripe-staging-quota_projection",
+      "scenario_id": "quota_projection",
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "invoice": {
+        "hosted_invoice_url": "https://invoice.stripe.com/i/acct_1TkcaSGJcwf9BmgH/test_YWNjdF8xVGtjYVNHSmN3ZjlCbWdILF9Va21mdWxUODJ6dGFKOU5xZDNUaGZKWmV6VHZtVUk1LDE3MjcxMTA0OQ0200o7j77cln?s=ap",
+        "id": "in_1TlH5jGJcwf9BmgHCL629q4M",
+        "invoice_pdf": "https://pay.stripe.com/invoice/acct_1TkcaSGJcwf9BmgH/test_YWNjdF8xVGtjYVNHSmN3ZjlCbWdILF9Va21mdWxUODJ6dGFKOU5xZDNUaGZKWmV6VHZtVUk1LDE3MjcxMTA0OQ0200o7j77cln/pdf?s=ap",
+        "livemode": false
+      },
+      "livemode": false,
+      "request_id": "stage1-stripe-staging-invoice_receipt_visibility",
+      "scenario_id": "invoice_receipt_visibility",
+      "secret_leak_detected": false,
+      "status": "passed",
+      "ui_projection": {
+        "invoice_visible": true,
+        "receipt_visible": true,
+        "secret_visible": false
+      }
+    }
+  ],
+  "schema_version": "stage1.stripe_staging_lifecycle.v1",
+  "secret_material_persisted": false,
+  "secret_material_present": true,
+  "status": "blocked",
+  "stripe_mode": "test",
+  "summary": {
+    "checkout_created": true,
+    "invoice_receipt_visible": true,
+    "refund_credit_reconciled": true,
+    "subscription_statuses": [
+      "active",
+      "past_due",
+      "cancel_at_period_end",
+      "cancelled"
+    ],
+    "webhook_replay_idempotent": true
+  },
+  "use_dev_identity_headers": true,
+  "web_url": "http://localhost:26080",
+  "webhook_signature_persisted": false
+}

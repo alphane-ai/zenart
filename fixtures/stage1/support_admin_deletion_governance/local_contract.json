@@ -1,0 +1,105 @@
+{
+  "schema_version": "stage1.support_admin_deletion_governance.contract.v1",
+  "kind": "support_admin_deletion_governance_contract",
+  "blueprint_items": ["AD-12", "BE-12", "OP-12", "OP-13", "VF-5", "VF-7"],
+  "admin_route": "admin/app/support/page.tsx",
+  "data_source": "admin support fixture or future backend support deletion governance API projection",
+  "route_marker": "stage1.support-admin-deletion-governance-local-contract",
+  "required_deletion_fields": [
+    "requestId",
+    "requestType",
+    "subjectUserId",
+    "tenantId",
+    "supportTicketId",
+    "status",
+    "requiredRole",
+    "secondReviewRequired",
+    "secondReviewStatus",
+    "abuseHoldRef",
+    "linkedTraceIds",
+    "linkedAssetIds",
+    "linkedExportIds",
+    "billingReferenceIds",
+    "retainedEvidenceRefs",
+    "deletionPlan",
+    "retentionBoundary",
+    "blockedReason",
+    "userVisibleMessage",
+    "auditRef"
+  ],
+  "required_request_types": [
+    "account_deletion",
+    "project_deletion",
+    "export_deletion",
+    "billing_data_erasure_review"
+  ],
+  "required_statuses": [
+    "blocked_pending_evidence",
+    "ready_for_second_review",
+    "retention_hold",
+    "closed_no_action"
+  ],
+  "required_linked_evidence": [
+    "support_ticket",
+    "abuse_hold",
+    "trace_projection",
+    "asset_or_export_ref",
+    "billing_reference",
+    "retention_boundary",
+    "second_review",
+    "immutable_audit"
+  ],
+  "denied_projection_fields": [
+    "raw_support_body",
+    "raw_prompt",
+    "provider_payload",
+    "billing_payload",
+    "secret",
+    "api_key",
+    "authorization",
+    "cookie",
+    "signed_url",
+    "stripe_payload",
+    "webhook_signature"
+  ],
+  "preserved_do_not_launch_conditions": [
+    "public_legal_support_policy_not_deployed",
+    "production_security_launch_checks_incomplete",
+    "production_paid_billing_lifecycle",
+    "object_storage_signed_retention_runtime_missing"
+  ],
+  "blocked_gate_checks": [
+    "staging_legal_external_user_pages",
+    "production_legal_support_policy",
+    "production_security_launch_checks",
+    "production_paid_billing_lifecycle"
+  ],
+  "required_controls": [
+    "data-support-deletion-governance-contract",
+    "data-support-deletion-non-launch-status",
+    "data-support-deletion-blocked-gate-checks",
+    "data-support-deletion-preserved-dnl",
+    "data-support-deletion-required-fields",
+    "data-support-deletion-linked-evidence",
+    "data-support-deletion-denied-fields",
+    "data-support-deletion-request-links"
+  ],
+  "non_launch_status": {
+    "local_contract": "pass",
+    "staging_evidence": "open",
+    "production_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "can_close_do_not_launch": false,
+    "mutation_controls_enabled": false
+  },
+  "required_files": [
+    "admin/app/support/page.tsx",
+    "admin/lib/types.ts",
+    "admin/lib/fixtures.ts",
+    "admin/lib/admin-api.ts",
+    "admin/tests/admin-data.test.mjs",
+    "scripts/validate_stage1_support_admin_deletion_governance_contract.py",
+    "Docs/researches/stage1_gap_inventory.md"
+  ]
+}

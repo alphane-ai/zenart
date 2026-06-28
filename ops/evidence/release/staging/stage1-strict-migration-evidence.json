@@ -1,0 +1,72 @@
+{
+  "authorization_header_persisted": false,
+  "checks": [
+    {
+      "check_id": "schema_migration_count_match",
+      "evidence_refs": [
+        "backend/migrations",
+        "staging schema_migrations count=22"
+      ],
+      "status": "passed"
+    },
+    {
+      "check_id": "expand_contract_compatibility",
+      "evidence_refs": [
+        "backend/migrations/0020_stage1_local_runtime_drift_repair.sql",
+        "backend/migrations/0021_stage1_provider_strategy_metadata_repair.sql",
+        "backend/migrations/0022_stage1_provider_usage_batch_task_refs.sql"
+      ],
+      "status": "passed"
+    },
+    {
+      "check_id": "backend_runtime_entrypoints_compatible",
+      "evidence_refs": [
+        "docker-compose.yml",
+        "ops/evidence/staging/stage1-runtime.json"
+      ],
+      "status": "passed"
+    }
+  ],
+  "cookie_persisted": false,
+  "environment": "staging",
+  "gate_impact": {
+    "can_clear_stage1_production_launch_gate": false
+  },
+  "generated_at": "2026-06-24T11:33:15+00:00",
+  "kind": "migration",
+  "migration_count": 22,
+  "migration_files": [
+    "backend/migrations/0001_lane1_core.sql",
+    "backend/migrations/0002_stage0_rev2_domains.sql",
+    "backend/migrations/0003_export_object_metadata_cleanup.sql",
+    "backend/migrations/0004_server_side_analytics_events.sql",
+    "backend/migrations/0005_tenant_isolation_constraints.sql",
+    "backend/migrations/0006_support_ticket_evidence_links.sql",
+    "backend/migrations/0007_support_ticket_required_evidence.sql",
+    "backend/migrations/0008_immutable_audit_logs.sql",
+    "backend/migrations/0009_server_side_workflow_analytics_triggers.sql",
+    "backend/migrations/0010_export_status_analytics_triggers.sql",
+    "backend/migrations/0011_stage1_provider_batch_contracts.sql",
+    "backend/migrations/0012_stage1_stripe_billing_contracts.sql",
+    "backend/migrations/0013_stage1_admin_billing_ops.sql",
+    "backend/migrations/0014_stage1_team_seat_billing.sql",
+    "backend/migrations/0015_stage1_default_paid_plan.sql",
+    "backend/migrations/0016_stage1_safety_review_ops.sql",
+    "backend/migrations/0017_stage1_export_override_ops.sql",
+    "backend/migrations/0018_stage1_support_ticket_links.sql",
+    "backend/migrations/0019_stage1_asset_library_brand_kits.sql",
+    "backend/migrations/0020_stage1_local_runtime_drift_repair.sql",
+    "backend/migrations/0021_stage1_provider_strategy_metadata_repair.sql",
+    "backend/migrations/0022_stage1_provider_usage_batch_task_refs.sql"
+  ],
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "schema_version": "stage1.strict_migration_evidence.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "staging_schema_migration_count": 22,
+  "status": "compatible"
+}

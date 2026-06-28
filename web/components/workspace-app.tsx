@@ -3,21 +3,29 @@
 import {
   AlertTriangle,
   Archive,
+  BoxSelect,
   Check,
   ChevronRight,
   CircleDollarSign,
   Download,
+  Eye,
+  EyeOff,
   FileArchive,
+  Frame,
   Flag,
   History,
   ImagePlus,
   LayoutDashboard,
   LifeBuoy,
   Link2,
+  Lock,
   LogIn,
   LogOut,
   Loader2,
+  MousePointer2,
+  Move,
   PackagePlus,
+  Palette,
   RefreshCcw,
   PenLine,
   RotateCcw,
@@ -27,17 +35,37 @@ import {
   ShieldCheck,
   Sparkles,
   Gauge,
+  Trash2,
   Upload,
-  User
+  User,
+  Users,
+  Unlock,
+  ZoomIn,
+  ZoomOut
 } from "lucide-react";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import { AccountSettings, BillingScenario, Candidate, ExportFormat, QaSeverity, WorkspaceState } from "@/lib/contracts";
-import { zenArtClient } from "@/lib/api-client";
+import type { KeyboardEvent, ReactNode } from "react";
+import {
+  AccountSettings,
+  BillingScenario,
+  CanvasNode,
+  CanvasTool,
+  CanvasVersion,
+  Candidate,
+  ExportFormat,
+  QaSeverity,
+  PromptComposerAspectRatio,
+  PromptComposerQuality,
+  WorkspaceState
+} from "@/lib/contracts";
+import { zenariClient } from "@/lib/api-client";
 import {
   buildPackageExportMetadataEvidence,
+  buildExportDownloadAccessBoundaryEvidence,
   buildExportDownloadParityEvidence,
   buildExportZipPayloadSmokeEvidence,
+  buildRenderedExportAssetEvidence,
   buildCharacterIpConceptApiSmokeEvidence,
   buildBusinessVisualDocApiSmokeEvidence,
   buildBriefUploadConfirmationRuntimeEvidence,
@@ -52,8 +80,12 @@ import {
   localMerchantCampaignCandidates
 } from "@/lib/dev-state";
 import { downloadExportPackage } from "@/lib/export-download";
-import { apiOperations, OperationId, ZenArtApiClient } from "@/lib/generated/zenart-api";
+import { apiOperations, OperationId, ZenariApiClient } from "@/lib/generated/zenart-api";
 import { legalPolicyList, supportContactEmail } from "@/lib/legal-policies";
+import { buildMentionPickerOptions, mentionSummary, resolveMentions } from "@/lib/mentions";
+import { buildPromptComposerPayload } from "@/lib/prompt-context";
+import { buildResultPlacementEvidence } from "@/lib/result-placement";
+import { buildSafetyExportStateEvidence, blockedReasonsForExport } from "@/lib/safety-export-state";
 import {
   buildSecureCookieSameSiteRuntimePairingDigest,
   buildGeneratedApiCsrfRequestContractEvidence,
@@ -69,17 +101,33 @@ export type ViewKey = "workspace" | "projects" | "export" | "billing" | "account
 type UnsafeActionGuardLabel =
   | "Confirm Brief"
   | "Attach"
+  | "Create Batch"
+  | "Cancel Batch"
+  | "Retry Child"
   | "Create Project"
   | "Rename Project"
   | "Package Reference"
   | "Select Candidate"
   | "Iterate"
+  | "Apply Edit Tool"
   | "Restore Version"
+  | "Add Asset"
+  | "Favorite Asset"
+  | "Archive Asset"
+  | "Create Brand Kit"
+  | "Update Brand Kit"
+  | "Set Brand Kit"
   | "Add Selection"
   | "Export ZIP"
   | "Export PDF"
   | "Request Share"
   | "Mock Checkout"
+  | "Billing Portal"
+  | "Cancel Subscription"
+  | "Refresh Invoices"
+  | "Refresh Team Seats"
+  | "Refresh Asset Library"
+  | "Accept Invite"
   | "Billing Scenario"
   | "Save Settings"
   | "Submit Ticket"
@@ -120,23 +168,39 @@ const severityClass: Record<QaSeverity, string> = {
 };
 
 const sessionSecurityEvidenceSchema = "stage0.rev2.session-csrf-client-evidence";
-const sessionSafeActionLabels = new Set(["load", "login"]);
+const sessionSafeActionLabels = new Set(["load", "login", "asset-library-refresh"]);
 const expiredSessionRecoveryActionLabels = new Set<UnsafeActionGuardLabel>(["Refresh Session"]);
 const defaultCredentialMode = "include";
 const sameSiteUnsafeActionGuardMap = {
   "Confirm Brief": ["createChatSession", "createChatMessage", "createCandidateSet"],
   Attach: ["createUpload"],
+  "Create Batch": ["createBatchGeneration"],
+  "Cancel Batch": ["cancelBatchGeneration"],
+  "Retry Child": ["retryBatchGenerationChild"],
   "Create Project": ["createProject"],
   "Rename Project": ["updateProject"],
   "Package Reference": ["createPackage"],
   "Select Candidate": ["selectDirection"],
   Iterate: ["createCanvasNode", "createCanvasVersion"],
+  "Apply Edit Tool": ["createUpload", "createCanvasNode", "createCanvasVersion"],
   "Restore Version": ["createCanvasVersion"],
+  "Add Asset": ["createAssetLibraryEntry"],
+  "Favorite Asset": ["updateAssetLibraryEntry"],
+  "Archive Asset": ["updateAssetLibraryEntry"],
+  "Create Brand Kit": ["createBrandKit"],
+  "Update Brand Kit": ["updateBrandKit"],
+  "Set Brand Kit": ["setProjectDefaultBrandKit"],
   "Add Selection": ["createPackage"],
   "Export ZIP": ["createExport"],
   "Export PDF": ["createExport"],
   "Request Share": ["createShareLink"],
-  "Mock Checkout": ["getSubscription"],
+  "Mock Checkout": ["createCheckoutSession"],
+  "Billing Portal": ["createBillingPortalSession"],
+  "Cancel Subscription": ["cancelSubscription"],
+  "Refresh Invoices": ["listBillingInvoices"],
+  "Refresh Team Seats": ["getTeamSeatUsage", "checkTeamSeatEntitlement"],
+  "Refresh Asset Library": ["listAssetLibrary", "listBrandKits", "getProjectDefaultBrandKit"],
+  "Accept Invite": ["acceptTeamInvite"],
   "Billing Scenario": ["getQuota", "getSubscription"],
   "Save Settings": ["updateAccount"],
   "Submit Ticket": ["createSupportTicket"],
@@ -145,13 +209,17 @@ const sameSiteUnsafeActionGuardMap = {
   "Log Out": ["deleteSession"]
 } as const satisfies Record<UnsafeActionGuardLabel, ReadonlyArray<keyof typeof apiOperations>>;
 const sameSiteUnsafeActionGuardLabels = Object.keys(sameSiteUnsafeActionGuardMap) as UnsafeActionGuardLabel[];
+const totalGuardedActionCount = sameSiteUnsafeActionGuardLabels.length;
+const expiredSessionEnabledActionCount = expiredSessionRecoveryActionLabels.size;
+const expiredSessionBlockedActionCount = totalGuardedActionCount - expiredSessionEnabledActionCount;
+const signedOutSessionBlockedActionCount = totalGuardedActionCount;
 
 const formatUnsafeActionGuardContracts = () =>
   sameSiteUnsafeActionGuardLabels
     .map((label) => {
       const operationContracts = sameSiteUnsafeActionGuardMap[label].map((operationId) => {
         const operation = apiOperations[operationId];
-        const csrfHeader = isCsrfProtectedMethod(operation.method) ? "X-ZenArt-CSRF" : "not-required";
+        const csrfHeader = isCsrfProtectedMethod(operation.method) ? "X-Zenari-CSRF" : "not-required";
         return `${operationId}:${operation.method}:${csrfHeader}:${operation.idempotencyRequired}`;
       });
       return `${label}=>${operationContracts.join("+")}`;
@@ -162,7 +230,7 @@ const formatUnsafeActionControlContracts = (label: UnsafeActionGuardLabel) =>
   sameSiteUnsafeActionGuardMap[label]
     .map((operationId) => {
       const operation = apiOperations[operationId];
-      const csrfHeader = isCsrfProtectedMethod(operation.method) ? "X-ZenArt-CSRF" : "not-required";
+      const csrfHeader = isCsrfProtectedMethod(operation.method) ? "X-Zenari-CSRF" : "not-required";
       return `${operationId}:${operation.method}:${operation.path}:${defaultCredentialMode}:${csrfHeader}:${operation.idempotencyRequired}`;
     })
     .join("|");
@@ -281,22 +349,26 @@ const sessionGuardMatrixContract = sessionGuardMatrixEntries.map((entry) => entr
 const sessionGuardMatrixStatus =
   sessionGuardMatrixEntries.find((entry) => entry.sessionStatus === "authenticated")?.blockedLabels.length === 0 &&
   sessionGuardMatrixEntries.find((entry) => entry.sessionStatus === "expired")?.enabledLabels.join(",") === "Refresh Session" &&
-  sessionGuardMatrixEntries.find((entry) => entry.sessionStatus === "expired")?.blockedLabels.length === 18 &&
+  sessionGuardMatrixEntries.find((entry) => entry.sessionStatus === "expired")?.blockedLabels.length === expiredSessionBlockedActionCount &&
   sessionGuardMatrixEntries.find((entry) => entry.sessionStatus === "signed_out")?.enabledLabels.length === 0 &&
-  sessionGuardMatrixEntries.find((entry) => entry.sessionStatus === "signed_out")?.blockedLabels.length === 19
+  sessionGuardMatrixEntries.find((entry) => entry.sessionStatus === "signed_out")?.blockedLabels.length === signedOutSessionBlockedActionCount
     ? "pass"
     : "fail";
 const sessionGuardTransitionContract =
-  "authenticated->expired:Expire Session:enabled=1:blocked=18:recovery=Refresh Session|" +
-  "expired->authenticated:Refresh Session:enabled=19:blocked=0:recovery=none|" +
-  "expired->authenticated:Sign In:enabled=19:blocked=0:recovery=none|" +
-  "authenticated->signed_out:Log Out:enabled=0:blocked=19:recovery=none|" +
-  "signed_out->authenticated:Sign In:enabled=19:blocked=0:recovery=none";
+  `authenticated->expired:Expire Session:enabled=${expiredSessionEnabledActionCount}:blocked=${expiredSessionBlockedActionCount}:recovery=Refresh Session|` +
+  `expired->authenticated:Refresh Session:enabled=${totalGuardedActionCount}:blocked=0:recovery=none|` +
+  `expired->authenticated:Sign In:enabled=${totalGuardedActionCount}:blocked=0:recovery=none|` +
+  `authenticated->signed_out:Log Out:enabled=0:blocked=${signedOutSessionBlockedActionCount}:recovery=none|` +
+  `signed_out->authenticated:Sign In:enabled=${totalGuardedActionCount}:blocked=0:recovery=none`;
 const sessionGuardTransitionDigest = `${sessionSecurityEvidenceSchema}||${sessionGuardMatrixContract}||${sessionGuardTransitionContract}`;
 const sessionGuardTransitionStatus =
   sessionGuardMatrixStatus === "pass" &&
-  sessionGuardTransitionContract.includes("authenticated->expired:Expire Session:enabled=1:blocked=18:recovery=Refresh Session") &&
-  sessionGuardTransitionContract.includes("authenticated->signed_out:Log Out:enabled=0:blocked=19:recovery=none")
+  sessionGuardTransitionContract.includes(
+    `authenticated->expired:Expire Session:enabled=${expiredSessionEnabledActionCount}:blocked=${expiredSessionBlockedActionCount}:recovery=Refresh Session`
+  ) &&
+  sessionGuardTransitionContract.includes(
+    `authenticated->signed_out:Log Out:enabled=0:blocked=${signedOutSessionBlockedActionCount}:recovery=none`
+  )
     ? "pass"
     : "fail";
 
@@ -357,7 +429,7 @@ const isSessionBlocked = (state: WorkspaceState) => state.sessionContract.status
 
 const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeResult> => {
   const baseUrl = "/api/probe";
-  const client = new ZenArtApiClient(baseUrl);
+  const client = new ZenariApiClient(baseUrl);
   const requests: Array<{ path: string; method: string; credentials: string; csrfHeader: string; idempotencyKey: string }> = [];
   const originalFetch = window.fetch.bind(window);
   const unsafeContracts = generatedApiCsrfInventory.unsafeRequestContracts;
@@ -367,9 +439,13 @@ const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeRes
     chat_session_id: "chat-001",
     workspace_id: "workspace-001",
     task_id: "task-001",
+    batch_id: "batch-001",
+    child_id: "child-001",
     candidate_set_id: "candidate-set-001",
     package_id: "pkg-001",
-    export_id: "export-001"
+    export_id: "export-001",
+    team_id: "team-001",
+    invite_id: "invite-001"
   };
   const expectedProbePath = (path: string) =>
     path.replace(/\{([^}]+)\}/g, (_match, key: string) => pathParams[key as keyof typeof pathParams] ?? "missing");
@@ -382,7 +458,7 @@ const runGeneratedClientCsrfBrowserProbe = async (): Promise<BrowserCsrfProbeRes
         path: url.replace("/api/probe", ""),
         method: init?.method ?? "GET",
         credentials: String(init?.credentials ?? "missing"),
-        csrfHeader: headers.get("X-ZenArt-CSRF") ?? "not-required",
+        csrfHeader: headers.get("X-Zenari-CSRF") ?? "not-required",
         idempotencyKey: headers.get("Idempotency-Key") ?? "not-required"
       });
       return new Response(JSON.stringify({ ok: true }), {
@@ -496,7 +572,7 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
   const view = initialView;
   const [briefInput, setBriefInput] = useState("");
   const [iterationInput, setIterationInput] = useState("");
-  const [loginEmail, setLoginEmail] = useState("dev@zenart.local");
+  const [loginEmail, setLoginEmail] = useState("dev@zenari.ai");
   const [supportBody, setSupportBody] = useState("");
   const [supportCategory, setSupportCategory] = useState<"bug" | "billing" | "export" | "quality" | "other">("quality");
   const [referenceName, setReferenceName] = useState("visual-reference.png");
@@ -506,7 +582,7 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
 
   useEffect(() => {
     let mounted = true;
-    zenArtClient.loadWorkspace().then((loaded) => {
+    zenariClient.loadWorkspace().then((loaded) => {
       if (mounted) {
         setState(loaded);
         setBriefInput(loaded.brief.prompt);
@@ -558,6 +634,37 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
     };
   }, [view]);
 
+  useEffect(() => {
+    if (!state || view !== "workspace" || isSessionBlocked(state)) {
+      return;
+    }
+    const latestBatch = state.batchGenerations[0];
+    if (!latestBatch || !["queued", "running"].includes(latestBatch.status)) {
+      return;
+    }
+
+    let cancelled = false;
+    const timeout = window.setTimeout(() => {
+      zenariClient
+        .refreshBatchGenerationProgress(latestBatch.id)
+        .then((nextState) => {
+          if (!cancelled) {
+            setState(nextState);
+          }
+        })
+        .catch((error: unknown) => {
+          if (!cancelled) {
+            reportFrontendError(error, "action-error", state, "batch-progress-poll");
+          }
+        });
+    }, 750);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [state, view]);
+
   const selectedCandidate = useMemo(
     () => state?.candidates.find((candidate) => candidate.id === state.selectedCandidateId),
     [state]
@@ -600,16 +707,16 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
   const confirmBrief = (event: FormEvent) => {
     event.preventDefault();
     void runTrackedAction("brief", async () => {
-      const confirmedState = await zenArtClient.confirmBrief(briefInput);
+      const confirmedState = await zenariClient.confirmBrief(briefInput);
       const normalizedBrief = briefInput.toLowerCase();
       if (normalizedBrief.includes("business visual document pack")) {
-        return zenArtClient.activateBusinessVisualDocWorkflow();
+        return zenariClient.activateBusinessVisualDocWorkflow();
       }
       if (normalizedBrief.includes("local merchant campaign pack")) {
-        return zenArtClient.activateLocalMerchantCampaignWorkflow();
+        return zenariClient.activateLocalMerchantCampaignWorkflow();
       }
       if (normalizedBrief.includes("character ip concept pack")) {
-        return zenArtClient.activateCharacterIpConceptWorkflow();
+        return zenariClient.activateCharacterIpConceptWorkflow();
       }
       return confirmedState;
     });
@@ -619,7 +726,7 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
     event.preventDefault();
     const instruction = iterationInput;
     setIterationInput("");
-    void runTrackedAction("iterate", () => zenArtClient.iterateSelected(instruction));
+    void runTrackedAction("iterate", () => zenariClient.iterateSelected(instruction));
   };
 
   const reportProblem = (event: FormEvent) => {
@@ -627,7 +734,7 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
     const body = supportBody;
     setSupportBody("");
     void runTrackedAction("support", () =>
-      zenArtClient.reportProblem({
+      zenariClient.reportProblem({
         category: supportCategory,
         body,
         linkedExportId: state?.exports[0]?.id
@@ -650,7 +757,7 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
         <div className="brand">
           <div className="brand-mark">Z</div>
           <div>
-            <strong>ZenArt</strong>
+            <strong>zenari.ai</strong>
             <span>Stage 0</span>
           </div>
         </div>
@@ -689,7 +796,7 @@ export function WorkspaceApp({ initialView = "workspace" }: { initialView?: View
             <h1>{state.projects.find((project) => project.id === state.activeProjectId)?.name}</h1>
           </div>
           <div className="topbar-actions">
-            <button className="icon-button" onClick={() => void runTrackedAction("load", () => zenArtClient.loadWorkspace())} aria-label="Reload workspace">
+            <button className="icon-button" onClick={() => void runTrackedAction("load", () => zenariClient.loadWorkspace())} aria-label="Reload workspace">
               <RefreshCcw size={18} aria-hidden="true" />
             </button>
             <span className={`session-pill session-${state.sessionContract.status}`}>{state.session.email} · {state.sessionContract.status}</span>
@@ -756,12 +863,16 @@ function eventNameByAction(action: string): AnalyticsEventName {
   const eventByAction: Record<string, AnalyticsEventName> = {
     brief: "brief_confirmed",
     reference: "reference_attached",
+    "batch-create": "iteration_submitted",
+    "batch-cancel": "iteration_submitted",
+    "batch-retry": "iteration_submitted",
     select: "candidate_selected",
     iterate: "iteration_submitted",
     package: "package_item_added",
     export: "export_requested",
     checkout: "checkout_started",
     "billing-scenario": "billing_scenario_selected",
+    "asset-library-refresh": "route_viewed",
     account: "account_updated",
     support: "support_ticket_opened",
     login: "route_viewed",
@@ -785,9 +896,9 @@ function SessionPanel({
   runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
 }) {
   const sessionBlocked = state.sessionContract.status !== "authenticated";
-  const expectedSessionCookieName = "__Host-zenart_session";
+  const expectedSessionCookieName = "__Host-zenari_session";
   const expectedCsrfStrategy = "same-site-origin-check";
-  const expectedCsrfHeader = "X-ZenArt-CSRF";
+  const expectedCsrfHeader = "X-Zenari-CSRF";
   const expectedSameSiteRequirement = "lax-or-strict";
   const evidence = buildSessionSecurityContractEvidence(state.sessionContract, apiOperations);
   const generatedRequestEvidence = buildGeneratedApiCsrfRequestContractEvidence(apiOperations, state.sessionContract.csrf);
@@ -905,7 +1016,7 @@ function SessionPanel({
       data-session-ux-transition-expired-recovery-status="pass"
       data-session-ux-transition-signed-out-block-status="pass"
       data-session-ux-transition-required-recovery-action="Refresh Session"
-      data-session-ux-transition-signed-out-blocked-count="19"
+      data-session-ux-transition-signed-out-blocked-count={signedOutSessionBlockedActionCount}
     >
       <div className="session-contract-main">
         <ShieldCheck size={18} aria-hidden="true" />
@@ -996,14 +1107,14 @@ function SessionPanel({
       <div className="session-actions">
         <label className="sr-only" htmlFor="login-email">Email</label>
         <input id="login-email" type="email" value={loginEmail} onChange={(event) => setLoginEmail(event.target.value)} />
-        <button className="secondary-button compact" onClick={() => void runAction("login", () => zenArtClient.login(loginEmail))}>
+        <button className="secondary-button compact" onClick={() => void runAction("login", () => zenariClient.login(loginEmail))}>
           <LogIn size={15} aria-hidden="true" />
           Sign In
         </button>
         <button
           className="secondary-button compact"
           disabled={state.sessionContract.status === "signed_out"}
-          onClick={() => void runAction("session-refresh", () => zenArtClient.refreshSession())}
+          onClick={() => void runAction("session-refresh", () => zenariClient.refreshSession())}
           {...unsafeActionGuardAttributes("Refresh Session", state)}
         >
           <RefreshCcw size={15} aria-hidden="true" />
@@ -1012,7 +1123,7 @@ function SessionPanel({
         <button
           className="secondary-button compact"
           disabled={sessionBlocked}
-          onClick={() => void runAction("session-expire", () => zenArtClient.expireSession())}
+          onClick={() => void runAction("session-expire", () => zenariClient.expireSession())}
           {...unsafeActionGuardAttributes("Expire Session", state)}
         >
           <RotateCcw size={15} aria-hidden="true" />
@@ -1021,7 +1132,7 @@ function SessionPanel({
         <button
           className="secondary-button compact"
           disabled={sessionBlocked}
-          onClick={() => void runAction("logout", () => zenArtClient.logout())}
+          onClick={() => void runAction("logout", () => zenariClient.logout())}
           {...unsafeActionGuardAttributes("Log Out", state)}
         >
           <LogOut size={15} aria-hidden="true" />
@@ -1093,6 +1204,7 @@ function WorkspaceView({
   );
   const renderingSmoke = buildWorkspaceRenderingPerformanceSmoke(state);
   const referenceIntegrationSmoke = buildReferenceUploadIntegrationSmoke(state);
+  const resultPlacementEvidence = buildResultPlacementEvidence(state);
   const referenceValidationMatrix = buildReferenceUploadValidationMatrixEvidence();
   const briefUploadConfirmationEvidence = buildBriefUploadConfirmationRuntimeEvidence(state);
   const ecommerceApiSmoke = buildEcommerceGrowthApiSmokeEvidence(state);
@@ -1115,6 +1227,24 @@ function WorkspaceView({
     : normalizedBrief.includes("business visual document pack")
     ? businessVisualDocCandidates
     : state.candidates;
+  const mentionOptions = buildMentionPickerOptions({
+    objects: state.canvas.nodes,
+    references: state.brief.references,
+    assetLibraryItems: state.assetLibrary.items,
+    brandKits: state.assetLibrary.brandKits,
+    skills: [
+      { type: "skill", id: "ecommerce_growth_pack", label: "Ecommerce Growth Pack", allowed: true },
+      { type: "skill", id: "business_visual_doc_pack", label: "Business Visual Document Pack", allowed: true },
+      { type: "skill", id: "local_merchant_campaign_pack", label: "Local Merchant Campaign Pack", allowed: true },
+      { type: "skill", id: "character_ip_concept_pack", label: "Character IP Concept Pack", allowed: true }
+    ],
+    models: [
+      { type: "model", id: "image-fast-v1", label: "image-fast-v1", allowed: true },
+      { type: "model", id: "deterministic-local-alpha", label: "deterministic-local-alpha", allowed: true }
+    ]
+  });
+  const mentionResult = resolveMentions(briefInput, mentionOptions);
+  const mentionEvidence = mentionSummary(mentionResult);
   return (
     <div className="workspace-grid">
       <section className="panel chat-panel">
@@ -1136,6 +1266,26 @@ function WorkspaceView({
           )}
           <label className="sr-only" htmlFor="brief-input">Brief</label>
           <textarea id="brief-input" value={briefInput} onChange={(event) => setBriefInput(event.target.value)} rows={5} aria-describedby={state.brief.missingInfo.length > 0 ? "brief-missing-info" : undefined} />
+          <div
+            className="mention-contract"
+            aria-label="Mention parser and picker contract"
+            data-mention-parser-picker="stage1.mention-parser-picker-local-contract"
+            data-mention-token-count={mentionEvidence.tokenCount}
+            data-mention-unique-count={mentionEvidence.uniqueCount}
+            data-mention-duplicate-count={mentionEvidence.duplicateCount}
+            data-mention-unresolved-count={mentionEvidence.unresolvedCount}
+            data-mention-forbidden-model-count={mentionEvidence.forbiddenModelCount}
+            data-mention-picker-types="object,asset,brand,skill,model"
+            data-mention-picker-option-count={mentionOptions.length}
+            data-mention-projected-ids={mentionEvidence.ids.join(",")}
+            data-mention-projected-types={mentionEvidence.types.join(",")}
+            data-mention-unresolved-queries={mentionResult.unresolved.map((item) => `${item.type}:${item.query}`).join(",")}
+          >
+            <strong>Mentions</strong>
+            <span>
+              {mentionEvidence.uniqueCount} resolved · {mentionEvidence.duplicateCount} duplicates · {mentionEvidence.unresolvedCount} unresolved.
+            </span>
+          </div>
           <button
             className="primary-button"
             disabled={sessionBlocked || busy === "brief" || !briefInput.trim()}
@@ -1159,7 +1309,7 @@ function WorkspaceView({
             disabled={sessionBlocked || !referenceName.trim()}
             onClick={() =>
               void runAction("reference", () =>
-                zenArtClient.attachReference({
+                zenariClient.attachReference({
                   name: referenceName,
                   kind: referenceKind
                 })
@@ -1333,7 +1483,7 @@ function WorkspaceView({
                 <button
                   className="reference-package-button"
                   disabled={sessionBlocked || packagedReferenceIds.has(reference.id)}
-                  onClick={() => void runAction("package", () => zenArtClient.addPackageItem(reference.id))}
+                  onClick={() => void runAction("package", () => zenariClient.addPackageItem(reference.id))}
                   aria-label={`Add reference ${reference.name} to package`}
                   {...unsafeActionGuardAttributes("Package Reference", state)}
                 >
@@ -1345,100 +1495,13 @@ function WorkspaceView({
         </div>
       </section>
 
-      <section className="panel canvas-panel">
-        <div className="panel-header">
-          <PanelTitle icon={<Save size={18} aria-hidden="true" />} title="Canvas" />
-          <span className="soft-label">Autosaved {dateLabel(state.canvas.autosavedAt)}</span>
-        </div>
-        <div
-          className={renderingSmoke.status === "pass" ? "rendering-smoke pass" : "rendering-smoke fail"}
-          role="status"
-          aria-label="Workspace rendering performance smoke"
-          data-rendering-smoke-summary={renderingSmoke.schema_version}
-          data-rendering-smoke-status={renderingSmoke.status}
-          data-rendering-smoke-failures={renderingSmoke.failures.join(",")}
-          data-rendering-interaction-steps={renderingSmoke.interactionSteps.join(",")}
-          data-rendering-estimated-interaction-ms={renderingSmoke.estimatedInteractionMs}
-          data-rendering-budget-node-count={renderingSmoke.budgets.maxNodes}
-          data-rendering-budget-edge-count={renderingSmoke.budgets.maxEdges}
-          data-rendering-budget-version-count={renderingSmoke.budgets.maxVersions}
-          data-rendering-reference-count={renderingSmoke.referenceCount}
-          data-rendering-package-item-count={renderingSmoke.packageItemCount}
-          data-rendering-export-history-count={renderingSmoke.exportHistoryCount}
-          data-rendering-identity-count={renderingSmoke.renderIdentityCount}
-          data-rendering-duplicate-identity-count={renderingSmoke.duplicateRenderIdentityCount}
-          data-rendering-duplicate-identities={renderingSmoke.duplicateRenderIdentities.join(",")}
-          data-rendering-identity-digest={renderingSmoke.renderIdentityDigest}
-          data-rendering-step-budget-statuses={renderingSmoke.interactionStepBudgets
-            .map((entry) => `${entry.step}:${entry.status}:${entry.renderElementCount}:${entry.estimatedInteractionMs}:${entry.failureCount}`)
-            .join("|")}
-          data-rendering-step-budget-failure-count={renderingSmoke.interactionStepBudgets.reduce(
-            (count, entry) => count + entry.failureCount,
-            0
-          )}
-        >
-          <Gauge size={15} aria-hidden="true" />
-          <span>
-            {renderingSmoke.status === "pass" ? "Render budget pass" : "Render budget fail"} · {renderingSmoke.renderElementCount}/
-            {renderingSmoke.budgets.maxRenderElements} elements · {renderingSmoke.estimatedInteractionMs}/
-            {renderingSmoke.budgets.maxInteractionMs} ms
-          </span>
-        </div>
-        <div
-          className="canvas-surface"
-          data-rendering-smoke={renderingSmoke.schema_version}
-          data-rendering-status={renderingSmoke.status}
-          data-render-node-count={renderingSmoke.nodeCount}
-          data-render-edge-count={renderingSmoke.edgeCount}
-          data-render-version-count={renderingSmoke.versionCount}
-          data-render-candidate-count={renderingSmoke.candidateCount}
-          data-render-package-item-count={renderingSmoke.packageItemCount}
-          data-render-reference-count={renderingSmoke.referenceCount}
-          data-render-export-history-count={renderingSmoke.exportHistoryCount}
-          data-render-element-count={renderingSmoke.renderElementCount}
-          data-render-estimated-interaction-ms={renderingSmoke.estimatedInteractionMs}
-          data-render-identity-count={renderingSmoke.renderIdentityCount}
-          data-render-duplicate-identity-count={renderingSmoke.duplicateRenderIdentityCount}
-          data-render-duplicate-identities={renderingSmoke.duplicateRenderIdentities.join(",")}
-          data-render-identity-digest={renderingSmoke.renderIdentityDigest}
-          data-render-interaction-steps={renderingSmoke.interactionSteps.join(",")}
-          data-render-interaction-step-budget-statuses={renderingSmoke.interactionStepBudgets
-            .map((entry) => `${entry.step}:${entry.status}:${entry.renderElementCount}:${entry.estimatedInteractionMs}:${entry.failureCount}`)
-            .join("|")}
-          data-render-interaction-step-budget-failure-count={renderingSmoke.interactionStepBudgets.reduce(
-            (count, entry) => count + entry.failureCount,
-            0
-          )}
-          data-render-failure-count={renderingSmoke.failures.length}
-          data-render-max-elements={renderingSmoke.budgets.maxRenderElements}
-          data-render-max-interaction-ms={renderingSmoke.budgets.maxInteractionMs}
-        >
-          {state.canvas.edges.map((edge) => (
-            <div key={`${edge.from}-${edge.to}`} className="canvas-edge" />
-          ))}
-          {state.canvas.nodes.map((node) => (
-            <article key={node.id} className={`canvas-node ${node.kind}`} style={{ left: node.x, top: node.y }}>
-              <strong>{node.title}</strong>
-              <p>{node.body}</p>
-            </article>
-          ))}
-        </div>
-        <div className="version-row">
-          {state.canvas.versions.map((version) => (
-            <button
-              key={version.id}
-              className={version.id === state.canvas.activeVersionId ? "version-chip active" : "version-chip"}
-              disabled={sessionBlocked}
-              onClick={() => void runAction("restore", () => zenArtClient.restoreCanvasVersion(version.id))}
-              aria-pressed={version.id === state.canvas.activeVersionId}
-              {...unsafeActionGuardAttributes("Restore Version", state)}
-            >
-              <History size={14} aria-hidden="true" />
-              {version.label}
-            </button>
-          ))}
-        </div>
-      </section>
+        <CanvasPanel
+          state={state}
+          sessionBlocked={sessionBlocked}
+          renderingSmoke={renderingSmoke}
+          resultPlacementEvidence={resultPlacementEvidence}
+          runAction={runAction}
+        />
 
       <section className="panel candidates-panel" data-testid="candidate-grid">
         <PanelTitle icon={<Archive size={18} aria-hidden="true" />} title="Candidates" />
@@ -1464,7 +1527,7 @@ function WorkspaceView({
                 className="secondary-button"
                 data-testid="candidate-select"
                 disabled={sessionBlocked}
-                onClick={() => void runAction("select", () => zenArtClient.selectCandidate(candidate.id))}
+                onClick={() => void runAction("select", () => zenariClient.selectCandidate(candidate.id))}
                 aria-pressed={state.selectedCandidateId === candidate.id}
                 aria-label={`Select ${candidate.title}`}
                 {...unsafeActionGuardAttributes("Select Candidate", state)}
@@ -1494,8 +1557,879 @@ function WorkspaceView({
         </form>
       </section>
 
+      <BatchGenerationPanel state={state} sessionBlocked={sessionBlocked} runAction={runAction} />
+
+      <AssetLibraryPanel state={state} sessionBlocked={sessionBlocked} runAction={runAction} />
+
       <PackagePanel state={state} sessionBlocked={sessionBlocked} runAction={runAction} />
     </div>
+  );
+}
+
+function AssetLibraryPanel({
+  state,
+  sessionBlocked,
+  runAction
+}: {
+  state: WorkspaceState;
+  sessionBlocked: boolean;
+  runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
+}) {
+  const defaultBrandKit = state.assetLibrary.defaultBrandKit;
+  const activeBrandKitCount = state.assetLibrary.brandKits.filter((kit) => kit.status === "active").length;
+  const reusableItems = state.assetLibrary.items.filter((item) => item.reusable && !item.archived);
+  const packagedAssetIds = new Set(state.assetLibrary.packagedAssetIds);
+  const operationContracts = [
+    "listAssetLibrary:GET:/assets/library:include:not-required:false",
+    "createAssetLibraryEntry:POST:/assets/library:include:required:true",
+    "updateAssetLibraryEntry:PATCH:/assets/library/{entry_id}:include:required:true",
+    "listBrandKits:GET:/brand-kits:include:not-required:false",
+    "createBrandKit:POST:/brand-kits:include:required:true",
+    "updateBrandKit:PATCH:/brand-kits/{brand_kit_id}:include:required:true",
+    "getProjectDefaultBrandKit:GET:/projects/{project_id}/brand-kit-default:include:not-required:false",
+    "setProjectDefaultBrandKit:PUT:/projects/{project_id}/brand-kit-default:include:required:true"
+  ].join("|");
+
+  return (
+    <section
+      className="panel asset-library-panel"
+      aria-label="Asset Library and Brand Kit"
+      data-asset-library-brandkit-ui="stage1.asset-library-brandkit-user-picker"
+      data-asset-library-sync-status={state.assetLibrary.syncStatus}
+      data-asset-library-synced-at={state.assetLibrary.syncedAt ?? ""}
+      data-asset-library-operation-count={state.assetLibrary.operations.length}
+      data-asset-library-operations={state.assetLibrary.operations.join(",")}
+      data-asset-library-operation-contracts={operationContracts}
+      data-asset-library-item-count={state.assetLibrary.items.length}
+      data-asset-library-reusable-count={reusableItems.length}
+      data-asset-library-packaged-count={state.assetLibrary.packagedAssetIds.length}
+      data-brand-kit-count={state.assetLibrary.brandKits.length}
+      data-brand-kit-active-count={activeBrandKitCount}
+      data-brand-kit-default-id={defaultBrandKit?.id ?? ""}
+      data-brand-kit-default-name={defaultBrandKit?.name ?? ""}
+      data-brand-kit-default-palette-count={defaultBrandKit?.palette.length ?? 0}
+      data-brand-kit-default-guideline-count={defaultBrandKit?.guidelines.length ?? 0}
+      data-brand-kit-project-binding-count={defaultBrandKit?.projectBindings.length ?? 0}
+    >
+      <div className="panel-header">
+        <PanelTitle icon={<ImagePlus size={18} aria-hidden="true" />} title="Assets" />
+        <div className="button-row compact-row">
+          <button
+            className="secondary-button compact"
+            disabled={sessionBlocked}
+            onClick={() => void runAction("asset-library-refresh", () => zenariClient.refreshAssetLibrary())}
+            data-asset-library-refresh-contract="listAssetLibrary:GET:not-required:false+listBrandKits:GET:not-required:false+getProjectDefaultBrandKit:GET:not-required:false"
+            {...unsafeActionGuardAttributes("Refresh Asset Library", state)}
+          >
+            <RefreshCcw size={15} aria-hidden="true" />
+            Refresh Assets
+          </button>
+          <button
+            className="secondary-button compact"
+            disabled={sessionBlocked || state.canvas.nodes.length === 0}
+            onClick={() => void runAction("asset-library-create", () => zenariClient.createAssetLibraryEntryFromSelection())}
+            data-asset-library-create-contract="createAssetLibraryEntry:POST:required:true"
+            {...unsafeActionGuardAttributes("Add Asset", state)}
+          >
+            <ImagePlus size={15} aria-hidden="true" />
+            Add Asset
+          </button>
+        </div>
+      </div>
+      {defaultBrandKit ? (
+        <div className="brand-kit-summary" data-brand-kit-default="active-project-default">
+          <strong>{defaultBrandKit.name}</strong>
+          <span>
+            {defaultBrandKit.palette.map((color) => color.hex).join(" ")} · {defaultBrandKit.fonts.map((font) => font.family).join(", ")}
+          </span>
+          <small>{defaultBrandKit.guidelines[0]?.body ?? "No guideline"}</small>
+        </div>
+      ) : (
+        <p className="empty">No active Brand Kit.</p>
+      )}
+      <div className="asset-library-list">
+        {state.assetLibrary.items.map((item) => (
+          <article
+            key={item.id}
+            data-asset-library-item={item.id}
+            data-asset-library-asset-id={item.assetId}
+            data-asset-library-visibility={item.visibility}
+            data-asset-library-reusable={String(item.reusable)}
+            data-asset-library-archived={String(item.archived)}
+            data-asset-library-packaged={String(packagedAssetIds.has(item.assetId))}
+            data-asset-library-lineage-kind={item.lineageKind ?? ""}
+            data-asset-library-trace-id={item.traceId ?? ""}
+          >
+            <strong>{item.title}</strong>
+            <span>
+              {item.assetType} · {item.visibility} · {item.tags.join(", ") || "untagged"}
+            </span>
+            <div className="button-row compact-row">
+              <button
+                className="secondary-button icon-button"
+                aria-label={item.favorite ? "Unfavorite Asset" : "Favorite Asset"}
+                title={item.favorite ? "Unfavorite Asset" : "Favorite Asset"}
+                disabled={sessionBlocked || item.archived}
+                onClick={() => void runAction("asset-library-favorite", () => zenariClient.toggleAssetLibraryFavorite(item.id))}
+                data-asset-library-favorite-contract="updateAssetLibraryEntry:PATCH:required:true"
+                {...unsafeActionGuardAttributes("Favorite Asset", state)}
+              >
+                <Check size={14} aria-hidden="true" />
+              </button>
+              <button
+                className="secondary-button compact"
+                disabled={sessionBlocked || item.archived}
+                onClick={() => void runAction("brand-kit-create", () => zenariClient.createBrandKitFromLogoAsset(item.id))}
+                data-brand-kit-create-contract="createBrandKit:POST:required:true"
+                {...unsafeActionGuardAttributes("Create Brand Kit", state)}
+              >
+                <PenLine size={14} aria-hidden="true" />
+                Kit
+              </button>
+              <button
+                className="secondary-button icon-button"
+                aria-label="Archive Asset"
+                title="Archive Asset"
+                disabled={sessionBlocked || item.archived}
+                onClick={() => void runAction("asset-library-archive", () => zenariClient.archiveAssetLibraryEntry(item.id))}
+                data-asset-library-archive-contract="updateAssetLibraryEntry:PATCH:required:true"
+                {...unsafeActionGuardAttributes("Archive Asset", state)}
+              >
+                <Archive size={14} aria-hidden="true" />
+              </button>
+              <button
+                className="secondary-button compact"
+                disabled={sessionBlocked || item.archived || !item.reusable || packagedAssetIds.has(item.assetId)}
+                onClick={() => void runAction("package", () => zenariClient.packageAssetLibraryItem(item.id))}
+                {...unsafeActionGuardAttributes("Package Reference", state)}
+              >
+                <PackagePlus size={14} aria-hidden="true" />
+                {packagedAssetIds.has(item.assetId) ? "Packaged" : "Package"}
+              </button>
+            </div>
+          </article>
+        ))}
+      </div>
+      <div className="brand-kit-list" data-brand-kit-write-api="createBrandKit,updateBrandKit,setProjectDefaultBrandKit">
+        {state.assetLibrary.brandKits.map((kit) => (
+          <div key={kit.id} className="brand-kit-actions" data-brand-kit-id={kit.id}>
+            <button
+              className="secondary-button compact"
+              disabled={sessionBlocked || kit.status === "archived"}
+              onClick={() => void runAction("brand-kit-update", () => zenariClient.updateBrandKitGuidelines(kit.id))}
+              data-brand-kit-update-contract="updateBrandKit:PATCH:required:true"
+              {...unsafeActionGuardAttributes("Update Brand Kit", state)}
+            >
+              <Palette size={14} aria-hidden="true" />
+              Update Kit
+            </button>
+            <button
+              className="secondary-button compact"
+              disabled={sessionBlocked || kit.status === "archived" || defaultBrandKit?.id === kit.id}
+              onClick={() => void runAction("brand-kit-default", () => zenariClient.setDefaultBrandKit(kit.id))}
+              data-brand-kit-default-contract="setProjectDefaultBrandKit:PUT:required:true"
+              {...unsafeActionGuardAttributes("Set Brand Kit", state)}
+            >
+              <Check size={14} aria-hidden="true" />
+              {defaultBrandKit?.id === kit.id ? "Default" : "Set Default"}
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CanvasPanel({
+  state,
+  sessionBlocked,
+  renderingSmoke,
+  resultPlacementEvidence,
+  runAction
+}: {
+  state: WorkspaceState;
+  sessionBlocked: boolean;
+  renderingSmoke: ReturnType<typeof buildWorkspaceRenderingPerformanceSmoke>;
+  resultPlacementEvidence: ReturnType<typeof buildResultPlacementEvidence>;
+  runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
+}) {
+  const selectedNodeIds = new Set(state.canvas.interaction.selectedNodeIds);
+  const visibleNodes = state.canvas.nodes.filter((node) => !node.hidden);
+  const selectedNode = state.canvas.nodes.find((node) => selectedNodeIds.has(node.id));
+  const hiddenCount = state.canvas.nodes.filter((node) => node.hidden).length;
+  const lockedCount = state.canvas.nodes.filter((node) => node.locked).length;
+  const toolIconByTool: Record<CanvasTool, ReactNode> = {
+    select: <MousePointer2 size={15} aria-hidden="true" />,
+    hand: <Move size={15} aria-hidden="true" />,
+    frame: <Frame size={15} aria-hidden="true" />,
+    text: <PenLine size={15} aria-hidden="true" />,
+    shape: <BoxSelect size={15} aria-hidden="true" />,
+    upload: <Upload size={15} aria-hidden="true" />
+  };
+  const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    const target = event.target as HTMLElement;
+    if (target.closest("input,textarea,select,[contenteditable='true']")) {
+      return;
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "d") {
+      event.preventDefault();
+      void runAction("canvas-keyboard", () => zenariClient.duplicateSelectedCanvasNodes());
+    }
+    if (event.key === "Delete" || event.key === "Backspace") {
+      event.preventDefault();
+      void runAction("canvas-keyboard", () => zenariClient.deleteSelectedCanvasNodes());
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key === "=") {
+      event.preventDefault();
+      void runAction("canvas-keyboard", () => zenariClient.setCanvasZoom(state.canvas.interaction.zoom + 0.1));
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key === "-") {
+      event.preventDefault();
+      void runAction("canvas-keyboard", () => zenariClient.setCanvasZoom(state.canvas.interaction.zoom - 0.1));
+    }
+    if (event.code === "Space") {
+      event.preventDefault();
+      void runAction("canvas-keyboard", () => zenariClient.setCanvasTool("hand"));
+    }
+  };
+
+  return (
+    <section
+      className="panel canvas-panel"
+      aria-label="Stage 1 canvas editor"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+      data-canvas-interaction-contract={state.canvas.interaction.contract}
+      data-canvas-interaction-status="local"
+      data-canvas-tool={state.canvas.interaction.tool}
+      data-canvas-zoom={state.canvas.interaction.zoom.toFixed(2)}
+      data-canvas-selected-node-count={state.canvas.interaction.selectedNodeIds.length}
+      data-canvas-selected-node-ids={state.canvas.interaction.selectedNodeIds.join(",")}
+      data-canvas-visible-node-count={visibleNodes.length}
+      data-canvas-hidden-node-count={hiddenCount}
+      data-canvas-locked-node-count={lockedCount}
+      data-canvas-last-action={state.canvas.interaction.lastAction}
+      data-canvas-toolbar-tools={state.canvas.interaction.toolbarTools.join(",")}
+      data-canvas-keyboard-shortcuts={state.canvas.interaction.keyboardShortcuts.join(",")}
+      data-canvas-layers-panel="enabled"
+      data-result-placement-contract={resultPlacementEvidence.schema_version}
+      data-result-placement-status={resultPlacementEvidence.status}
+      data-result-placement-projected-child-count={resultPlacementEvidence.projected_child_count}
+      data-result-placement-canvas-object-count={resultPlacementEvidence.placed_canvas_object_count}
+      data-result-placement-asset-library-entry-count={resultPlacementEvidence.asset_library_entry_count}
+      data-result-placement-latest-child-id={resultPlacementEvidence.latest_child_id}
+      data-result-placement-latest-asset-id={resultPlacementEvidence.latest_asset_id}
+      data-result-placement-latest-canvas-object-id={resultPlacementEvidence.latest_canvas_object_id}
+      data-result-placement-latest-trace-id={resultPlacementEvidence.latest_trace_id}
+      data-result-placement-duplicate-count={resultPlacementEvidence.duplicate_projection_count}
+      data-result-placement-missing-count={resultPlacementEvidence.missing_projection_count}
+      data-result-placement-raw-provider-payload={String(resultPlacementEvidence.raw_provider_payload_projected)}
+    >
+      <div className="panel-header">
+        <PanelTitle icon={<Save size={18} aria-hidden="true" />} title="Canvas" />
+        <span className="soft-label">Autosaved {dateLabel(state.canvas.autosavedAt)}</span>
+      </div>
+      <div className="canvas-toolbar" aria-label="Canvas toolbar" data-canvas-toolbar="stage1.canvas-toolbar">
+        {state.canvas.interaction.toolbarTools.map((tool) => (
+          <button
+            key={tool}
+            className={tool === state.canvas.interaction.tool ? "icon-button active" : "icon-button"}
+            type="button"
+            title={tool}
+            aria-label={`Canvas tool ${tool}`}
+            aria-pressed={tool === state.canvas.interaction.tool}
+            disabled={sessionBlocked}
+            onClick={() => void runAction("canvas-tool", () => zenariClient.setCanvasTool(tool))}
+          >
+            {toolIconByTool[tool]}
+          </button>
+        ))}
+        <button
+          className="icon-button"
+          type="button"
+          title="zoom out"
+          aria-label="Zoom out canvas"
+          disabled={sessionBlocked}
+          onClick={() => void runAction("canvas-zoom", () => zenariClient.setCanvasZoom(state.canvas.interaction.zoom - 0.1))}
+        >
+          <ZoomOut size={15} aria-hidden="true" />
+        </button>
+        <button
+          className="icon-button"
+          type="button"
+          title="zoom in"
+          aria-label="Zoom in canvas"
+          disabled={sessionBlocked}
+          onClick={() => void runAction("canvas-zoom", () => zenariClient.setCanvasZoom(state.canvas.interaction.zoom + 0.1))}
+        >
+          <ZoomIn size={15} aria-hidden="true" />
+        </button>
+        <button
+          className="secondary-button compact"
+          type="button"
+          disabled={sessionBlocked}
+          onClick={() => void runAction("canvas-fit", () => zenariClient.fitCanvasToView())}
+          data-canvas-fit-control="fit"
+        >
+          Fit
+        </button>
+      </div>
+      <div
+        className={renderingSmoke.status === "pass" ? "rendering-smoke pass" : "rendering-smoke fail"}
+        role="status"
+        aria-label="Workspace rendering performance smoke"
+        data-rendering-smoke-summary={renderingSmoke.schema_version}
+        data-rendering-smoke-status={renderingSmoke.status}
+        data-rendering-smoke-failures={renderingSmoke.failures.join(",")}
+        data-rendering-interaction-steps={renderingSmoke.interactionSteps.join(",")}
+        data-rendering-estimated-interaction-ms={renderingSmoke.estimatedInteractionMs}
+        data-rendering-budget-node-count={renderingSmoke.budgets.maxNodes}
+        data-rendering-budget-edge-count={renderingSmoke.budgets.maxEdges}
+        data-rendering-budget-version-count={renderingSmoke.budgets.maxVersions}
+        data-rendering-reference-count={renderingSmoke.referenceCount}
+        data-rendering-package-item-count={renderingSmoke.packageItemCount}
+        data-rendering-export-history-count={renderingSmoke.exportHistoryCount}
+        data-rendering-identity-count={renderingSmoke.renderIdentityCount}
+        data-rendering-duplicate-identity-count={renderingSmoke.duplicateRenderIdentityCount}
+        data-rendering-duplicate-identities={renderingSmoke.duplicateRenderIdentities.join(",")}
+        data-rendering-identity-digest={renderingSmoke.renderIdentityDigest}
+        data-rendering-step-budget-statuses={renderingSmoke.interactionStepBudgets
+          .map((entry) => `${entry.step}:${entry.status}:${entry.renderElementCount}:${entry.estimatedInteractionMs}:${entry.failureCount}`)
+          .join("|")}
+        data-rendering-step-budget-failure-count={renderingSmoke.interactionStepBudgets.reduce(
+          (count, entry) => count + entry.failureCount,
+          0
+        )}
+      >
+        <Gauge size={15} aria-hidden="true" />
+        <span>
+          {renderingSmoke.status === "pass" ? "Render budget pass" : "Render budget fail"} · {renderingSmoke.renderElementCount}/
+          {renderingSmoke.budgets.maxRenderElements} elements · {renderingSmoke.estimatedInteractionMs}/
+          {renderingSmoke.budgets.maxInteractionMs} ms
+        </span>
+      </div>
+      <div className="canvas-body">
+        <div
+          className="canvas-surface"
+          data-rendering-smoke={renderingSmoke.schema_version}
+          data-rendering-status={renderingSmoke.status}
+          data-render-node-count={renderingSmoke.nodeCount}
+          data-render-edge-count={renderingSmoke.edgeCount}
+          data-render-version-count={renderingSmoke.versionCount}
+          data-render-candidate-count={renderingSmoke.candidateCount}
+          data-render-package-item-count={renderingSmoke.packageItemCount}
+          data-render-reference-count={renderingSmoke.referenceCount}
+          data-render-export-history-count={renderingSmoke.exportHistoryCount}
+          data-render-element-count={renderingSmoke.renderElementCount}
+          data-render-estimated-interaction-ms={renderingSmoke.estimatedInteractionMs}
+          data-render-identity-count={renderingSmoke.renderIdentityCount}
+          data-render-duplicate-identity-count={renderingSmoke.duplicateRenderIdentityCount}
+          data-render-duplicate-identities={renderingSmoke.duplicateRenderIdentities.join(",")}
+          data-render-identity-digest={renderingSmoke.renderIdentityDigest}
+          data-render-interaction-steps={renderingSmoke.interactionSteps.join(",")}
+          data-render-interaction-step-budget-statuses={renderingSmoke.interactionStepBudgets
+            .map((entry) => `${entry.step}:${entry.status}:${entry.renderElementCount}:${entry.estimatedInteractionMs}:${entry.failureCount}`)
+            .join("|")}
+          data-render-interaction-step-budget-failure-count={renderingSmoke.interactionStepBudgets.reduce(
+            (count, entry) => count + entry.failureCount,
+            0
+          )}
+          data-render-failure-count={renderingSmoke.failures.length}
+          data-render-max-elements={renderingSmoke.budgets.maxRenderElements}
+          data-render-max-interaction-ms={renderingSmoke.budgets.maxInteractionMs}
+        >
+          <div
+            className="canvas-world"
+            style={{
+              transform: `translate(${state.canvas.interaction.pan.x}px, ${state.canvas.interaction.pan.y}px) scale(${state.canvas.interaction.zoom})`
+            }}
+          >
+            {state.canvas.edges.map((edge) => (
+              <div key={`${edge.from}-${edge.to}`} className="canvas-edge" />
+            ))}
+            {state.canvas.nodes.map((node) => (
+              <CanvasNodeCard
+                key={node.id}
+                node={node}
+                selected={selectedNodeIds.has(node.id)}
+                sessionBlocked={sessionBlocked}
+                runAction={runAction}
+              />
+            ))}
+          </div>
+        </div>
+        <aside className="canvas-layers" aria-label="Canvas layers" data-canvas-layers-panel="stage1.canvas-layers-panel">
+          {state.canvas.nodes
+            .slice()
+            .sort((a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0))
+            .map((node) => (
+              <div
+                key={node.id}
+                className={selectedNodeIds.has(node.id) ? "canvas-layer selected" : "canvas-layer"}
+                data-canvas-layer-row={node.id}
+                data-canvas-layer-hidden={String(Boolean(node.hidden))}
+                data-canvas-layer-locked={String(Boolean(node.locked))}
+              >
+                <button
+                  type="button"
+                  className="layer-title"
+                  disabled={sessionBlocked || Boolean(node.hidden)}
+                  onClick={() => void runAction("canvas-select", () => zenariClient.selectCanvasNode(node.id))}
+                >
+                  <span>{node.title}</span>
+                </button>
+                <button
+                  type="button"
+                  className="icon-button mini"
+                  title={node.hidden ? "show" : "hide"}
+                  aria-label={`${node.hidden ? "Show" : "Hide"} ${node.title}`}
+                  disabled={sessionBlocked}
+                  onClick={() => void runAction("canvas-layer", () => zenariClient.toggleCanvasNodeHidden(node.id))}
+                >
+                  {node.hidden ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
+                </button>
+                <button
+                  type="button"
+                  className="icon-button mini"
+                  title={node.locked ? "unlock" : "lock"}
+                  aria-label={`${node.locked ? "Unlock" : "Lock"} ${node.title}`}
+                  disabled={sessionBlocked}
+                  onClick={() => void runAction("canvas-layer", () => zenariClient.toggleCanvasNodeLocked(node.id))}
+                >
+                  {node.locked ? <Lock size={14} aria-hidden="true" /> : <Unlock size={14} aria-hidden="true" />}
+                </button>
+              </div>
+            ))}
+        </aside>
+      </div>
+      <EditToolsPanel state={state} sessionBlocked={sessionBlocked} runAction={runAction} />
+      <div className="canvas-footer">
+        <CanvasVersionHistory versions={state.canvas.versions} activeVersionId={state.canvas.activeVersionId} sessionBlocked={sessionBlocked} state={state} runAction={runAction} />
+        <div className="canvas-key-actions">
+          <button
+            type="button"
+            className="icon-button"
+            title="duplicate"
+            aria-label="Duplicate selected canvas nodes"
+            disabled={sessionBlocked || state.canvas.interaction.selectedNodeIds.length === 0}
+            onClick={() => void runAction("canvas-keyboard", () => zenariClient.duplicateSelectedCanvasNodes())}
+          >
+            <BoxSelect size={15} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            title="delete"
+            aria-label="Delete selected canvas nodes"
+            disabled={sessionBlocked || !selectedNode || selectedNode.locked || selectedNode.id === "node-brief"}
+            onClick={() => void runAction("canvas-keyboard", () => zenariClient.deleteSelectedCanvasNodes())}
+          >
+            <Trash2 size={15} aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function CanvasVersionHistory({
+  versions,
+  activeVersionId,
+  sessionBlocked,
+  state,
+  runAction
+}: {
+  versions: CanvasVersion[];
+  activeVersionId: string;
+  sessionBlocked: boolean;
+  state: WorkspaceState;
+  runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
+}) {
+  const activeVersion = versions.find((version) => version.id === activeVersionId) ?? versions.at(-1);
+  const activeDiff = activeVersion?.diff ?? { addedNodeIds: [], removedNodeIds: [], changedNodeIds: [], unchangedNodeIds: [] };
+  const activePreview = activeVersion?.restorePreview ?? { restoresNodeIds: [], preservesNodeIds: [], conflictNodeIds: [] };
+
+  return (
+    <section
+      className="canvas-version-history"
+      aria-label="Canvas version history"
+      data-canvas-version-history="stage1.canvas-version-history"
+      data-canvas-version-history-status="local"
+      data-canvas-version-active-id={activeVersionId}
+      data-canvas-version-count={versions.length}
+      data-canvas-version-preview-node-count={activeVersion?.snapshot?.nodes.length ?? activeVersion?.nodeCount ?? 0}
+      data-canvas-version-diff-added={activeDiff.addedNodeIds.join(",")}
+      data-canvas-version-diff-removed={activeDiff.removedNodeIds.join(",")}
+      data-canvas-version-diff-changed={activeDiff.changedNodeIds.join(",")}
+      data-canvas-version-diff-unchanged={activeDiff.unchangedNodeIds.join(",")}
+      data-canvas-version-restore-restores={activePreview.restoresNodeIds.join(",")}
+      data-canvas-version-restore-preserves={activePreview.preservesNodeIds.join(",")}
+      data-canvas-version-restore-conflicts={activePreview.conflictNodeIds.join(",")}
+    >
+      <div className="version-row">
+        {versions.map((version) => {
+          const diff = version.diff ?? { addedNodeIds: [], removedNodeIds: [], changedNodeIds: [], unchangedNodeIds: [] };
+          const preview = version.restorePreview ?? { restoresNodeIds: [], preservesNodeIds: [], conflictNodeIds: [] };
+          return (
+            <button
+              key={version.id}
+              className={version.id === activeVersionId ? "version-chip active" : "version-chip"}
+              disabled={sessionBlocked}
+              onClick={() => void runAction("restore", () => zenariClient.restoreCanvasVersion(version.id))}
+              aria-pressed={version.id === activeVersionId}
+              data-canvas-version-entry={version.id}
+              data-canvas-version-number={version.versionNumber ?? ""}
+              data-canvas-version-node-count={version.nodeCount}
+              data-canvas-version-preview-node-count={version.snapshot?.nodes.length ?? version.nodeCount}
+              data-canvas-version-diff-added={diff.addedNodeIds.join(",")}
+              data-canvas-version-diff-removed={diff.removedNodeIds.join(",")}
+              data-canvas-version-diff-changed={diff.changedNodeIds.join(",")}
+              data-canvas-version-diff-unchanged={diff.unchangedNodeIds.join(",")}
+              data-canvas-version-restore-restores={preview.restoresNodeIds.join(",")}
+              data-canvas-version-restore-preserves={preview.preservesNodeIds.join(",")}
+              data-canvas-version-restore-conflicts={preview.conflictNodeIds.join(",")}
+              {...unsafeActionGuardAttributes("Restore Version", state)}
+            >
+              <History size={14} aria-hidden="true" />
+              {version.label}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function EditToolsPanel({
+  state,
+  sessionBlocked,
+  runAction
+}: {
+  state: WorkspaceState;
+  sessionBlocked: boolean;
+  runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
+}) {
+  const edit = state.editTools;
+  const latestRevision = edit.revisions[0];
+  const selectedNodeId = state.canvas.interaction.selectedNodeIds[0] ?? edit.sourceNodeId;
+  const maskAligned = edit.mask.width === edit.sourceWidth && edit.mask.height === edit.sourceHeight;
+
+  return (
+    <section
+      className="edit-tools-panel"
+      aria-label="Edit tools and mask"
+      data-edit-tools-contract={edit.contract}
+      data-edit-tools-status={edit.syncStatus}
+      data-edit-tools-active-tool={edit.activeTool}
+      data-edit-tools-available-tools={edit.availableTools.join(",")}
+      data-edit-tools-source-asset-id={edit.sourceAssetId}
+      data-edit-tools-source-node-id={selectedNodeId}
+      data-edit-tools-mask-kind={edit.mask.kind}
+      data-edit-tools-mask-width={edit.mask.width}
+      data-edit-tools-mask-height={edit.mask.height}
+      data-edit-tools-source-width={edit.sourceWidth}
+      data-edit-tools-source-height={edit.sourceHeight}
+      data-edit-tools-mask-aligned={String(maskAligned)}
+      data-edit-tools-mask-coverage={edit.mask.coveragePct.toFixed(2)}
+      data-edit-tools-revision-count={edit.revisions.length}
+      data-edit-tools-last-revision-id={edit.lastRevisionId ?? ""}
+      data-edit-tools-last-action={edit.lastAction}
+      data-edit-tools-original-retained={String(latestRevision?.originalAssetRetained ?? true)}
+      data-edit-tools-derived-asset-id={latestRevision?.derivedAssetId ?? ""}
+      data-edit-tools-derived-node-id={latestRevision?.derivedNodeId ?? ""}
+      data-edit-tools-lineage-tool={latestRevision?.lineage.toolType ?? ""}
+      data-edit-tools-raw-payload-persisted={String(latestRevision?.lineage.rawPayloadPersisted ?? false)}
+      data-edit-tools-provider-request-required={String(latestRevision?.providerRequestRequired ?? false)}
+    >
+      <div className="panel-header">
+        <PanelTitle icon={<ImagePlus size={18} aria-hidden="true" />} title="Edit Tools" />
+        <span className="soft-label">{maskAligned ? "Mask aligned" : "Mask mismatch"}</span>
+      </div>
+      <div className="edit-tool-row" role="group" aria-label="Edit tool picker">
+        {edit.availableTools.map((tool) => (
+          <button
+            key={tool}
+            type="button"
+            className={tool === edit.activeTool ? "secondary-button compact active" : "secondary-button compact"}
+            aria-label={`Edit tool ${tool}`}
+            aria-pressed={tool === edit.activeTool}
+            disabled={sessionBlocked}
+            onClick={() => void runAction("edit-tool", () => zenariClient.setEditTool(tool))}
+          >
+            {tool.replace(/_/g, " ")}
+          </button>
+        ))}
+      </div>
+      <div className="edit-mask-grid">
+        <label>
+          <span>Mask kind</span>
+          <select
+            aria-label="Mask kind"
+            value={edit.mask.kind}
+            disabled={sessionBlocked}
+            onChange={(event) => void runAction("edit-mask", () => zenariClient.updateEditMask({ kind: event.target.value as typeof edit.mask.kind }))}
+          >
+            <option value="brush">brush</option>
+            <option value="rect">rect</option>
+            <option value="lasso">lasso</option>
+          </select>
+        </label>
+        <label>
+          <span>Coverage</span>
+          <input
+            aria-label="Mask coverage"
+            type="range"
+            min="0.01"
+            max="1"
+            step="0.01"
+            value={edit.mask.coveragePct}
+            disabled={sessionBlocked}
+            onChange={(event) => void runAction("edit-mask", () => zenariClient.updateEditMask({ coveragePct: Number(event.target.value) }))}
+          />
+        </label>
+        <span className="edit-mask-size">
+          {edit.mask.width} x {edit.mask.height}
+        </span>
+        <button
+          type="button"
+          className="primary-button compact"
+          disabled={sessionBlocked || !maskAligned}
+          onClick={() => void runAction("edit-apply", () => zenariClient.applyEditTool())}
+          {...unsafeActionGuardAttributes("Apply Edit Tool", state)}
+        >
+          Apply Edit
+        </button>
+      </div>
+      {latestRevision ? (
+        <div
+          className="edit-revision-row"
+          data-edit-tools-revision={latestRevision.id}
+          data-edit-tools-revision-source-asset={latestRevision.sourceAssetId}
+          data-edit-tools-revision-derived-asset={latestRevision.derivedAssetId}
+          data-edit-tools-revision-derived-node={latestRevision.derivedNodeId}
+          data-edit-tools-revision-original-retained={String(latestRevision.originalAssetRetained)}
+          data-edit-tools-revision-raw-payload-persisted={String(latestRevision.lineage.rawPayloadPersisted)}
+        >
+          <strong>{latestRevision.tool.replace(/_/g, " ")}</strong>
+          <span>{latestRevision.derivedAssetId} · {latestRevision.derivedNodeId}</span>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function CanvasNodeCard({
+  node,
+  selected,
+  sessionBlocked,
+  runAction
+}: {
+  node: CanvasNode;
+  selected: boolean;
+  sessionBlocked: boolean;
+  runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
+}) {
+  if (node.hidden) {
+    return null;
+  }
+  return (
+    <article
+      className={`canvas-node ${node.kind}${selected ? " selected" : ""}${node.locked ? " locked" : ""}`}
+      style={{
+        left: node.x,
+        top: node.y,
+        width: node.width ?? 230,
+        minHeight: node.height ?? 118,
+        zIndex: node.zIndex ?? 1
+      }}
+      data-canvas-node={node.id}
+      data-canvas-node-selected={String(selected)}
+      data-canvas-node-locked={String(Boolean(node.locked))}
+      data-canvas-node-hidden={String(Boolean(node.hidden))}
+      data-canvas-node-z-index={node.zIndex ?? 1}
+      onClick={() => void runAction("canvas-select", () => zenariClient.selectCanvasNode(node.id))}
+    >
+      <strong>{node.title}</strong>
+      <p>{node.body}</p>
+      <button
+        type="button"
+        className="node-move-handle"
+        aria-label={`Move ${node.title}`}
+        disabled={sessionBlocked || Boolean(node.locked)}
+        onClick={(event) => {
+          event.stopPropagation();
+          void runAction("canvas-drag", () => zenariClient.moveCanvasNode(node.id, { x: 24, y: 18 }));
+        }}
+      >
+        <Move size={14} aria-hidden="true" />
+      </button>
+    </article>
+  );
+}
+
+function BatchGenerationPanel({
+  state,
+  sessionBlocked,
+  runAction
+}: {
+  state: WorkspaceState;
+  sessionBlocked: boolean;
+  runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
+}) {
+  const latestBatch = state.batchGenerations[0];
+  const [requestedCount, setRequestedCount] = useState(4);
+  const [aspectRatio, setAspectRatio] = useState<PromptComposerAspectRatio>("16:9");
+  const [quality, setQuality] = useState<PromptComposerQuality>("standard");
+  const promptComposerPayload = buildPromptComposerPayload(state, {
+    text:
+      `${state.brief.prompt} @object[Confirmed Brief] @asset[Primary logo reference] @brand[Aurora Retail] @model[image-fast-v1]`.trim(),
+    requestedCount,
+    aspectRatio,
+    quality
+  });
+  const retryableChild = latestBatch?.children.find((child) => child.status === "failed" && child.retryCount < child.maxRetries);
+  const canCancel = Boolean(latestBatch?.children.some((child) => child.status === "queued" || child.status === "running"));
+  const canPoll = Boolean(latestBatch && ["queued", "running"].includes(latestBatch.status) && state.sessionContract.status === "authenticated");
+  const latestResultChild = latestBatch?.children.find((child) => child.assetId || child.canvasObjectId);
+  const latestPromptContext = latestBatch?.promptContext ?? promptComposerPayload.prompt_context;
+
+  return (
+    <section className="panel batch-panel" aria-label="Batch generation controls">
+      <PanelTitle icon={<Sparkles size={18} aria-hidden="true" />} title="Batch" />
+      <div
+        className="prompt-composer-controls"
+        aria-label="Prompt composer controls"
+        data-prompt-composer-contract="stage1.prompt-composer-contract.v1"
+        data-prompt-composer-status={promptComposerPayload.prompt_context_status}
+        data-prompt-composer-requested-count={promptComposerPayload.requested_count}
+        data-prompt-composer-aspect-ratio={promptComposerPayload.aspect_ratio}
+        data-prompt-composer-quality={promptComposerPayload.quality}
+        data-prompt-composer-selected-object-count={promptComposerPayload.projected.selected_object_count}
+        data-prompt-composer-reference-asset-count={promptComposerPayload.projected.reference_asset_count}
+        data-prompt-composer-brand-kit-id={promptComposerPayload.projected.brand_kit_id}
+        data-prompt-composer-model-hints={promptComposerPayload.projected.model_hints.join(",")}
+        data-prompt-composer-allowed-models={promptComposerPayload.allowed_models.join(",")}
+        data-prompt-composer-tool-hint={promptComposerPayload.prompt_context.tool_hint}
+        data-prompt-composer-unresolved-count={promptComposerPayload.blocked.unresolved_mention_count}
+        data-prompt-composer-duplicate-count={promptComposerPayload.blocked.duplicate_mention_count}
+        data-prompt-composer-forbidden-model-count={promptComposerPayload.blocked.forbidden_model_mention_count}
+        data-prompt-composer-redaction-secret-like={String(promptComposerPayload.redaction.secret_like_value_projected)}
+        data-prompt-composer-redaction-provider-payload={String(promptComposerPayload.redaction.raw_provider_payload_persisted)}
+        data-prompt-composer-operation={promptComposerPayload.operations.join(",")}
+      >
+        <label>
+          Count
+          <input
+            type="number"
+            min={1}
+            max={20}
+            value={requestedCount}
+            onChange={(event) => setRequestedCount(Number(event.target.value))}
+          />
+        </label>
+        <label>
+          Ratio
+          <select value={aspectRatio} onChange={(event) => setAspectRatio(event.target.value as PromptComposerAspectRatio)}>
+            <option value="1:1">1:1</option>
+            <option value="4:5">4:5</option>
+            <option value="16:9">16:9</option>
+            <option value="9:16">9:16</option>
+          </select>
+        </label>
+        <label>
+          Quality
+          <select value={quality} onChange={(event) => setQuality(event.target.value as PromptComposerQuality)}>
+            <option value="draft">Draft</option>
+            <option value="standard">Standard</option>
+            <option value="high">High</option>
+          </select>
+        </label>
+      </div>
+      <div className="package-actions">
+        <button
+          className="primary-button"
+          disabled={sessionBlocked}
+          onClick={() => void runAction("batch-create", () => zenariClient.createBatchGeneration(promptComposerPayload))}
+          {...unsafeActionGuardAttributes("Create Batch", state)}
+        >
+          <Sparkles size={17} aria-hidden="true" />
+          Create Batch
+        </button>
+        <button
+          className="secondary-button"
+          disabled={sessionBlocked || !latestBatch || !canCancel}
+          onClick={() => latestBatch && void runAction("batch-cancel", () => zenariClient.cancelBatchGeneration(latestBatch.id))}
+          {...unsafeActionGuardAttributes("Cancel Batch", state)}
+        >
+          <AlertTriangle size={16} aria-hidden="true" />
+          Cancel Batch
+        </button>
+        <button
+          className="secondary-button"
+          disabled={sessionBlocked || !retryableChild}
+          onClick={() => retryableChild && void runAction("batch-retry", () => zenariClient.retryBatchGenerationChild(retryableChild.id))}
+          {...unsafeActionGuardAttributes("Retry Child", state)}
+        >
+          <RefreshCcw size={16} aria-hidden="true" />
+          Retry Child
+        </button>
+      </div>
+      <div
+        className="batch-contract"
+        aria-label="Batch generation API contract"
+        data-batch-generation-contract="stage1.batch-generation-user-api"
+        data-batch-generation-count={state.batchGenerations.length}
+        data-batch-generation-latest-id={latestBatch?.id ?? ""}
+        data-batch-generation-latest-status={latestBatch?.status ?? "none"}
+        data-batch-generation-latest-progress={latestBatch?.progressPercent ?? 0}
+        data-batch-generation-latest-child-count={latestBatch?.children.length ?? 0}
+        data-batch-generation-latest-failed-count={latestBatch?.failedCount ?? 0}
+        data-batch-generation-latest-cancelled-count={latestBatch?.cancelledCount ?? 0}
+        data-batch-generation-latest-blocked-count={latestBatch?.blockedCount ?? 0}
+        data-batch-generation-latest-succeeded-count={latestBatch?.succeededCount ?? 0}
+        data-batch-generation-latest-retryable-count={latestBatch?.retryableCount ?? 0}
+        data-batch-generation-retryable-child-id={retryableChild?.id ?? ""}
+        data-batch-generation-provider={latestBatch?.providerId ?? "zenari-image-sandbox"}
+        data-batch-generation-model={latestBatch?.modelId ?? "image-fast-v1"}
+        data-batch-generation-progress-sync-status={latestBatch?.progressSyncStatus ?? "local"}
+        data-batch-generation-progress-synced-at={latestBatch?.progressSyncedAt ?? ""}
+        data-batch-generation-progress-polling={canPoll ? "enabled" : "idle"}
+        data-batch-generation-progress-operations="getBatchGeneration:GET:/batch-generations/{batch_id}:include:not-required:false|listBatchGenerationChildren:GET:/batch-generations/{batch_id}/children:include:not-required:false|getBatchGenerationProgress:GET:/batch-generations/{batch_id}/progress:include:not-required:false"
+        data-batch-generation-result-asset-id={latestResultChild?.assetId ?? ""}
+        data-batch-generation-result-canvas-object-id={latestResultChild?.canvasObjectId ?? ""}
+        data-batch-generation-prompt-context-text-length={latestPromptContext.text.length}
+        data-batch-generation-prompt-context-selected-object-ids={latestPromptContext.selected_object_ids.join(",")}
+        data-batch-generation-prompt-context-reference-asset-ids={latestPromptContext.reference_asset_ids.join(",")}
+        data-batch-generation-prompt-context-brand-kit-id={latestPromptContext.brand_kit_id ?? ""}
+        data-batch-generation-prompt-context-model-hints={latestPromptContext.model_hints.join(",")}
+        data-batch-generation-prompt-context-tool-hint={latestPromptContext.tool_hint}
+      >
+        <strong>{latestBatch ? `${latestBatch.id} · ${latestBatch.status}` : "No batch queued"}</strong>
+        <span>
+          {latestBatch
+            ? `${latestBatch.progressPercent}% · ${latestBatch.succeededCount}/${latestBatch.children.length} ready · ${latestBatch.retryableCount} retryable`
+            : "Create a four-variant sandbox batch from the active brief."}
+        </span>
+        {latestBatch ? (
+          <div className="meter batch-progress-meter" role="progressbar" aria-label="Batch generation progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={latestBatch.progressPercent}>
+            <span style={{ width: `${latestBatch.progressPercent}%` }} />
+          </div>
+        ) : null}
+      </div>
+      {latestBatch ? (
+        <div className="history-list batch-children">
+          <h3>Children</h3>
+          {latestBatch.children.map((child) => (
+            <article key={child.id}>
+              <strong>{child.id}</strong>
+              <span>
+                {child.status} · retry {child.retryCount}/{child.maxRetries} · {child.modelId}
+              </span>
+            </article>
+          ))}
+        </div>
+      ) : null}
+    </section>
   );
 }
 
@@ -1508,8 +2442,35 @@ function PackagePanel({
   sessionBlocked: boolean;
   runAction: (label: string, action: () => Promise<WorkspaceState>) => Promise<void>;
 }) {
+  const safetyExportState = buildSafetyExportStateEvidence(state);
   return (
-    <section className="panel package-panel">
+    <section
+      className="panel package-panel"
+      aria-label="Package export safety state"
+      data-safety-export-state-contract={safetyExportState.schema_version}
+      data-safety-export-state-status={safetyExportState.status}
+      data-safety-export-total-count={safetyExportState.export_count}
+      data-safety-export-ready-count={safetyExportState.ready_export_count}
+      data-safety-export-blocked-count={safetyExportState.blocked_export_count}
+      data-safety-export-failed-count={safetyExportState.failed_export_count}
+      data-safety-export-running-count={safetyExportState.running_export_count}
+      data-safety-export-qa-block-count={safetyExportState.qa_block_finding_count}
+      data-safety-export-safety-block-count={safetyExportState.safety_block_finding_count}
+      data-safety-export-admin-review-required-count={safetyExportState.admin_review_required_count}
+      data-safety-export-blocked-download-cta-count={safetyExportState.blocked_download_cta_count}
+      data-safety-export-blocked-share-cta-count={safetyExportState.blocked_share_cta_count}
+      data-safety-export-downloadable-ready-count={safetyExportState.downloadable_ready_export_count}
+      data-safety-export-blocked-without-download-count={safetyExportState.blocked_export_without_download_count}
+      data-safety-export-blocked-without-share-count={safetyExportState.blocked_export_without_share_count}
+      data-safety-export-latest-export-id={safetyExportState.latest_export_id}
+      data-safety-export-latest-status={safetyExportState.latest_export_status}
+      data-safety-export-latest-blocked-reason={safetyExportState.latest_blocked_reason}
+      data-safety-export-blocked-reasons={safetyExportState.blocked_reasons.join("|")}
+      data-safety-export-raw-provider-payload={String(safetyExportState.raw_provider_payload_projected)}
+      data-safety-export-raw-safety-payload={String(safetyExportState.raw_safety_payload_projected)}
+      data-safety-export-secret-like-projected={String(safetyExportState.secret_like_value_projected)}
+      data-safety-export-can-clear-staging={String(safetyExportState.can_clear_stage1_staging_runtime_gate)}
+    >
       <PanelTitle icon={<PackagePlus size={18} aria-hidden="true" />} title="Package" />
       <div className="package-actions">
         <button
@@ -1519,7 +2480,7 @@ function PackagePanel({
           onClick={() => {
             const candidateId = state.selectedCandidateId;
             if (candidateId) {
-              void runAction("package", () => zenArtClient.addPackageItem(candidateId));
+              void runAction("package", () => zenariClient.addPackageItem(candidateId));
             }
           }}
           {...unsafeActionGuardAttributes("Add Selection", state)}
@@ -1531,7 +2492,7 @@ function PackagePanel({
           className="primary-button"
           data-testid="export-download"
           disabled={sessionBlocked}
-          onClick={() => void runAction("export", () => zenArtClient.createExport("zip"))}
+          onClick={() => void runAction("export", () => zenariClient.createExport("zip"))}
           {...unsafeActionGuardAttributes("Export ZIP", state)}
         >
           <Download size={17} aria-hidden="true" />
@@ -1540,7 +2501,7 @@ function PackagePanel({
         <button
           className="secondary-button"
           disabled={sessionBlocked}
-          onClick={() => void runAction("export", () => zenArtClient.createExport("pdf-placeholder"))}
+          onClick={() => void runAction("export", () => zenariClient.createExport("pdf-placeholder"))}
           {...unsafeActionGuardAttributes("Export PDF", state)}
         >
           <FileArchive size={17} aria-hidden="true" />
@@ -1563,13 +2524,31 @@ function PackagePanel({
         {state.exports.map((item) => {
           const metadataEvidence = buildPackageExportMetadataEvidence(item);
           const zipPayloadSmoke = buildExportZipPayloadSmokeEvidence(item);
+          const renderedAssetEvidence = buildRenderedExportAssetEvidence(item);
+          const downloadParityEvidence = buildExportDownloadParityEvidence(item, metadataEvidence, zipPayloadSmoke);
+          const downloadAccessBoundary = buildExportDownloadAccessBoundaryEvidence(
+            item,
+            downloadParityEvidence,
+            zipPayloadSmoke,
+            renderedAssetEvidence
+          );
+          const blockedReasons = blockedReasonsForExport(item);
           const downloadReady =
             item.status === "ready" &&
             metadataEvidence.downloadArtifactStatus === "pass" &&
-            zipPayloadSmoke.status === "pass";
+            zipPayloadSmoke.status === "pass" &&
+            renderedAssetEvidence.status === "pass";
 
           return (
-            <article key={item.id} className={item.status === "blocked" ? "blocked-export" : ""}>
+            <article
+              key={item.id}
+              className={item.status === "blocked" ? "blocked-export" : ""}
+              data-safety-export-record-id={item.id}
+              data-safety-export-record-status={item.status}
+              data-safety-export-record-blocked-reasons={blockedReasons.join("|")}
+              data-safety-export-record-download-eligible={String(downloadReady)}
+              data-safety-export-record-share-eligible={String(item.status === "ready")}
+            >
               <strong>{item.fileName}</strong>
               <span>{item.status} · {dateLabel(item.createdAt)}</span>
               <span>Manifest {item.manifest.package_id} · {item.manifest.items.length} provenance entries</span>
@@ -1598,11 +2577,36 @@ function PackagePanel({
                   data-export-download-metadata-status={metadataEvidence.status}
                   data-export-download-artifact-status={metadataEvidence.downloadArtifactStatus}
                   data-export-download-required-payload-parity={metadataEvidence.zipPayloadParityStatus}
+                  data-export-download-rendered-asset-status={renderedAssetEvidence.status}
+                  data-export-download-rendered-asset-count={renderedAssetEvidence.renderedAssetPayloadCount}
+                  data-export-download-placeholder-payload-count={renderedAssetEvidence.placeholderPayloadCount}
+                  data-export-download-access-boundary={downloadAccessBoundary.schema_version}
+                  data-export-download-access-boundary-status={downloadAccessBoundary.status}
+                  data-export-download-local-browser-status={downloadAccessBoundary.localBrowserDownloadStatus}
+                  data-export-download-url-policy={downloadAccessBoundary.productDownloadUrlPolicy}
+                  data-export-download-server-route={downloadAccessBoundary.serverDownloadRoute}
+                  data-export-download-direct-object-signing={String(downloadAccessBoundary.objectStoreDirectSigningUsedForExportDownload)}
+                  data-export-download-signed-url-persisted={String(downloadAccessBoundary.signedUrlPersisted)}
+                  data-export-download-signed-url-material-projected={String(downloadAccessBoundary.signedUrlMaterialProjected)}
+                  data-export-download-response-object-key-header={String(downloadAccessBoundary.downloadResponseDisclosesObjectKeyHeader)}
+                  data-export-download-requires-active-retention={String(downloadAccessBoundary.requiresActiveRetentionMetadata)}
+                  data-export-download-requires-audit={String(downloadAccessBoundary.requiresDownloadAudit)}
+                  data-export-download-requires-analytics={String(downloadAccessBoundary.requiresDownloadAnalytics)}
+                  data-export-download-strict-staging-signed-url-evidence={downloadAccessBoundary.strictStagingSignedUrlEvidence}
+                  data-export-download-strict-staging-retention-evidence={downloadAccessBoundary.strictStagingRetentionCleanupEvidence}
+                  data-export-download-production-object-storage-evidence={downloadAccessBoundary.productionObjectStorageEvidence}
+                  data-export-download-can-clear-staging={String(downloadAccessBoundary.canClearStage1StagingRuntimeGate)}
+                  data-export-download-can-clear-production={String(downloadAccessBoundary.canClearStage1ProductionLaunchGate)}
+                  data-export-download-can-clear-object-storage-dnl={String(downloadAccessBoundary.canClearObjectStorageDoNotLaunch)}
                 >
                   <Download size={15} aria-hidden="true" />
                   Download
                 </button>
-              ) : null}
+              ) : (
+                <span className="export-blocked-reason" data-safety-export-download-disabled-reason={blockedReasons.join("|")}>
+                  Download blocked · {blockedReasons[0] ?? "review_required"}
+                </span>
+              )}
               <ShareLinkState state={state} exportId={item.id} sessionBlocked={sessionBlocked} runAction={runAction} compact />
             </article>
           );
@@ -1631,14 +2635,14 @@ function ProjectsView({
 
   const createProject = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    void runAction("project-create", () => zenArtClient.createProject(newProjectName));
+    void runAction("project-create", () => zenariClient.createProject(newProjectName));
   };
   const renameProject = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!activeProject) {
       return;
     }
-    void runAction("project-rename", () => zenArtClient.updateProject(activeProject.id, renameProjectName));
+    void runAction("project-rename", () => zenariClient.updateProject(activeProject.id, renameProjectName));
   };
 
   return (
@@ -1711,9 +2715,15 @@ function ExportView({
   const latestShareLink = latestExport ? state.shareLinks.find((item) => item.exportId === latestExport.id) : undefined;
   const metadataEvidence = latestExport ? buildPackageExportMetadataEvidence(latestExport) : undefined;
   const zipPayloadSmoke = latestExport ? buildExportZipPayloadSmokeEvidence(latestExport) : undefined;
+  const renderedAssetEvidence = latestExport ? buildRenderedExportAssetEvidence(latestExport) : undefined;
+  const safetyExportState = buildSafetyExportStateEvidence(state);
   const downloadParityEvidence =
     latestExport && metadataEvidence && zipPayloadSmoke
       ? buildExportDownloadParityEvidence(latestExport, metadataEvidence, zipPayloadSmoke)
+      : undefined;
+  const downloadAccessBoundary =
+    latestExport && downloadParityEvidence && zipPayloadSmoke && renderedAssetEvidence
+      ? buildExportDownloadAccessBoundaryEvidence(latestExport, downloadParityEvidence, zipPayloadSmoke, renderedAssetEvidence)
       : undefined;
   const ecommerceApiSmoke = buildEcommerceGrowthApiSmokeEvidence(state);
   const businessDocApiSmoke = buildBusinessVisualDocApiSmokeEvidence(state);
@@ -1928,6 +2938,96 @@ function ExportView({
                     </div>
                   </section>
                 ) : null}
+                <section
+                  className="export-detail-panel safety-export-state"
+                  aria-label="Safety export state"
+                  data-safety-export-state-contract={safetyExportState.schema_version}
+                  data-safety-export-state-status={safetyExportState.status}
+                  data-safety-export-total-count={safetyExportState.export_count}
+                  data-safety-export-ready-count={safetyExportState.ready_export_count}
+                  data-safety-export-blocked-count={safetyExportState.blocked_export_count}
+                  data-safety-export-qa-block-count={safetyExportState.qa_block_finding_count}
+                  data-safety-export-safety-block-count={safetyExportState.safety_block_finding_count}
+                  data-safety-export-admin-review-required-count={safetyExportState.admin_review_required_count}
+                  data-safety-export-blocked-download-cta-count={safetyExportState.blocked_download_cta_count}
+                  data-safety-export-blocked-share-cta-count={safetyExportState.blocked_share_cta_count}
+                  data-safety-export-blocked-without-download-count={safetyExportState.blocked_export_without_download_count}
+                  data-safety-export-blocked-without-share-count={safetyExportState.blocked_export_without_share_count}
+                  data-safety-export-latest-export-id={safetyExportState.latest_export_id}
+                  data-safety-export-latest-status={safetyExportState.latest_export_status}
+                  data-safety-export-latest-blocked-reason={safetyExportState.latest_blocked_reason}
+                  data-safety-export-blocked-reasons={safetyExportState.blocked_reasons.join("|")}
+                  data-safety-export-raw-provider-payload={String(safetyExportState.raw_provider_payload_projected)}
+                  data-safety-export-raw-safety-payload={String(safetyExportState.raw_safety_payload_projected)}
+                  data-safety-export-secret-like-projected={String(safetyExportState.secret_like_value_projected)}
+                  data-safety-export-can-clear-staging={String(safetyExportState.can_clear_stage1_staging_runtime_gate)}
+                >
+                  <h4>Safety Export State</h4>
+                  <div className="metadata-evidence-grid">
+                    <span className={safetyExportState.blocked_export_count === 0 ? "qa-pass" : "qa-block"}>
+                      {safetyExportState.blocked_export_count} blocked exports
+                    </span>
+                    <span>{safetyExportState.qa_block_finding_count} QA blocks</span>
+                    <span>{safetyExportState.safety_block_finding_count} safety blocks</span>
+                    <span>{safetyExportState.admin_review_required_count} review-required</span>
+                    <span>{safetyExportState.blocked_download_cta_count} blocked download CTAs</span>
+                    <span>{safetyExportState.blocked_share_cta_count} blocked share CTAs</span>
+                  </div>
+                  <p>
+                    {safetyExportState.blocked_reasons.length > 0
+                      ? `Blocked reasons: ${safetyExportState.blocked_reasons.join(", ")}.`
+                      : "Ready exports keep download actions isolated from blocked review states."}
+                  </p>
+                </section>
+                {renderedAssetEvidence ? (
+                  <section
+                    className="export-detail-panel rendered-export-asset-evidence"
+                    aria-label="Rendered export asset local contract"
+                    data-rendered-export-asset-contract={renderedAssetEvidence.schema_version}
+                    data-rendered-export-asset-status={renderedAssetEvidence.status}
+                    data-rendered-export-asset-export-id={renderedAssetEvidence.exportId}
+                    data-rendered-export-asset-package-id={renderedAssetEvidence.packageId}
+                    data-rendered-export-asset-project-id={renderedAssetEvidence.projectId}
+                    data-rendered-export-asset-render-mode={renderedAssetEvidence.renderMode}
+                    data-rendered-export-asset-manifest-payload={renderedAssetEvidence.renderedAssetManifestPayloadName}
+                    data-rendered-export-asset-manifest-output-count={renderedAssetEvidence.manifestAssetOutputCount}
+                    data-rendered-export-asset-payload-count={renderedAssetEvidence.renderedAssetPayloadCount}
+                    data-rendered-export-asset-payloads={renderedAssetEvidence.renderedAssetPayloadNames.join(",")}
+                    data-rendered-export-asset-source-outputs={renderedAssetEvidence.renderedAssetOutputNames.join(",")}
+                    data-rendered-export-asset-content-types={renderedAssetEvidence.renderedAssetContentTypes.join(",")}
+                    data-rendered-export-asset-byte-count={renderedAssetEvidence.renderedAssetByteCount}
+                    data-rendered-export-asset-placeholder-count={renderedAssetEvidence.placeholderPayloadCount}
+                    data-rendered-export-asset-placeholder-payloads={renderedAssetEvidence.placeholderPayloadNames.join(",")}
+                    data-rendered-export-asset-unsafe-count={renderedAssetEvidence.unsafePayloadCount}
+                    data-rendered-export-asset-unsafe-payloads={renderedAssetEvidence.unsafePayloadNames.join(",")}
+                    data-rendered-export-asset-raw-provider-payload={String(renderedAssetEvidence.rawProviderPayloadProjected)}
+                    data-rendered-export-asset-raw-safety-payload={String(renderedAssetEvidence.rawSafetyPayloadProjected)}
+                    data-rendered-export-asset-secret-like-projected={String(renderedAssetEvidence.secretLikeValueProjected)}
+                    data-rendered-export-asset-signed-url-persisted={String(renderedAssetEvidence.signedUrlPersisted)}
+                    data-rendered-export-asset-staging-signed-url-evidence={renderedAssetEvidence.stagingSignedUrlEvidence}
+                    data-rendered-export-asset-retention-evidence={renderedAssetEvidence.objectRetentionCleanupEvidence}
+                    data-rendered-export-asset-can-clear-staging={String(renderedAssetEvidence.canClearStage1StagingRuntimeGate)}
+                    data-rendered-export-asset-can-clear-production={String(renderedAssetEvidence.canClearStage1ProductionLaunchGate)}
+                    data-rendered-export-asset-failures={renderedAssetEvidence.failures.join(",")}
+                  >
+                    <h4>Rendered Assets</h4>
+                    <div className="metadata-evidence-grid">
+                      <span className={renderedAssetEvidence.status === "pass" ? "qa-pass" : "qa-block"}>
+                        {renderedAssetEvidence.status}
+                      </span>
+                      <span>{renderedAssetEvidence.renderedAssetPayloadCount} local rendered assets</span>
+                      <span>{renderedAssetEvidence.placeholderPayloadCount} non-rendered payloads</span>
+                      <span>{renderedAssetEvidence.unsafePayloadCount} unsafe paths</span>
+                      <span>{renderedAssetEvidence.renderedAssetByteCount} bytes</span>
+                      <span>{renderedAssetEvidence.stagingSignedUrlEvidence} signed URL evidence</span>
+                      <span>{renderedAssetEvidence.objectRetentionCleanupEvidence} retention evidence</span>
+                    </div>
+                    <p>
+                      Local ZIP assets render as deterministic SVG payloads with a rendered-asset manifest. Staging signed URL and object
+                      retention evidence remain open.
+                    </p>
+                  </section>
+                ) : null}
                 {zipPayloadSmoke ? (
                   <section
                     className="export-detail-panel export-zip-payload-smoke"
@@ -2037,6 +3137,54 @@ function ExportView({
                     <p>
                       Export metadata, ZIP payload smoke, and download handoff agree on artifact identity, payload count, required ZIP parity,
                       workflow metadata, and trace provenance.
+                    </p>
+                  </section>
+                ) : null}
+                {downloadAccessBoundary ? (
+                  <section
+                    className="export-detail-panel export-download-access-boundary"
+                    aria-label="Export download access boundary"
+                    data-export-download-access-boundary-contract={downloadAccessBoundary.schema_version}
+                    data-export-download-access-boundary-status={downloadAccessBoundary.status}
+                    data-export-download-access-boundary-scenario={downloadAccessBoundary.scenario}
+                    data-export-download-access-boundary-export-id={downloadAccessBoundary.exportId}
+                    data-export-download-access-boundary-package-id={downloadAccessBoundary.packageId}
+                    data-export-download-access-boundary-file-name={downloadAccessBoundary.fileName}
+                    data-export-download-access-boundary-local-browser-status={downloadAccessBoundary.localBrowserDownloadStatus}
+                    data-export-download-access-boundary-local-zip-status={downloadAccessBoundary.localZipPayloadStatus}
+                    data-export-download-access-boundary-rendered-asset-status={downloadAccessBoundary.renderedAssetStatus}
+                    data-export-download-access-boundary-url-policy={downloadAccessBoundary.productDownloadUrlPolicy}
+                    data-export-download-access-boundary-server-route={downloadAccessBoundary.serverDownloadRoute}
+                    data-export-download-access-boundary-direct-object-signing={String(downloadAccessBoundary.objectStoreDirectSigningUsedForExportDownload)}
+                    data-export-download-access-boundary-signed-url-persisted={String(downloadAccessBoundary.signedUrlPersisted)}
+                    data-export-download-access-boundary-signed-url-material-projected={String(downloadAccessBoundary.signedUrlMaterialProjected)}
+                    data-export-download-access-boundary-response-object-key-header={String(downloadAccessBoundary.downloadResponseDisclosesObjectKeyHeader)}
+                    data-export-download-access-boundary-requires-active-retention={String(downloadAccessBoundary.requiresActiveRetentionMetadata)}
+                    data-export-download-access-boundary-requires-audit={String(downloadAccessBoundary.requiresDownloadAudit)}
+                    data-export-download-access-boundary-requires-analytics={String(downloadAccessBoundary.requiresDownloadAnalytics)}
+                    data-export-download-access-boundary-strict-staging-signed-url-evidence={downloadAccessBoundary.strictStagingSignedUrlEvidence}
+                    data-export-download-access-boundary-strict-staging-retention-evidence={downloadAccessBoundary.strictStagingRetentionCleanupEvidence}
+                    data-export-download-access-boundary-production-object-storage-evidence={downloadAccessBoundary.productionObjectStorageEvidence}
+                    data-export-download-access-boundary-can-clear-staging={String(downloadAccessBoundary.canClearStage1StagingRuntimeGate)}
+                    data-export-download-access-boundary-can-clear-production={String(downloadAccessBoundary.canClearStage1ProductionLaunchGate)}
+                    data-export-download-access-boundary-can-clear-object-storage-dnl={String(downloadAccessBoundary.canClearObjectStorageDoNotLaunch)}
+                    data-export-download-access-boundary-failures={downloadAccessBoundary.failures.join(",")}
+                  >
+                    <h4>Download Access Boundary</h4>
+                    <div className="metadata-evidence-grid">
+                      <span className={downloadAccessBoundary.status === "pass" ? "qa-pass" : "qa-block"}>
+                        {downloadAccessBoundary.status}
+                      </span>
+                      <span>{downloadAccessBoundary.localBrowserDownloadStatus} local browser ZIP</span>
+                      <span>{downloadAccessBoundary.productDownloadUrlPolicy}</span>
+                      <span>{downloadAccessBoundary.serverDownloadRoute}</span>
+                      <span>{downloadAccessBoundary.strictStagingSignedUrlEvidence} strict signed URL evidence</span>
+                      <span>{downloadAccessBoundary.strictStagingRetentionCleanupEvidence} retention cleanup evidence</span>
+                      <span>{downloadAccessBoundary.canClearStage1StagingRuntimeGate ? "staging gate clears" : "staging gate stays open"}</span>
+                    </div>
+                    <p>
+                      Local ZIP download proves browser packaging only. Staging must still prove server-mediated signed URL download, active
+                      retention metadata, audit, analytics, and object cleanup before launch gates can close.
                     </p>
                   </section>
                 ) : null}
@@ -2342,17 +3490,30 @@ function ShareLinkState({
   compact?: boolean;
 }) {
   const shareLink = state.shareLinks.find((item) => item.exportId === exportId);
+  const targetExport = state.exports.find((item) => item.id === exportId);
+  const shareBlocked = targetExport?.status !== "ready";
+  const blockedReasons = targetExport ? blockedReasonsForExport(targetExport) : [];
 
   return (
-    <div className={compact ? "share-state compact-share" : "share-state"}>
+    <div
+      className={compact ? "share-state compact-share" : "share-state"}
+      data-safety-export-share-export-id={exportId}
+      data-safety-export-share-status={targetExport?.status ?? "missing"}
+      data-safety-export-share-disabled-reason={shareBlocked ? blockedReasons.join("|") || "export_not_ready" : ""}
+    >
       <div>
         <strong>{shareLink ? `Share ${shareLink.status}` : "Share private"}</strong>
-        <span>{shareLink?.reason ?? "Local alpha exports stay private until signed sharing is available."}</span>
+        <span>
+          {shareBlocked
+            ? `Sharing blocked until export is ready${blockedReasons.length > 0 ? `: ${blockedReasons[0]}` : "."}`
+            : shareLink?.reason ?? "Local alpha exports stay private until signed sharing is available."}
+        </span>
       </div>
       <button
         className="secondary-button compact"
-        disabled={sessionBlocked || Boolean(shareLink)}
-        onClick={() => void runAction("share", () => zenArtClient.createShareLink(exportId))}
+        disabled={sessionBlocked || Boolean(shareLink) || shareBlocked}
+        onClick={() => void runAction("share", () => zenariClient.createShareLink(exportId))}
+        data-safety-export-share-cta={shareBlocked ? "blocked" : "enabled"}
         {...unsafeActionGuardAttributes("Request Share", state)}
       >
         <Link2 size={15} aria-hidden="true" />
@@ -2421,6 +3582,7 @@ function BillingView({
     { key: "quota_exhausted", label: "No Quota" }
   ];
   const isBlocked = state.billing.status === "inactive" || state.billing.status === "past_due" || remaining === 0;
+  const teamSeatBilling = state.teamSeats.billingProjection;
 
   return (
     <section className="content-view">
@@ -2443,12 +3605,31 @@ function BillingView({
           <button
             className="primary-button"
             disabled={sessionBlocked || busy === "checkout"}
-            onClick={() => void runAction("checkout", () => zenArtClient.createMockCheckout())}
+            onClick={() => void runAction("checkout", () => zenariClient.createMockCheckout())}
             {...unsafeActionGuardAttributes("Mock Checkout", state)}
           >
             <CircleDollarSign size={18} aria-hidden="true" />
-            Mock Checkout
+            Start Checkout
           </button>
+          <button
+            className="secondary-button"
+            disabled={sessionBlocked || busy === "billing-portal"}
+            onClick={() => void runAction("billing-portal", () => zenariClient.createBillingPortalSession())}
+            {...unsafeActionGuardAttributes("Billing Portal", state)}
+          >
+            Manage Billing
+          </button>
+          <button
+            className="secondary-button"
+            disabled={sessionBlocked || busy === "billing-cancel"}
+            onClick={() => void runAction("billing-cancel", () => zenariClient.cancelSubscription())}
+            {...unsafeActionGuardAttributes("Cancel Subscription", state)}
+          >
+            Cancel Subscription
+          </button>
+          {state.billing.cancelAtPeriodEnd ? (
+            <p>Cancellation is scheduled at period end.</p>
+          ) : null}
         </article>
         <article className="billing-card">
           <span className="eyebrow">Quota</span>
@@ -2457,6 +3638,142 @@ function BillingView({
           <div className="meter large" role="progressbar" aria-label="Billing quota used" aria-valuemin={0} aria-valuemax={state.billing.quotaLimit} aria-valuenow={state.billing.quotaUsed}>
             <span style={{ width: `${Math.round((state.billing.quotaUsed / state.billing.quotaLimit) * 100)}%` }} />
           </div>
+        </article>
+        <article
+          className="billing-card invoice-card"
+          data-billing-invoice-ui="stage1.invoice-receipt-product-ui"
+          data-billing-invoice-contract="listBillingInvoices:GET:/billing/invoices:include:not-required:false"
+          data-billing-invoice-count={state.billing.invoices.length}
+          data-billing-invoice-sync-status={state.billing.invoiceSyncStatus}
+        >
+          <span className="eyebrow">Invoices</span>
+          <h3>{state.billing.invoices.length} invoice records</h3>
+          <p>Last sync: {state.billing.invoiceSyncedAt ? dateLabel(state.billing.invoiceSyncedAt) : state.billing.invoiceSyncStatus}</p>
+          <button
+            className="secondary-button"
+            disabled={sessionBlocked || busy === "billing-invoices"}
+            onClick={() => void runAction("billing-invoices", () => zenariClient.refreshBillingInvoices())}
+            {...unsafeActionGuardAttributes("Refresh Invoices", state)}
+          >
+            <RefreshCcw size={18} aria-hidden="true" />
+            Refresh Invoices
+          </button>
+          <div className="invoice-list" data-billing-invoice-list="stage1">
+            {state.billing.invoices.length > 0 ? (
+              state.billing.invoices.map((invoice) => (
+                <div
+                  key={invoice.id}
+                  className="invoice-row"
+                  data-billing-invoice-row={invoice.id}
+                  data-billing-invoice-provider={invoice.provider}
+                  data-billing-invoice-status={invoice.status}
+                  data-billing-invoice-has-invoice-url={String(Boolean(invoice.invoiceUrl))}
+                  data-billing-invoice-has-receipt-url={String(Boolean(invoice.receiptUrl))}
+                >
+                  <div>
+                    <strong>{invoice.id}</strong>
+                    <span>{invoice.status} · {invoice.currency} {(invoice.amountPaidCents / 100).toFixed(2)} paid</span>
+                  </div>
+                  <div className="invoice-actions">
+                    {invoice.invoiceUrl ? (
+                      <a href={invoice.invoiceUrl} target="_blank" rel="noreferrer">
+                        Invoice
+                      </a>
+                    ) : null}
+                    {invoice.receiptUrl ? (
+                      <a href={invoice.receiptUrl} target="_blank" rel="noreferrer">
+                        Receipt
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p>No invoices returned yet.</p>
+            )}
+          </div>
+        </article>
+        <article
+          className="billing-card team-seat-card"
+          data-team-seat-ui="stage1.team-seat-product-ui"
+          data-team-seat-usage-contract="getTeamSeatUsage:GET:/teams/{team_id}/seat-usage:include:not-required:false"
+          data-team-seat-entitlement-contract="checkTeamSeatEntitlement:GET:/teams/{team_id}/seat-entitlement:include:not-required:false"
+          data-team-seat-accept-contract="acceptTeamInvite:POST:/teams/{team_id}/invites/{invite_id}/accept:include:X-Zenari-CSRF:true"
+          data-team-seat-team-id={state.teamSeats.usage.teamId}
+          data-team-seat-billable={state.teamSeats.usage.billableSeats}
+          data-team-seat-available={state.teamSeats.usage.availableSeats}
+          data-team-seat-entitlement={state.teamSeats.entitlement.reason}
+          data-team-seat-pending-invite={state.teamSeats.pendingInvite?.status ?? "none"}
+          data-team-seat-billing-projection="stage1.team-seat-billing-safe-projection"
+          data-team-seat-billing-provider={teamSeatBilling.provider}
+          data-team-seat-billing-proration={teamSeatBilling.prorationBehavior}
+          data-team-seat-billing-invoice-impact={teamSeatBilling.invoiceImpact}
+          data-team-seat-billing-sync-status={teamSeatBilling.syncStatus}
+          data-team-seat-billing-safe-projection={String(teamSeatBilling.safeProjection)}
+        >
+          <span className="eyebrow">Team Seats</span>
+          <h3>{state.teamSeats.usage.billableSeats}/{state.teamSeats.usage.seatLimit} billable seats</h3>
+          <div className="team-seat-grid">
+            <span>
+              <strong>{state.teamSeats.usage.activeSeats}</strong>
+              Active
+            </span>
+            <span>
+              <strong>{state.teamSeats.usage.invitedSeats}</strong>
+              Invited
+            </span>
+            <span>
+              <strong>{state.teamSeats.usage.availableSeats}</strong>
+              Available
+            </span>
+          </div>
+          <p>
+            {state.teamSeats.entitlement.allowed
+              ? "One additional invite is currently allowed."
+              : "Seat limit reached; inviting another teammate requires more seats."}
+          </p>
+          <div className="team-seat-billing-panel">
+            <span>
+              <strong>{teamSeatBilling.nextBillableSeats}</strong>
+              Next billable seats
+            </span>
+            <span>
+              <strong>{teamSeatBilling.prorationBehavior.replace(/_/g, " ")}</strong>
+              Stripe proration
+            </span>
+            <span>
+              <strong>{teamSeatBilling.syncStatus}</strong>
+              Seat billing sync
+            </span>
+          </div>
+          <p className="team-seat-billing-note">
+            {teamSeatBilling.invoiceImpact.replace(/_/g, " ")} · {teamSeatBilling.auditEvent} · {teamSeatBilling.lastSyncedAt ? dateLabel(teamSeatBilling.lastSyncedAt) : "not synced"}
+          </p>
+          {state.teamSeats.pendingInvite ? (
+            <div className="inline-alert team-seat-invite" role="status">
+              <Users size={16} aria-hidden="true" />
+              <span>
+                {state.teamSeats.pendingInvite.email} · {state.teamSeats.pendingInvite.role} · {state.teamSeats.pendingInvite.status}
+              </span>
+            </div>
+          ) : null}
+          <button
+            className="secondary-button"
+            disabled={sessionBlocked || busy === "team-seat-refresh"}
+            onClick={() => void runAction("team-seat-refresh", () => zenariClient.refreshTeamSeats())}
+            {...unsafeActionGuardAttributes("Refresh Team Seats", state)}
+          >
+            Refresh Seats
+          </button>
+          <button
+            className="secondary-button"
+            disabled={sessionBlocked || busy === "team-invite-accept" || state.teamSeats.pendingInvite?.status !== "pending"}
+            onClick={() => void runAction("team-invite-accept", () => zenariClient.acceptTeamInvite())}
+            {...unsafeActionGuardAttributes("Accept Invite", state)}
+          >
+            <Users size={18} aria-hidden="true" />
+            Accept Invite
+          </button>
         </article>
         <article className="billing-card edge-state-panel">
           <span className="eyebrow">Edge States</span>
@@ -2467,7 +3784,7 @@ function BillingView({
                 key={scenario.key}
                 className="secondary-button compact"
                 disabled={sessionBlocked || busy === "billing-scenario"}
-                onClick={() => void runAction("billing-scenario", () => zenArtClient.setBillingScenario(scenario.key))}
+                onClick={() => void runAction("billing-scenario", () => zenariClient.setBillingScenario(scenario.key))}
                 {...unsafeActionGuardAttributes("Billing Scenario", state)}
               >
                 {scenario.label}
@@ -2506,7 +3823,7 @@ function AccountView({
         className="settings-form"
         onSubmit={(event) => {
           event.preventDefault();
-          void runAction("account", () => zenArtClient.updateAccount(settings));
+          void runAction("account", () => zenariClient.updateAccount(settings));
         }}
       >
         <label>
@@ -2517,7 +3834,7 @@ function AccountView({
           Default export
           <select value={settings.defaultExportFormat} onChange={(event) => setSettings({ ...settings, defaultExportFormat: event.target.value as ExportFormat })}>
             <option value="zip">ZIP package</option>
-            <option value="pdf-placeholder">PDF placeholder</option>
+            <option value="pdf-placeholder">PDF summary</option>
           </select>
         </label>
         <label className="toggle-row">
@@ -2613,6 +3930,10 @@ function SupportView({
             <dd>{problemContext.linkedExportId ?? "No export yet"}</dd>
           </div>
           <div>
+            <dt>Batch</dt>
+            <dd>{problemContext.linkedBatchId}</dd>
+          </div>
+          <div>
             <dt>Task</dt>
             <dd>{problemContext.linkedTaskId}</dd>
           </div>
@@ -2631,13 +3952,17 @@ function SupportView({
               {problemContext.linkedQuotaSnapshot.status}
             </dd>
           </div>
+          <div>
+            <dt>Billing</dt>
+            <dd>{problemContext.linkedBillingReferenceId}</dd>
+          </div>
         </dl>
       </section>
       <section className="legal-notice-grid" aria-label="Privacy and AI content notices">
         <article className="legal-notice privacy-notice">
           <span className="eyebrow">Privacy Notice</span>
           <p>
-            Support tickets attach project, export, task, trace, accepted reference, and quota context for investigation. Do not include secrets,
+            Support tickets attach project, batch, export, task, trace, accepted reference, quota, and billing context for investigation. Support tickets attach project, export, task, trace links for safety review. Do not include secrets,
             credentials, or unrelated personal data in ticket text.
           </p>
           <Link href="/legal/privacy">Privacy Policy</Link>
@@ -2687,7 +4012,7 @@ function SupportView({
             <strong>{ticket.id} · {ticket.category}</strong>
             <span>{ticket.status} · {ticket.projectName} · quota {ticket.linkedQuotaSnapshot.used}/{ticket.linkedQuotaSnapshot.limit}</span>
             <span>
-              export {ticket.linkedExportId ?? "none"} · task {ticket.linkedTaskId} · trace {ticket.linkedTraceId} · assets {ticket.linkedAssetIds.length}
+              batch {ticket.linkedBatchId ?? "none"} · export {ticket.linkedExportId ?? "none"} · task {ticket.linkedTaskId} · trace {ticket.linkedTraceId} · assets {ticket.linkedAssetIds.length} · billing {ticket.linkedBillingReferenceId ?? "none"}
             </span>
             <p>{ticket.body}</p>
           </article>

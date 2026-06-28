@@ -1,0 +1,146 @@
+{
+  "admin_review_audit_present": true,
+  "api_url": "http://127.0.0.1:31080",
+  "batch_runtime": {
+    "batch_id": "batch_e42300dc2989659f689de28f",
+    "blocked_child_refunded": true,
+    "safety_review_reason_visible": true
+  },
+  "blocked_checks": [
+    "local_devport_debug_evidence_cannot_clear_staging_gate"
+  ],
+  "blocked_reasons": [],
+  "checks": [
+    {
+      "check_id": "batch_blocked_child_refund",
+      "http_status": 200,
+      "method": "GET",
+      "path": "/api/v1/batch-generations/batch_e42300dc2989659f689de28f/children",
+      "reason": "ok_or_expected_block",
+      "request_id": "stage1-safety-qa-local-devport-current-20260622T210826Z-batch_blocked_child_refund",
+      "response_bytes": 1096,
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "batch_safety_review_reason",
+      "http_status": 200,
+      "method": "GET",
+      "path": "/api/v1/batch-generations/batch_e42300dc2989659f689de28f/progress",
+      "reason": "ok_or_expected_block",
+      "request_id": "stage1-safety-qa-local-devport-current-20260622T210826Z-batch_safety_review_reason",
+      "response_bytes": 213,
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "edit_tool_policy_projection",
+      "http_status": 201,
+      "method": "POST",
+      "path": "/api/admin/v1/safety/decisions",
+      "reason": "ok_or_expected_block",
+      "request_id": "stage1-safety-qa-local-devport-current-20260622T210826Z-edit_tool_policy_projection",
+      "response_bytes": 390,
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "asset_import_policy_projection",
+      "http_status": 201,
+      "method": "POST",
+      "path": "/api/admin/v1/safety/decisions",
+      "reason": "ok_or_expected_block",
+      "request_id": "stage1-safety-qa-local-devport-current-20260622T210826Z-asset_import_policy_projection",
+      "response_bytes": 382,
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "export_fail_closed",
+      "http_status": 202,
+      "method": "POST",
+      "path": "/api/v1/packages/package_c1f082b68d41835e1adc8c1d/exports",
+      "reason": "ok_or_expected_block",
+      "request_id": "stage1-safety-qa-local-devport-current-20260622T210826Z-export_fail_closed",
+      "response_bytes": 685,
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "admin_review_override",
+      "http_status": 202,
+      "method": "POST",
+      "path": "/api/admin/v1/exports/export_da24a362788633d80dd14c15/regenerate",
+      "reason": "ok_or_expected_block",
+      "request_id": "stage1-safety-qa-local-devport-current-20260622T210826Z-admin_review_override",
+      "response_bytes": 443,
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "support_ticket_redaction",
+      "http_status": 201,
+      "method": "POST",
+      "path": "/api/v1/support/tickets",
+      "reason": "ok_or_expected_block",
+      "request_id": "stage1-safety-qa-local-devport-current-20260622T210826Z-support_ticket_redaction",
+      "response_bytes": 919,
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "evidence_no_secret_material",
+      "http_status": 200,
+      "method": "LOCAL",
+      "path": "redaction-scan",
+      "reason": "local_results_secret_scan",
+      "request_id": "stage1-safety-qa-local-devport-current-20260622T210826Z-evidence_no_secret_material",
+      "response_bytes": 0,
+      "secret_leak_detected": false,
+      "status": "passed"
+    }
+  ],
+  "environment": "staging",
+  "gate_impact": {
+    "can_clear_stage1_safety_qa_gate": false,
+    "preserved_release_gate_check_id": "stage1_safety_qa_eval",
+    "remaining_blockers": [
+      "local-devport debug evidence cannot clear the canonical staging safety/QA/eval gate"
+    ]
+  },
+  "kind": "safety_qa_eval",
+  "local_devport_debug": true,
+  "open_items": [
+    "local-devport debug evidence cannot clear the canonical staging safety/QA/eval gate"
+  ],
+  "probe_contract": {
+    "allow_local_devport_evidence_env": "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 writes debug-only safety/QA/eval evidence under ops/evidence/staging/local-devport/ and cannot clear staging gates",
+    "canonical_pass_report": "ops/evidence/staging/stage1-safety-qa-eval.json",
+    "canonical_pass_results": "ops/evidence/staging/stage1-safety-qa-eval.ndjson",
+    "local_devport_report": "ops/evidence/staging/local-devport/stage1-safety-qa-eval.local-devport.json",
+    "local_devport_results": "ops/evidence/staging/local-devport/stage1-safety-qa-eval.local-devport.ndjson",
+    "production_like_local_fixture_command": "API_URL=https://zenari-staging.example.test:<port> API_URL_RESOLVE_ADDR=127.0.0.1 API_URL_CA_CERT=<self-signed-ca.pem> WEB_URL=https://zenari-staging.example.test:<web-port> WEB_URL_RESOLVE_ADDR=127.0.0.1 WEB_URL_CA_CERT=<self-signed-ca.pem> ADMIN_URL=https://zenari-staging.example.test:<admin-port> ADMIN_URL_RESOLVE_ADDR=127.0.0.1 ADMIN_URL_CA_CERT=<self-signed-ca.pem> ALLOW_LOCAL_DEVPORT_EVIDENCE=1 USE_DEV_IDENTITY_HEADERS=1 scripts/stage1_safety_qa_eval_smoke.sh"
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_safety_payload_persisted": false,
+  "release_sha": null,
+  "results_path": "ops/evidence/staging/local-devport/stage1-safety-qa-eval.local-devport.ndjson",
+  "runtime_input_readiness": {
+    "admin_auth_ready": true,
+    "allow_local_devport_evidence": true,
+    "batch_runtime_ready": true,
+    "canonical_pass_path": false,
+    "csrf_ready": true,
+    "export_runtime_ready": true,
+    "staging_api_url_ready": true,
+    "use_dev_identity_headers": true,
+    "user_auth_ready": true
+  },
+  "schema_version": "stage1.safety_qa_eval.v1",
+  "secret_material_persisted": false,
+  "status": "blocked",
+  "support_ticket_raw_body_projected_to_admin_evidence": false,
+  "use_dev_identity_headers": true,
+  "user_download_for_blocked_export": false
+}
