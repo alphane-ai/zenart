@@ -18,7 +18,7 @@
   "canonical_pass_path": false,
   "cookie_persisted": false,
   "environment": "staging",
-  "generated_at": "2026-06-28T17:35:10+00:00",
+  "generated_at": "2026-06-28T18:41:11+00:00",
   "http_probes": [
     {
       "body_sample_present": false,
@@ -76,7 +76,7 @@
       "http_status": 200,
       "method": "HEAD",
       "network_phase": "http_response_started",
-      "response_bytes": 803,
+      "response_bytes": 797,
       "status": "pass",
       "url": "https://staging.zenari.ai/"
     },
