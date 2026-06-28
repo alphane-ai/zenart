@@ -471,9 +471,15 @@ jobs:
           python3 scripts/generate_stage1_ci_release_gate_evidence.py
           python3 scripts/render_no_go_release_notes.py --write
           python3 scripts/validate_stage0_rev2.py
+          set +e
           python3 scripts/generate_stage1_production_launch_evidence.py \
             --evidence /tmp/stage1-production-launch.json \
             --results /tmp/stage1-production-launch.ndjson
+          production_launch_status=$?
+          set -e
+          if [ "$production_launch_status" -ne 0 ] && [ "$production_launch_status" -ne 2 ]; then
+            exit "$production_launch_status"
+          fi
           python3 - <<'PY'
           import json
           from pathlib import Path
