@@ -1,0 +1,370 @@
+{
+  "all_components_passed": true,
+  "authorization_header_persisted": false,
+  "blockers": [],
+  "components": [
+    {
+      "blockers": [],
+      "component_id": "auth_rbac_tenant_audit",
+      "diagnostic_evidence_refs": [
+        "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json"
+      ],
+      "diagnostic_results_ref": null,
+      "dry_run": false,
+      "environment": "staging",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json"
+      ],
+      "exact_evidence": true,
+      "local_only": false,
+      "proofs": [
+        "auth decision",
+        "RBAC allow and deny",
+        "tenant isolation",
+        "audit immutability"
+      ],
+      "raw_payload_persisted": false,
+      "results_ref": null,
+      "secret_leak_detected": false,
+      "status": "passed",
+      "validator_commands": [
+        "python3 scripts/validate_stage1_staging_auth_rbac_tenant_audit_evidence.py"
+      ]
+    },
+    {
+      "blockers": [],
+      "component_id": "batch_runtime",
+      "diagnostic_evidence_refs": [
+        "ops/evidence/staging/stage1-provider-sandbox.json"
+      ],
+      "diagnostic_results_ref": null,
+      "dry_run": false,
+      "environment": "staging",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-provider-sandbox.json"
+      ],
+      "exact_evidence": true,
+      "local_only": false,
+      "proofs": [
+        "create batch",
+        "progress polling",
+        "child state visibility",
+        "asset and canvas persistence"
+      ],
+      "raw_payload_persisted": false,
+      "results_ref": null,
+      "secret_leak_detected": false,
+      "status": "passed",
+      "validator_commands": [
+        "python3 scripts/validate_stage1_provider_sandbox_evidence.py"
+      ]
+    },
+    {
+      "blockers": [],
+      "component_id": "staging_quota_replay",
+      "diagnostic_evidence_refs": [
+        "ops/evidence/staging/stage1-quota-replay.json"
+      ],
+      "diagnostic_results_ref": "ops/evidence/staging/stage1-quota-replay.ndjson",
+      "dry_run": false,
+      "environment": "staging",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-quota-replay.json"
+      ],
+      "exact_evidence": true,
+      "local_only": false,
+      "proofs": [
+        "deployed staging Postgres replay",
+        "retry scheduled",
+        "dead-letter refund",
+        "manual retry re-reserve",
+        "provider usage debit",
+        "provider usage credit",
+        "idempotent replay"
+      ],
+      "raw_payload_persisted": false,
+      "results_ref": "ops/evidence/staging/stage1-quota-replay.ndjson",
+      "secret_leak_detected": false,
+      "status": "passed",
+      "validator_commands": [
+        "python3 scripts/validate_stage1_staging_quota_replay_evidence.py"
+      ]
+    },
+    {
+      "blockers": [],
+      "component_id": "provider_sandbox",
+      "diagnostic_evidence_refs": [
+        "ops/evidence/staging/stage1-provider-sandbox.json"
+      ],
+      "diagnostic_results_ref": "ops/evidence/staging/stage1-provider-sandbox.ndjson",
+      "dry_run": false,
+      "environment": "staging",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-provider-sandbox.json"
+      ],
+      "exact_evidence": true,
+      "local_only": false,
+      "proofs": [
+        "OpenAI-compatible models health probe",
+        "admin sandbox test-call",
+        "batch worker runtime",
+        "provider usage",
+        "no provider secret or raw prompt exposure"
+      ],
+      "raw_payload_persisted": false,
+      "results_ref": "ops/evidence/staging/stage1-provider-sandbox.ndjson",
+      "secret_leak_detected": false,
+      "status": "passed",
+      "validator_commands": [
+        "python3 scripts/validate_stage1_provider_sandbox_evidence.py"
+      ]
+    },
+    {
+      "blockers": [],
+      "component_id": "stripe_test_lifecycle",
+      "diagnostic_evidence_refs": [
+        "ops/evidence/staging/stripe-test-checkout-webhook.json"
+      ],
+      "diagnostic_results_ref": "ops/evidence/staging/stripe-test-checkout-webhook.ndjson",
+      "dry_run": false,
+      "environment": "staging",
+      "evidence_refs": [
+        "ops/evidence/staging/stripe-test-checkout-webhook.json"
+      ],
+      "exact_evidence": true,
+      "local_only": false,
+      "proofs": [
+        "livemode=false",
+        "checkout",
+        "paid",
+        "past_due",
+        "cancel",
+        "refund or credit",
+        "webhook replay idempotency",
+        "invoice and receipt visibility"
+      ],
+      "raw_payload_persisted": false,
+      "results_ref": "ops/evidence/staging/stripe-test-checkout-webhook.ndjson",
+      "secret_leak_detected": false,
+      "status": "passed",
+      "validator_commands": [
+        "python3 scripts/validate_stage1_stripe_staging_evidence.py"
+      ]
+    },
+    {
+      "blockers": [],
+      "component_id": "object_storage_retention_cleanup",
+      "diagnostic_evidence_refs": [
+        "ops/evidence/staging/object-storage-retention-cleanup.json"
+      ],
+      "diagnostic_results_ref": "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+      "dry_run": false,
+      "environment": "staging",
+      "evidence_refs": [
+        "ops/evidence/staging/object-storage-retention-cleanup.json"
+      ],
+      "exact_evidence": true,
+      "local_only": false,
+      "proofs": [
+        "retention policy",
+        "expired export cleanup",
+        "orphan cleanup",
+        "audit refs"
+      ],
+      "raw_payload_persisted": false,
+      "results_ref": "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+      "secret_leak_detected": false,
+      "status": "passed",
+      "validator_commands": [
+        "python3 scripts/validate_stage1_staging_object_retention_evidence.py"
+      ]
+    },
+    {
+      "blockers": [],
+      "component_id": "safety_qa_eval",
+      "diagnostic_evidence_refs": [
+        "ops/evidence/staging/stage1-safety-qa-eval.json"
+      ],
+      "diagnostic_results_ref": "ops/evidence/staging/stage1-safety-qa-eval.ndjson",
+      "dry_run": false,
+      "environment": "staging",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-safety-qa-eval.json"
+      ],
+      "exact_evidence": true,
+      "local_only": false,
+      "proofs": [
+        "batch blocked child refund",
+        "edit tool policy",
+        "asset import policy",
+        "export fail closed",
+        "admin review override",
+        "support ticket redaction"
+      ],
+      "raw_payload_persisted": false,
+      "results_ref": "ops/evidence/staging/stage1-safety-qa-eval.ndjson",
+      "secret_leak_detected": false,
+      "status": "passed",
+      "validator_commands": [
+        "python3 scripts/validate_stage1_safety_qa_evidence.py"
+      ]
+    },
+    {
+      "blockers": [],
+      "component_id": "observability",
+      "diagnostic_evidence_refs": [
+        "ops/evidence/staging/20260527T1830Z-observability-runtime.json"
+      ],
+      "diagnostic_results_ref": null,
+      "dry_run": false,
+      "environment": "staging",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T1830Z-observability-runtime.json"
+      ],
+      "exact_evidence": true,
+      "local_only": false,
+      "proofs": [
+        "request id propagation",
+        "structured logs",
+        "OpenTelemetry traces",
+        "dashboards",
+        "alerts"
+      ],
+      "raw_payload_persisted": false,
+      "results_ref": null,
+      "secret_leak_detected": false,
+      "status": "passed",
+      "validator_commands": [
+        "python3 scripts/validate_stage1_staging_observability_backup_load_evidence.py"
+      ]
+    },
+    {
+      "blockers": [],
+      "component_id": "backup_restore",
+      "diagnostic_evidence_refs": [
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json"
+      ],
+      "diagnostic_results_ref": null,
+      "dry_run": false,
+      "environment": "staging",
+      "evidence_refs": [
+        "ops/evidence/staging/20260527T2115Z-backup-restore.json"
+      ],
+      "exact_evidence": true,
+      "local_only": false,
+      "proofs": [
+        "Postgres restore",
+        "object restore",
+        "asset lineage",
+        "billing ledger",
+        "RPO/RTO"
+      ],
+      "raw_payload_persisted": false,
+      "results_ref": null,
+      "secret_leak_detected": false,
+      "status": "passed",
+      "validator_commands": [
+        "python3 scripts/validate_stage1_staging_observability_backup_load_evidence.py"
+      ]
+    },
+    {
+      "blockers": [],
+      "component_id": "load",
+      "diagnostic_evidence_refs": [
+        "ops/evidence/staging/stage1-load.json"
+      ],
+      "diagnostic_results_ref": "ops/evidence/staging/stage1-load.ndjson",
+      "dry_run": false,
+      "environment": "staging",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load.json"
+      ],
+      "exact_evidence": true,
+      "local_only": false,
+      "proofs": [
+        "chat task load",
+        "worker generation load",
+        "zip export load",
+        "signed download load",
+        "crawler throttle load",
+        "quota contention load",
+        "workspace rendering load",
+        "p95 latency threshold",
+        "queue delay threshold",
+        "provider fallback threshold",
+        "billing webhook failure threshold"
+      ],
+      "raw_payload_persisted": false,
+      "results_ref": "ops/evidence/staging/stage1-load.ndjson",
+      "secret_leak_detected": false,
+      "status": "passed",
+      "validator_commands": [
+        "python3 scripts/validate_stage1_load_evidence.py"
+      ]
+    },
+    {
+      "blockers": [],
+      "component_id": "legal_support_external_user",
+      "diagnostic_evidence_refs": [
+        "ops/evidence/staging/legal-pages-external-user.json",
+        "ops/evidence/staging/support-contact-external-user.json"
+      ],
+      "diagnostic_results_ref": null,
+      "dry_run": false,
+      "environment": "staging",
+      "evidence_refs": [
+        "ops/evidence/staging/legal-pages-external-user.json",
+        "ops/evidence/staging/support-contact-external-user.json"
+      ],
+      "exact_evidence": true,
+      "local_only": false,
+      "proofs": [
+        "external-user legal pages",
+        "support contact",
+        "billing policy",
+        "IP complaint",
+        "support ticket path"
+      ],
+      "raw_payload_persisted": false,
+      "results_ref": null,
+      "secret_leak_detected": false,
+      "status": "passed",
+      "validator_commands": [
+        "python3 scripts/validate_stage1_staging_legal_support_evidence.py"
+      ]
+    }
+  ],
+  "cookie_persisted": false,
+  "database_url_persisted": false,
+  "do_not_launch_conditions": [],
+  "environment": "staging",
+  "generated_at": "2026-06-28T13:36:53+00:00",
+  "kind": "stage1_staging_runtime",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "go",
+  "runtime_input_readiness": {
+    "admin_auth_ready": true,
+    "backup_restore_ready": true,
+    "csrf_ready": true,
+    "load_ready": true,
+    "object_storage_ready": true,
+    "observability_ready": true,
+    "provider_live_calls_ready": true,
+    "quota_replay_ready": true,
+    "staging_admin_ready": true,
+    "staging_api_ready": true,
+    "staging_web_ready": true,
+    "stripe_test_ready": true,
+    "user_auth_ready": true
+  },
+  "schema_version": "stage1.staging_runtime.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "pass",
+  "validator_commands": [
+    "python3 scripts/validate_stage1_staging_runtime.py"
+  ]
+}

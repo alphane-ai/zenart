@@ -3,7 +3,7 @@ import { ClientTelemetry } from "@/components/client-telemetry";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ZenArt",
+  title: "zenari.ai",
   description: "Stage 0 workspace for candidate selection, canvas iteration, package export, quota, and support."
 };
 

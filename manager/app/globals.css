@@ -1,11 +1,14 @@
 :root {
   color-scheme: light;
-  --bg: #f7f8fb;
-  --ink: #172033;
-  --muted: #657084;
-  --line: #d9deea;
+  --bg: #f5f7fa;
+  --ink: #182030;
+  --muted: #626e81;
+  --line: #d7dde7;
   --panel: #ffffff;
+  --panel-soft: #eef6f5;
   --accent: #0f766e;
+  --accent-strong: #0b5f59;
+  --amber: #9a5b00;
 }
 
 * {
@@ -21,35 +24,62 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.manager-shell {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 32px;
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
-.manager-panel {
-  width: min(920px, 100%);
+.manager-shell {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  padding: 32px;
+  display: grid;
+  gap: 18px;
+}
+
+.manager-hero,
+.manager-section {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 32px;
+}
+
+.manager-hero {
+  min-height: 246px;
+  padding: 28px;
   display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(360px, 0.95fr);
   gap: 28px;
+  align-items: end;
+}
+
+.hero-copy {
+  max-width: 620px;
 }
 
 .eyebrow {
   margin: 0 0 8px;
   color: var(--accent);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
-h1 {
+h1,
+h2 {
   margin: 0;
-  font-size: 32px;
-  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+h1 {
+  font-size: 36px;
+  line-height: 1.12;
+}
+
+h2 {
+  font-size: 21px;
+  line-height: 1.2;
 }
 
 .summary {
@@ -62,15 +92,15 @@ h1 {
 .endpoint-grid {
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
 .endpoint-grid div {
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 14px;
+  padding: 12px 14px;
 }
 
 .endpoint-grid dt {
@@ -81,21 +111,153 @@ h1 {
 }
 
 .endpoint-grid dd {
-  margin: 8px 0 0;
+  margin: 7px 0 0;
   overflow-wrap: anywhere;
   font-size: 14px;
+  line-height: 1.4;
 }
 
-@media (max-width: 720px) {
-  .manager-shell {
-    padding: 18px;
-  }
+.endpoint-grid a {
+  color: var(--accent-strong);
+}
 
-  .manager-panel {
+.manager-section {
+  padding: 24px;
+}
+
+.section-heading {
+  margin-bottom: 18px;
+}
+
+.workflow-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.workflow-card {
+  min-height: 154px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  background: #fff;
+}
+
+.workflow-card:hover,
+.workflow-card:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.workflow-label {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.workflow-owner {
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.workflow-detail {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.gate-list {
+  display: grid;
+  gap: 10px;
+}
+
+.gate-row {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: start;
+}
+
+.gate-label,
+.gate-detail {
+  display: block;
+}
+
+.gate-label {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.gate-detail {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.gate-status {
+  border: 1px solid #d8bd80;
+  border-radius: 999px;
+  padding: 5px 10px;
+  color: var(--amber);
+  background: #fff8e8;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .manager-shell {
     padding: 22px;
   }
 
-  .endpoint-grid {
+  .manager-hero {
     grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .workflow-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .manager-shell {
+    padding: 14px;
+  }
+
+  .manager-hero,
+  .manager-section {
+    padding: 18px;
+  }
+
+  h1 {
+    font-size: 30px;
+  }
+
+  .workflow-grid,
+  .gate-row {
+    grid-template-columns: 1fr;
+  }
+
+  .workflow-card {
+    min-height: 0;
+  }
+
+  .gate-status {
+    justify-self: start;
   }
 }

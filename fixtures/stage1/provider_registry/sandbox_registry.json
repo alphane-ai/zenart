@@ -1,0 +1,431 @@
+{
+  "fixture_id": "sandbox_registry",
+  "contract_version": 1,
+  "providers": [
+    {
+      "provider_id": "zenari-image-sandbox",
+      "display_name": "Zenari image sandbox",
+      "mode": "sandbox",
+      "status": "enabled",
+      "secret_ref": "secrets/provider/zenari-image-sandbox",
+      "capabilities": [
+        {
+          "provider_id": "zenari-image-sandbox",
+          "model_id": "image-fast-v1",
+          "endpoints": ["image.generate", "image.edit"],
+          "input_types": ["prompt", "reference_image", "mask"],
+          "output_types": ["image"],
+          "tool_types": ["generate", "remove_background", "upscale", "erase", "expand"],
+          "max_cost_units": 8,
+          "cost_currency": "USD",
+          "estimated_cost_cents": 12,
+          "supports_batch": true,
+          "max_batch_size": 20,
+          "supports_seed": true,
+          "supports_cancel": true,
+          "supported_aspect_ratios": ["1:1", "16:9", "9:16"],
+          "supported_qualities": ["draft", "standard", "high"]
+        }
+      ],
+      "routing": {
+        "weight": 100,
+        "canary_percent": 0,
+        "max_concurrency": 4,
+        "fallback_provider_ids": ["dev"],
+        "kill_switch": false
+      },
+      "health": {
+        "available": true,
+        "latency_ms": 420,
+        "error_rate_percent": 1,
+        "last_checked_at": "2026-06-21T10:00:00Z",
+        "message": "sandbox healthy"
+      },
+      "metadata": {
+        "adapter": "openai-compatible",
+        "adapter_endpoint_version": "openai_compatible_chat_completions_v1",
+        "config_base_url_env": "LLM_OPENAI_BASE_URL",
+        "config_live_calls_env": "LLM_ENABLE_LIVE_CALLS",
+        "config_api_key_aliases": ["LLM_OPENAI_API_KEY", "ZAI_API_KEY", "OPENAI_API_KEY"],
+        "region": "sandbox-us"
+      }
+    },
+    {
+      "provider_id": "dev",
+      "display_name": "Deterministic dev provider",
+      "mode": "dev",
+      "status": "enabled",
+      "secret_ref": "",
+      "capabilities": [
+        {
+          "provider_id": "dev",
+          "model_id": "dev-echo-v1",
+          "endpoints": ["image.generate"],
+          "input_types": ["prompt"],
+          "output_types": ["image"],
+          "tool_types": ["generate"],
+          "max_cost_units": 0,
+          "cost_currency": "USD",
+          "estimated_cost_cents": 0,
+          "supports_batch": true,
+          "max_batch_size": 20,
+          "supports_seed": true,
+          "supports_cancel": false,
+          "supported_aspect_ratios": ["1:1"],
+          "supported_qualities": ["draft"]
+        }
+      ],
+      "routing": {
+        "weight": 1,
+        "canary_percent": 0,
+        "max_concurrency": 2,
+        "fallback_provider_ids": [],
+        "kill_switch": false
+      },
+      "health": {
+        "available": true,
+        "latency_ms": 1,
+        "error_rate_percent": 0,
+        "last_checked_at": "2026-06-21T10:00:00Z",
+        "message": "deterministic local only"
+      },
+      "metadata": {
+        "non_production": "true"
+      }
+    }
+  ],
+  "admin_projection": [
+    {
+      "provider_id": "zenari-image-sandbox",
+      "display_name": "Zenari image sandbox",
+      "mode": "sandbox",
+      "status": "enabled",
+      "secret_ref": "secrets/provider/zenari-image-sandbox",
+      "secret_present": true
+    },
+    {
+      "provider_id": "dev",
+      "display_name": "Deterministic dev provider",
+      "mode": "dev",
+      "status": "enabled",
+      "secret_ref": "",
+      "secret_present": false
+    }
+  ],
+  "strategy_groups": [
+    {
+      "group_id": "image-generation-default",
+      "display_name": "Image generation default",
+      "tool_type": "generate",
+      "status": "enabled",
+      "selection_policy": "weighted",
+      "fallback_provider_ids": ["dev"],
+      "kill_switch": false,
+      "members": [
+        {
+          "provider_id": "zenari-image-sandbox",
+          "weight": 90,
+          "canary_percent": 10,
+          "max_concurrency": 4,
+          "fallback_rank": 0,
+          "enabled": true
+        },
+        {
+          "provider_id": "dev",
+          "weight": 10,
+          "canary_percent": 0,
+          "max_concurrency": 2,
+          "fallback_rank": 1,
+          "enabled": true
+        }
+      ],
+      "metadata": {
+        "routing_surface": "batch_generation",
+        "release_gate": "PR-3"
+      },
+      "created_at": "2026-06-22T10:00:00Z",
+      "updated_at": "2026-06-22T10:00:00Z"
+    }
+  ],
+  "admin_strategy_group_create": {
+    "operation_id": "createProviderStrategyGroup",
+    "method": "POST",
+    "path": "/providers/strategy-groups",
+    "group_id": "video-generation-default",
+    "display_name": "Video generation default",
+    "tool_type": "generate",
+    "status": "disabled",
+    "selection_policy": "failover",
+    "fallback_provider_ids": ["dev"],
+    "kill_switch": false,
+    "required_rbac": "provider_routing:admin",
+    "idempotency_required": true,
+    "csrf_header": "X-Zenari-CSRF",
+    "members": [
+      {
+        "provider_id": "zenari-video-sandbox",
+        "weight": 100,
+        "canary_percent": 0,
+        "max_concurrency": 1,
+        "fallback_rank": 0,
+        "enabled": true
+      },
+      {
+        "provider_id": "dev",
+        "weight": 0,
+        "canary_percent": 0,
+        "max_concurrency": 2,
+        "fallback_rank": 1,
+        "enabled": true
+      }
+    ],
+    "metadata": {
+      "routing_surface": "batch_generation",
+      "release_gate": "PR-3"
+    },
+    "rationale": "Stage video provider strategy group after provider registry creation",
+    "audit_action": "provider.strategy_group.create",
+    "audit_metadata": {
+      "group_id": "video-generation-default",
+      "tool_type": "generate",
+      "status": "disabled",
+      "selection_policy": "failover",
+      "fallback_provider_ids": ["dev"],
+      "kill_switch": false,
+      "member_count": 2,
+      "member_provider_ids": ["zenari-video-sandbox", "dev"],
+      "request_id_present": true
+    }
+  },
+  "admin_strategy_group_update": {
+    "operation_id": "updateProviderStrategyGroup",
+    "method": "PATCH",
+    "path": "/providers/strategy-groups/{group_id}",
+    "group_id": "image-generation-default",
+    "display_name": "Image generation default failover",
+    "tool_type": "generate",
+    "status": "kill_switch",
+    "selection_policy": "failover",
+    "fallback_provider_ids": ["dev"],
+    "kill_switch": true,
+    "required_rbac": "provider_routing:admin",
+    "idempotency_required": true,
+    "csrf_header": "X-Zenari-CSRF",
+    "members": [
+      {
+        "provider_id": "zenari-image-sandbox",
+        "weight": 0,
+        "canary_percent": 0,
+        "max_concurrency": 0,
+        "fallback_rank": 0,
+        "enabled": false
+      },
+      {
+        "provider_id": "dev",
+        "weight": 100,
+        "canary_percent": 0,
+        "max_concurrency": 2,
+        "fallback_rank": 1,
+        "enabled": true
+      }
+    ],
+    "metadata": {
+      "routing_surface": "batch_generation",
+      "release_gate": "PR-3",
+      "incident_ref": "provider_sandbox_quota_guard"
+    },
+    "rationale": "Fail over image generation while sandbox provider budget is unavailable",
+    "audit_action": "provider.strategy_group.update",
+    "audit_metadata": {
+      "group_id": "image-generation-default",
+      "tool_type": "generate",
+      "before_status": "enabled",
+      "after_status": "kill_switch",
+      "before_member_count": 2,
+      "after_member_count": 2,
+      "before_kill_switch": false,
+      "after_kill_switch": true,
+      "selection_policy": "failover",
+      "fallback_provider_ids": ["dev"],
+      "member_count": 2,
+      "member_provider_ids": ["zenari-image-sandbox", "dev"],
+      "request_id_present": true
+    }
+  },
+  "admin_create": {
+    "operation_id": "createProviderRegistry",
+    "method": "POST",
+    "path": "/providers/registry",
+    "provider_id": "zenari-video-sandbox",
+    "display_name": "Zenari video sandbox",
+    "mode": "sandbox",
+    "status": "disabled",
+    "required_rbac": "provider_routing:admin",
+    "idempotency_required": true,
+    "csrf_header": "X-Zenari-CSRF",
+    "secret_ref": "secrets/provider/zenari-video-sandbox",
+    "capability_count": 1,
+    "capabilities": [
+      {
+        "provider_id": "zenari-video-sandbox",
+        "model_id": "video-fast-v1",
+        "endpoints": ["video.generate"],
+        "input_types": ["prompt"],
+        "output_types": ["video"],
+        "tool_types": ["generate"],
+        "max_cost_units": 20,
+        "cost_currency": "USD",
+        "estimated_cost_cents": 42,
+        "supports_batch": true,
+        "max_batch_size": 8,
+        "supports_seed": true,
+        "supports_cancel": true,
+        "supported_aspect_ratios": ["16:9", "9:16"],
+        "supported_qualities": ["draft", "standard"]
+      }
+    ],
+    "routing": {
+      "weight": 0,
+      "canary_percent": 0,
+      "max_concurrency": 1,
+      "fallback_provider_ids": ["dev"],
+      "kill_switch": false
+    },
+    "health": {
+      "available": false,
+      "latency_ms": 0,
+      "error_rate_percent": 0,
+      "last_checked_at": "2026-06-21T10:00:00Z",
+      "message": "staged for sandbox verification"
+    },
+    "audit_action": "provider.registry.create",
+    "audit_metadata": {
+      "capability_count": 1,
+      "estimated_cost_cents": 42,
+      "secret_present": true
+    }
+  },
+  "admin_update": {
+    "operation_id": "updateProviderRegistry",
+    "method": "PATCH",
+    "path": "/providers/registry/{provider_id}",
+    "provider_id": "zenari-image-sandbox",
+    "required_rbac": "provider_routing:admin",
+    "idempotency_required": true,
+    "csrf_header": "X-Zenari-CSRF",
+    "secret_ref": "vault/providers/zenari-image-sandbox",
+    "capabilities_replace": true,
+    "capability_count": 1,
+    "capabilities": [
+      {
+        "provider_id": "zenari-image-sandbox",
+        "model_id": "image-quality-v2",
+        "endpoints": ["image.generate"],
+        "input_types": ["prompt"],
+        "output_types": ["image"],
+        "tool_types": ["generate"],
+        "max_cost_units": 15,
+        "cost_currency": "USD",
+        "estimated_cost_cents": 24,
+        "supports_batch": true,
+        "max_batch_size": 12,
+        "supports_seed": true,
+        "supports_cancel": true,
+        "supported_aspect_ratios": ["1:1", "4:5"],
+        "supported_qualities": ["standard", "high"]
+      }
+    ],
+    "audit_action": "provider.registry.update",
+    "audit_metadata": {
+      "reference_changed": true,
+      "capabilities_changed": true,
+      "before_capability_count": 1,
+      "after_capability_count": 1,
+      "before_estimated_cost_cents": 12,
+      "after_estimated_cost_cents": 24
+    }
+  },
+  "admin_delete": {
+    "operation_id": "deleteProviderRegistry",
+    "method": "DELETE",
+    "path": "/providers/registry/{provider_id}",
+    "provider_id": "zenari-video-sandbox",
+    "required_rbac": "provider_routing:admin",
+    "idempotency_required": true,
+    "csrf_header": "X-Zenari-CSRF",
+    "audit_action": "provider.registry.delete",
+    "audit_metadata": {
+      "deleted_capability_count": 1,
+      "deleted_estimated_cost_cents": 42,
+      "secret_present": true
+    }
+  },
+  "health_probe": {
+    "operation_id": "probeProviderRegistryHealth",
+    "method": "POST",
+    "path": "/providers/registry/{provider_id}/health-probe",
+    "provider_id": "zenari-image-sandbox",
+    "required_rbac": "provider_routing:admin",
+    "idempotency_required": true,
+    "csrf_header": "X-Zenari-CSRF",
+    "before": {
+      "available": false,
+      "latency_ms": 900,
+      "error_rate_percent": 100
+    },
+    "after": {
+      "available": true,
+      "latency_ms": 77,
+      "error_rate_percent": 0,
+      "message": "openai-compatible health probe passed"
+    },
+    "audit_action": "provider.registry.health_probe",
+    "audit_metadata": {
+      "before_available": false,
+      "after_available": true,
+      "after_latency_ms": 77,
+      "after_error_rate_percent": 0,
+      "client_configured": true
+    }
+  },
+  "user_projection": [
+    {
+      "provider_id": "zenari-image-sandbox",
+      "model_id": "image-fast-v1",
+      "endpoints": ["image.generate", "image.edit"],
+      "tool_types": ["generate", "remove_background", "upscale", "erase", "expand"],
+      "supports_batch": true
+    },
+    {
+      "provider_id": "dev",
+      "model_id": "dev-echo-v1",
+      "endpoints": ["image.generate"],
+      "tool_types": ["generate"],
+      "supports_batch": true
+    }
+  ],
+  "sandbox_test_call": {
+    "operation_id": "runProviderSandboxTestCall",
+    "method": "POST",
+    "path": "/providers/registry/{provider_id}/test-call",
+    "provider_id": "zenari-image-sandbox",
+    "model_id": "image-fast-v1",
+    "tool_type": "generate",
+    "status": "succeeded",
+    "mode": "sandbox",
+    "secret_ref": "secrets/provider/zenari-image-sandbox",
+    "secret_present": true,
+    "asset_persisted": false,
+    "user_visible": false,
+    "trace_id": "trace_provider_test_zenari_image_sandbox",
+    "output_preview": {
+      "kind": "sandbox_preview",
+      "prompt_hash": "9b86d081884c7d65",
+      "message": "sandbox test call validated provider capability without persisting user assets"
+    },
+    "audit_action": "provider.sandbox_test_call",
+    "required_rbac": "provider_routing:admin",
+    "idempotency_required": true,
+    "csrf_header": "X-Zenari-CSRF"
+  }
+}

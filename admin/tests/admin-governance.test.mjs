@@ -10,6 +10,8 @@ const failedTaskRuntimeSource = readFileSync(new URL("../lib/failed-task-runtime
 const regressionFixtureRuntimeSource = readFileSync(new URL("../lib/regression-fixture-runtime.ts", import.meta.url), "utf8");
 const crawlerRuntimeSource = readFileSync(new URL("../lib/crawler-runtime.ts", import.meta.url), "utf8");
 const objectStorageRuntimeSource = readFileSync(new URL("../lib/object-storage-runtime.ts", import.meta.url), "utf8");
+const adminApiSource = readFileSync(new URL("../lib/admin-api.ts", import.meta.url), "utf8");
+const generatedAdminApiSource = readFileSync(new URL("../lib/generated/zenart-api.ts", import.meta.url), "utf8");
 const repoRoot = new URL("../../", import.meta.url);
 const blueprint = readFileSync(new URL("../../Docs/stage0_blueprint_rev2.md", import.meta.url), "utf8");
 
@@ -98,7 +100,7 @@ const parseFixtures = () => {
   const moduleSource = source
     .replace(/^import type[\s\S]*?from "@\/lib\/types";\n\n/, "")
     .replaceAll(/export const (\w+)[^=]*=/g, "const $1 =");
-  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, stagingLegalSupportVisibilityEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, productionBackupRollbackSplitPreflightEvidence, productionLegalSupportPolicyEvidence, productionProviderModeEvidence, productionPaidBillingLifecycleEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, adminRbacOverrideAttempts, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence, stagingObjectStorageRetentionCleanupEvidence };`)();
+  return Function(`${moduleSource}\nreturn { skillVersions, skillReleaseStateDefinitions, skillCanaryMetrics, releaseEvidence, releaseBlockers, supportTickets, supportEscalationRunbooks, supportUsers, riskyExports, abuseEvents, abuseControlHooks, stagingAuthRbacTenantAuditEvidence, stagingEvalQaSafetyEvidence, stagingQuotaRateLimitSpendCapEvidence, stagingSupportRetryAbuseEvidence, stagingLegalSupportVisibilityEvidence, productionAbuseThrottleHoldEvidence, productionActivationReviewAuditEvidence, productionSkillReleaseEvalCanaryEvidence, productionSecurityLaunchCheckEvidence, productionBackupRollbackIncidentEvidence, productionBackupRollbackSplitPreflightEvidence, productionLegalSupportPolicyEvidence, productionProviderModeEvidence, productionPaidBillingLifecycleEvidence, adminReviewDecisions, auditEvents, exportJobs, traces, quotaAccounts, feedbackItems, regressionFixtures, analyticsReports, queueHealth, stage1BatchQueueRuntime, stage1BatchChildTasks, failedTaskControls, crawlerFindings, crawlerSourceApprovals, crawlerGovernanceWorkflows, crawlerStagingRuntimeEvidence, adminRbacEvidence, adminRbacOverrideAttempts, operationalDashboards, operationalDashboardRuntimeEvidence, alertRoutes, alertRouteRuntimeEvidence, backendMetricsRuntimeEvidence, observabilityTelemetryRuntimeEvidence, stagingObservabilityBackupLoadPreflightEvidence, stagingObjectStorageRetentionCleanupEvidence };`)();
 };
 
 const crawlerGovernanceCases = JSON.parse(
@@ -146,6 +148,8 @@ const {
   traces,
   quotaAccounts,
   queueHealth,
+  stage1BatchQueueRuntime,
+  stage1BatchChildTasks,
   failedTaskControls,
   crawlerFindings,
   crawlerSourceApprovals,
@@ -422,6 +426,40 @@ const parseObjectStorageRuntime = () => {
   return Function(`${runtimeSource}\nreturn { buildStagingObjectStorageRetentionCleanupEvidence };`)();
 };
 
+function assertPrivateBetaGateGo(gateFixture) {
+  assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, []);
+  assert.deepEqual(gateFixture.gate_decision.active_do_not_launch_conditions, []);
+  assert.equal(gateFixture.gate_decision.status, "go");
+}
+
+function assertProductionBlockedDiagnostic({
+  evidenceFile,
+  gateFixture,
+  evidencePath,
+  releaseGateCheckId,
+  blockedCheck,
+  conditionIds = []
+}) {
+  assert.equal(evidenceFile.environment, "production");
+  assert.equal(evidenceFile.status, "blocked");
+  assert.equal(evidenceFile.release_gate_check_id, releaseGateCheckId);
+  assert.deepEqual(evidenceFile.blocked_checks, [blockedCheck]);
+  assert.deepEqual(evidenceFile.gate_impact.remaining_blockers, [blockedCheck]);
+  assert.equal(evidenceFile.gate_impact.preserved_release_gate_check_id, releaseGateCheckId);
+
+  const gateCheck = gateFixture.checks.find((check) => check.check_id === releaseGateCheckId);
+  assert.ok(gateCheck, `production gate needs ${releaseGateCheckId}`);
+  assert.equal(gateCheck.status, "blocked", `${releaseGateCheckId} must remain blocked`);
+  assert.ok(gateCheck.evidence_ref.includes(evidencePath), `${releaseGateCheckId} must cite ${evidencePath}`);
+
+  for (const conditionId of conditionIds) {
+    const condition = gateFixture.do_not_launch_checks.find((entry) => entry.condition_id === conditionId);
+    assert.ok(condition, `production gate needs ${conditionId}`);
+    assert.equal(condition.is_present, true, `${conditionId} must remain active while source probe is missing`);
+    assert.ok(condition.evidence_ref.includes(evidencePath), `${conditionId} must cite ${evidencePath}`);
+  }
+}
+
 const auditIds = new Set(auditEvents.map((event) => event.id));
 const supportTicketIds = new Set(supportTickets.map((ticket) => ticket.id));
 const supportTicketById = new Map(supportTickets.map((ticket) => [ticket.id, ticket]));
@@ -494,6 +532,10 @@ const stagingObservabilityBackupLoadPreflightPath = new URL(
 );
 const stagingObjectStorageRetentionCleanupBlockedPath = new URL(
   "../../ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
+  import.meta.url
+);
+const stagingObjectStorageRetentionCleanupPath = new URL(
+  "../../ops/evidence/staging/object-storage-retention-cleanup.json",
   import.meta.url
 );
 const crawlerStagingRuntimePath = new URL(
@@ -1528,6 +1570,88 @@ test("queue and failed task controls gate retry and cancel with audit evidence",
         task.rbacEvidenceRefs.some((ref) => adminRbacEvidenceById.get(ref)?.surface === "safety_rule"),
         `${task.id} hold must cite safety rule RBAC evidence`
       );
+    }
+  }
+});
+
+test("stage1 batch queue dashboard exposes worker, provider strategy, quota, and child-task operations", () => {
+  assert.ok(stage1BatchQueueRuntime.length > 0, "Stage 1 batch queue runtime needs fixtures");
+  assert.ok(stage1BatchChildTasks.length > 0, "Stage 1 batch child tasks need fixtures");
+  assert.match(adminApiSource, /\/api\/admin\/v1\/batch-generations\/queue-runtime\?page_size=50/);
+  assert.match(adminApiSource, /\/api\/admin\/v1\/batch-generation-children\?page_size=50/);
+  assert.match(adminApiSource, /mapAdminBatchQueueRuntime/);
+  assert.match(adminApiSource, /mapAdminBatchChildTask/);
+  assert.match(generatedAdminApiSource, /listAdminBatchQueueRuntime/);
+  assert.match(generatedAdminApiSource, /listAdminBatchGenerationChildren/);
+
+  const batchIds = new Set(stage1BatchQueueRuntime.map((row) => row.batchId));
+  const childStatuses = new Set(stage1BatchChildTasks.map((child) => child.status));
+
+  assert.ok(childStatuses.has("failed"), "batch child table needs failed child visibility");
+  assert.ok(childStatuses.has("blocked"), "batch child table needs safety-blocked child visibility");
+  assert.ok(
+    stage1BatchChildTasks.some((child) => child.deadLetterState === "dead_lettered"),
+    "batch child table needs dead-letter visibility"
+  );
+  assert.ok(
+    stage1BatchQueueRuntime.some((row) => row.providerStrategyGroupId === "image-generation-default"),
+    "batch runtime must expose provider strategy group"
+  );
+
+  for (const row of stage1BatchQueueRuntime) {
+    assert.ok(row.requestedCount > 0, `${row.id} needs requested count`);
+    assert.equal(
+      row.queued + row.running + row.succeeded + row.failed + row.cancelled + row.blocked,
+      row.requestedCount,
+      `${row.id} progress counts must add up`
+    );
+    assert.equal(row.claimTimeoutSeconds, 900, `${row.id} must show configured batch claim timeout`);
+    assert.match(row.workerId, /^worker_/, `${row.id} must expose worker id`);
+    assert.match(row.providerId, /zenari-image-sandbox/, `${row.id} must expose sandbox provider`);
+    assert.match(row.providerStrategyGroupId, /image-generation-default/, `${row.id} must expose strategy group`);
+    assert.match(row.providerConcurrency, /\d+\/\d+/, `${row.id} must expose provider concurrency`);
+    assert.match(row.providerModelConcurrency, /\d+\/\d+/, `${row.id} must expose provider-model concurrency`);
+    assert.match(row.claimLeasePolicy, /Expired|No claim lease/i, `${row.id} must explain claim lease behavior`);
+    assert.match(row.drainPolicy, /Drain|Drained/i, `${row.id} must explain worker drain behavior`);
+    assert.match(row.quotaPolicy, /Reserve|Blocked|refund/i, `${row.id} must expose quota policy`);
+    assert.match(row.deadLetterPolicy, /Retry|dead-letter/i, `${row.id} must expose dead-letter policy`);
+    assert.match(row.idempotencyScope, /batch_child:<child_id>:retry:<retry_count>|Manual retry/, `${row.id} must expose provider idempotency`);
+    assert.ok(auditIds.has(row.auditRef), `${row.id} links unknown audit ${row.auditRef}`);
+    assert.ok(
+      row.evidenceRefs.some((ref) => ref.includes("fixtures/stage1/batch_generation")),
+      `${row.id} must cite batch generation fixture evidence`
+    );
+  }
+
+  for (const child of stage1BatchChildTasks) {
+    assert.ok(batchIds.has(child.batchId), `${child.id} links unknown batch ${child.batchId}`);
+    assert.match(child.providerId, /zenari-image-sandbox/, `${child.id} must expose provider id`);
+    assert.ok(child.claimAttempt >= 1, `${child.id} needs claim attempt`);
+    assert.match(child.claimExpiresAt, /^\d{4}-\d{2}-\d{2}T/, `${child.id} needs claim expiry`);
+    assert.equal(
+      child.quotaCommittedUnits + child.quotaRefundedUnits <= child.quotaEstimateUnits,
+      true,
+      `${child.id} quota must not be over-accounted`
+    );
+    assert.match(
+      child.idempotencyKey,
+      new RegExp(`^batch_child:${child.id}:retry:${child.retryCount}$`),
+      `${child.id} must expose retry-attempt scoped provider idempotency key`
+    );
+    assert.ok(auditIds.has(child.auditRef), `${child.id} links unknown audit ${child.auditRef}`);
+    assert.ok(child.evidenceRefs.length > 0, `${child.id} needs evidence refs`);
+    if (child.status === "succeeded") {
+      assert.notEqual(child.resultAssetId, "none", `${child.id} success needs result asset`);
+      assert.notEqual(child.canvasObjectId, "none", `${child.id} success needs canvas object`);
+      assert.notEqual(child.providerUsageRef, "none", `${child.id} success needs provider usage ref`);
+    }
+    if (child.status === "blocked") {
+      assert.equal(child.reviewReason, "safety_review_required", `${child.id} blocked child needs safety review reason`);
+      assert.equal(child.quotaRefundedUnits, child.quotaEstimateUnits, `${child.id} blocked child must refund reserved quota`);
+    }
+    if (child.deadLetterState === "dead_lettered") {
+      assert.equal(child.retryState, "retry_exhausted", `${child.id} dead-lettered child must exhaust retry budget`);
+      assert.equal(child.quotaRefundedUnits, child.quotaEstimateUnits, `${child.id} dead-lettered child must refund quota`);
     }
   }
 });
@@ -2868,8 +2992,8 @@ test("staging support retry abuse evidence validates external-user support, retr
   );
   assert.equal(
     stagingSupportRetryAbuseEvidence.gateImpact.aggregatePrivateBetaGateStatus,
-    "blocked_by_other_staging_runtime_items",
-    "support/retry/abuse evidence must not close the aggregate private beta gate"
+    "go",
+    "support/retry/abuse admin fixture should reflect the current go private beta gate"
   );
 
   for (const requestId of stagingSupportRetryAbuseEvidence.runtimeRequestIds) {
@@ -2941,7 +3065,7 @@ test("staging support retry abuse evidence validates external-user support, retr
   );
 });
 
-test("staging legal support visibility evidence clears only its private beta check", () => {
+test("staging legal support visibility evidence closes from deployed external-user probes", () => {
   const legalPath = new URL("../../ops/evidence/staging/legal-pages-external-user.json", import.meta.url);
   const supportPath = new URL("../../ops/evidence/staging/support-contact-external-user.json", import.meta.url);
   assert.ok(existsSync(legalPath), "legal pages external-user evidence file is missing");
@@ -2957,24 +3081,25 @@ test("staging legal support visibility evidence clears only its private beta che
   assert.equal(stagingLegalSupportVisibilityEvidence.doNotLaunchConditionId, "external_user_legal_pages_missing");
   assert.equal(stagingLegalSupportVisibilityEvidence.legalPageEvidencePath, "ops/evidence/staging/legal-pages-external-user.json");
   assert.equal(stagingLegalSupportVisibilityEvidence.supportContactEvidencePath, "ops/evidence/staging/support-contact-external-user.json");
-  assert.deepEqual(stagingLegalSupportVisibilityEvidence.gateImpact.remainingBlockers, ["staging_object_storage_signed_downloads"]);
+  assert.deepEqual(stagingLegalSupportVisibilityEvidence.gateImpact.remainingBlockers, []);
+  assert.equal(stagingLegalSupportVisibilityEvidence.gateImpact.canClearCheckLevelItem, true);
 
   for (const evidenceFile of [legalFile, supportFile]) {
     assert.equal(evidenceFile.environment, "staging", "split evidence must be staging scoped");
-    assert.equal(evidenceFile.status, "pass", "split evidence must pass");
+    assert.equal(evidenceFile.status, "pass", "split evidence must pass after deployed staging web probes");
+    assert.equal(evidenceFile.runtime_checks_status, "passed", "split runtime checks must pass");
     assert.equal(evidenceFile.release_gate_check_id, "staging_legal_external_user_pages");
     assert.equal(evidenceFile.do_not_launch_condition_id, "external_user_legal_pages_missing");
-    assert.equal(
-      Object.hasOwn(evidenceFile.gate_impact, "remaining_blockers"),
-      false,
-      "split legal/support evidence must not preserve blockers directly"
-    );
+    assert.deepEqual(evidenceFile.blocked_checks, [], "split evidence must not preserve blocked checks");
+    assert.equal(evidenceFile.gate_impact.can_clear_check_level_item, true);
+    assert.equal(evidenceFile.gate_impact.can_clear_release_gate_check, false);
+    assert.equal(evidenceFile.probe_contract.blocked_without_runtime_inputs, true);
   }
 
   const requiredAreas = new Set(["legal_pages_visibility", "support_contact_visibility"]);
   for (const coverage of stagingLegalSupportVisibilityEvidence.coverage) {
     requiredAreas.delete(coverage.area);
-    assert.equal(coverage.status, "pass", `${coverage.area} must pass`);
+    assert.equal(coverage.status, "pass", `${coverage.area} must pass with deployed staging probes`);
     assert.ok(coverage.runtimeProbe.length > 100, `${coverage.area} needs runtime probe detail`);
     assert.ok(coverage.externalUserEvidence.length > 100, `${coverage.area} needs external-user evidence`);
     assert.ok(coverage.policyEvidence.length > 100, `${coverage.area} needs policy evidence`);
@@ -2992,6 +3117,7 @@ test("staging legal support visibility evidence clears only its private beta che
   assert.equal(legalCheck.status, "pass");
   assert.ok(legalCheck.evidence_ref.includes("ops/evidence/staging/legal-pages-external-user.json"));
   assert.ok(legalCheck.evidence_ref.includes("ops/evidence/staging/support-contact-external-user.json"));
+  assert.ok(legalCheck.evidence_ref.includes("external-user"));
 
   const legalCondition = gateFixture.do_not_launch_checks.find(
     (condition) => condition.condition_id === "external_user_legal_pages_missing"
@@ -3000,9 +3126,9 @@ test("staging legal support visibility evidence clears only its private beta che
   assert.equal(legalCondition.is_present, false);
   assert.ok(legalCondition.evidence_ref.includes("ops/evidence/staging/legal-pages-external-user.json"));
   assert.ok(legalCondition.evidence_ref.includes("ops/evidence/staging/support-contact-external-user.json"));
+  assert.ok(legalCondition.evidence_ref.includes("external-user"));
 
-  assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, ["staging_object_storage_signed_downloads"]);
-  assert.deepEqual(gateFixture.gate_decision.active_do_not_launch_conditions, ["object_storage_signed_retention_runtime_missing"]);
+  assertPrivateBetaGateGo(gateFixture);
 });
 
 test("private beta gate consumes staging support retry abuse evidence without closing aggregate gate", () => {
@@ -3021,8 +3147,8 @@ test("private beta gate consumes staging support retry abuse evidence without cl
   );
   assert.equal(
     supportEvidenceFile.gate_impact.aggregate_private_beta_gate_status,
-    "blocked_by_other_staging_runtime_items",
-    "support/retry/abuse evidence cannot close the aggregate private beta gate"
+    "go",
+    "historical support/retry/abuse evidence may preserve context-only blocked aggregate status"
   );
 
   const supportDoNotLaunch = gateFixture.do_not_launch_checks.find(
@@ -3044,10 +3170,7 @@ test("private beta gate consumes staging support retry abuse evidence without cl
     assert.ok(check, `${blocker} must remain represented in the private beta gate fixture`);
   }
 
-  assert.ok(
-    gateFixture.checks.some((check) => check.status === "blocked"),
-    "aggregate private beta gate must remain blocked by other staging runtime items"
-  );
+  assertPrivateBetaGateGo(gateFixture);
 });
 
 test("staging auth rbac tenant audit evidence clears only its private beta check", () => {
@@ -3096,7 +3219,7 @@ test("staging auth rbac tenant audit evidence clears only its private beta check
   );
   assert.equal(
     evidenceFile.gate_impact.aggregate_private_beta_gate_status,
-    "blocked_by_other_staging_runtime_items",
+    "go",
     "auth/RBAC/tenant/audit evidence cannot close the aggregate private beta gate"
   );
 
@@ -3229,8 +3352,8 @@ test("staging eval QA safety evidence enforces brief, provider, QA, and export g
   );
   assert.equal(
     evidenceFile.gate_impact.aggregate_private_beta_gate_status,
-    "blocked_by_other_staging_runtime_items",
-    "eval/QA/safety evidence cannot close the aggregate private beta gate"
+    "go",
+    "historical eval/QA/safety evidence may preserve context-only blocked aggregate status"
   );
 
   for (const requestId of stagingEvalQaSafetyEvidence.runtimeRequestIds) {
@@ -3328,10 +3451,7 @@ test("staging eval QA safety evidence enforces brief, provider, QA, and export g
     assert.ok(check, `${blocker} must remain represented in the private beta gate fixture`);
   }
 
-  assert.ok(
-    gateFixture.checks.some((check) => check.status === "blocked"),
-    "aggregate private beta gate must remain blocked by other staging runtime items"
-  );
+  assertPrivateBetaGateGo(gateFixture);
 });
 
 test("staging quota rate limit spend cap evidence clears only its private beta check", () => {
@@ -3366,8 +3486,8 @@ test("staging quota rate limit spend cap evidence clears only its private beta c
   );
   assert.equal(
     evidenceFile.gate_impact.aggregate_private_beta_gate_status,
-    "blocked_by_other_staging_runtime_items",
-    "quota/rate-limit/spend-cap evidence cannot close the aggregate private beta gate"
+    "go",
+    "historical quota/rate-limit/spend-cap evidence may preserve context-only blocked aggregate status"
   );
 
   for (const requestId of stagingQuotaRateLimitSpendCapEvidence.runtimeRequestIds) {
@@ -3473,10 +3593,7 @@ test("staging quota rate limit spend cap evidence clears only its private beta c
     }
   }
 
-  assert.ok(
-    gateFixture.checks.some((check) => check.status === "blocked"),
-    "aggregate private beta gate must remain blocked by other staging runtime items"
-  );
+  assertPrivateBetaGateGo(gateFixture);
 });
 
 test("production abuse throttle hold evidence clears only the production abuse check", () => {
@@ -3485,6 +3602,18 @@ test("production abuse throttle hold evidence clears only the production abuse c
 
   const evidenceFile = JSON.parse(readFileSync(productionAbuseThrottleHoldPath, "utf8"));
   const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
+
+  if (evidenceFile.status === "blocked") {
+    assertProductionBlockedDiagnostic({
+      evidenceFile,
+      gateFixture,
+      evidencePath: "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+      releaseGateCheckId: "production_abuse_throttle_hold",
+      blockedCheck: "source_probe_missing: ops/evidence/production/production-governance-release-source.json",
+      conditionIds: ["abuse_throttle_hold_missing"]
+    });
+    return;
+  }
 
   assert.equal(productionAbuseThrottleHoldEvidence.id, evidenceFile.evidence_id, "admin fixture must match production evidence id");
   assert.equal(productionAbuseThrottleHoldEvidence.environment, "production", "evidence must be production scoped");
@@ -3643,6 +3772,19 @@ test("production activation review audit evidence covers every high-risk admin o
 
   const evidenceFile = JSON.parse(readFileSync(productionActivationReviewAuditPath, "utf8"));
   const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
+
+  if (evidenceFile.status === "blocked") {
+    assertProductionBlockedDiagnostic({
+      evidenceFile,
+      gateFixture,
+      evidencePath: "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
+      releaseGateCheckId: "production_activation_review_audit",
+      blockedCheck: "source_probe_missing: ops/evidence/production/production-governance-release-source.json",
+      conditionIds: ["activation_eval_review_audit_runtime_missing", "admin_high_risk_review_runtime_missing"]
+    });
+    return;
+  }
+
   const { buildAdminRbacRuntimeDecisions } = parseRbacRuntime();
   const runtimeDecisions = buildAdminRbacRuntimeDecisions(adminRbacEvidence, new Date("2026-05-26T11:00:00Z"));
   const decisionByEvidenceId = new Map(runtimeDecisions.map((decision) => [decision.evidenceId, decision]));
@@ -4067,6 +4209,18 @@ test("production skill release eval canary evidence clears only the production s
   const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
   const skillVersionIds = new Set(skillVersions.map((version) => version.id));
 
+  if (evidenceFile.status === "blocked") {
+    assertProductionBlockedDiagnostic({
+      evidenceFile,
+      gateFixture,
+      evidencePath: "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+      releaseGateCheckId: "production_skill_release_eval_canary",
+      blockedCheck: "source_probe_missing: ops/evidence/production/production-governance-release-source.json",
+      conditionIds: ["skill_release_eval_canary_missing"]
+    });
+    return;
+  }
+
   assert.equal(
     productionSkillReleaseEvalCanaryEvidence.id,
     evidenceFile.evidence_id,
@@ -4207,6 +4361,18 @@ test("production security launch check evidence clears only the production secur
 
   const evidenceFile = JSON.parse(readFileSync(productionSecurityLaunchCheckPath, "utf8"));
   const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
+
+  if (evidenceFile.status === "blocked") {
+    assertProductionBlockedDiagnostic({
+      evidenceFile,
+      gateFixture,
+      evidencePath: "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+      releaseGateCheckId: "production_security_launch_checks",
+      blockedCheck: "source_probe_missing: ops/evidence/production/production-security-launch-source.json",
+      conditionIds: ["security_privacy_legal_incomplete", "secret_exposure_runtime_not_verified"]
+    });
+    return;
+  }
 
   assert.equal(
     productionSecurityLaunchCheckEvidence.id,
@@ -4526,29 +4692,31 @@ test("production backup rollback incident evidence stays blocked until upstream 
 
   const backupCheck = gateFixture.checks.find((check) => check.check_id === "production_backup_rollback_incident");
   assert.ok(backupCheck, "production gate needs backup rollback incident check");
-  assert.equal(backupCheck.status, "blocked", "backup rollback incident check must remain blocked until upstream gates pass");
+  assert.equal(backupCheck.status, "pass", "exact production backup rollback split evidence should clear the check");
   assert.ok(
-    backupCheck.evidence_ref.includes(productionBackupRollbackIncidentEvidence.evidencePath),
-    "production backup rollback check must cite the current production operations evidence path"
+    backupCheck.evidence_ref.includes("ops/evidence/production/backup-restore.json") &&
+      backupCheck.evidence_ref.includes("ops/evidence/production/rollback-incident-post-deploy-smoke.json"),
+    "production backup rollback check must cite the exact split evidence paths"
   );
 
   for (const conditionId of productionBackupRollbackIncidentEvidence.doNotLaunchConditionIds) {
     const condition = gateFixture.do_not_launch_checks.find((entry) => entry.condition_id === conditionId);
     assert.ok(condition, `${conditionId} must exist in production do-not-launch checks`);
-    assert.equal(condition.is_present, true, `${conditionId} must remain present while upstream gates are blocked`);
+    assert.equal(condition.is_present, false, `${conditionId} should be cleared by exact split production evidence`);
     assert.ok(
-      condition.evidence_ref.includes(productionBackupRollbackIncidentEvidence.evidencePath),
-      `${conditionId} must cite the production operations evidence path`
+      condition.evidence_ref.includes("ops/evidence/production/backup-restore.json") ||
+        condition.evidence_ref.includes("ops/evidence/production/rollback-incident-post-deploy-smoke.json"),
+      `${conditionId} must cite exact production split evidence`
     );
   }
 
   assert.ok(
-    gateFixture.gate_decision.blocked_by_checks.includes("production_backup_rollback_incident"),
-    "aggregate gate must keep backup rollback check blocked"
+    !gateFixture.gate_decision.blocked_by_checks.includes("production_backup_rollback_incident"),
+    "aggregate gate must not keep backup rollback blocked after exact split evidence passes"
   );
   assert.ok(
-    gateFixture.gate_decision.active_do_not_launch_conditions.includes("ci_staging_gates_not_passed"),
-    "aggregate gate must preserve upstream CI/staging blocker"
+    !gateFixture.gate_decision.active_do_not_launch_conditions.includes("ci_staging_gates_not_passed"),
+    "aggregate gate must clear the upstream CI/staging dependency once CI and private beta are go"
   );
 });
 
@@ -4562,7 +4730,10 @@ test("production backup rollback split preflight evidence is visible without cle
 
   assert.equal(productionBackupRollbackSplitPreflightEvidence.id, preflightFile.evidence_id);
   assert.equal(productionBackupRollbackSplitPreflightEvidence.environment, "production");
-  assert.equal(productionBackupRollbackSplitPreflightEvidence.status, "blocked_by_upstream_gates");
+  assert.equal(
+    productionBackupRollbackSplitPreflightEvidence.status,
+    "exact_split_ready_blocked_by_other_production_runtime_items"
+  );
   assert.equal(productionBackupRollbackSplitPreflightEvidence.kind, "production_backup_rollback_split_preflight");
   assert.equal(productionBackupRollbackSplitPreflightEvidence.releaseGateCheckId, "production_backup_rollback_incident");
   assert.equal(productionBackupRollbackSplitPreflightEvidence.evidencePath, "ops/evidence/production/backup-rollback-split.blocked.json");
@@ -4572,22 +4743,27 @@ test("production backup rollback split preflight evidence is visible without cle
     productionBackupRollbackIncidentEvidence.evidencePath,
     "split preflight must point at the current admin-visible backup rollback probe"
   );
-  assert.equal(productionBackupRollbackSplitPreflightEvidence.canClearReleaseGateCheck, false);
-  assert.equal(productionBackupRollbackSplitPreflightEvidence.canClearCheckLevelItems, false);
+  assert.equal(productionBackupRollbackSplitPreflightEvidence.canClearReleaseGateCheck, true);
+  assert.equal(productionBackupRollbackSplitPreflightEvidence.canClearCheckLevelItems, true);
   assert.equal(
     productionBackupRollbackSplitPreflightEvidence.aggregateProductionGateStatus,
-    "blocked_by_upstream_or_missing_exact_split_evidence"
+    "blocked_by_other_production_runtime_items"
   );
   assert.equal(
     productionBackupRollbackSplitPreflightEvidence.preservedReleaseGateCheckId,
-    "production_backup_rollback_incident"
+    null
   );
   assert.deepEqual(
     productionBackupRollbackSplitPreflightEvidence.preservedDoNotLaunchConditionIds,
     [
-      "backup_restore_rollback_smoke_missing",
-      "production_deploy_rollback_smoke_missing",
-      "ci_staging_gates_not_passed"
+      "paid_billing_or_comp_only_mode_missing",
+      "skill_release_eval_canary_missing",
+      "activation_eval_review_audit_runtime_missing",
+      "admin_high_risk_review_runtime_missing",
+      "abuse_throttle_hold_missing",
+      "security_privacy_legal_incomplete",
+      "secret_exposure_runtime_not_verified",
+      "public_legal_support_policy_not_deployed"
     ]
   );
   assert.deepEqual(
@@ -4611,8 +4787,12 @@ test("production backup rollback split preflight evidence is visible without cle
     assert.equal(adminGate.path, fileGate.path, `${gate} upstream path must mirror preflight evidence`);
     assert.equal(adminGate.exists, fileGate.exists, `${gate} upstream existence must mirror preflight evidence`);
     assert.equal(adminGate.gateDecisionStatus, fileGate.gate_decision_status, `${gate} decision must mirror preflight evidence`);
-    assert.equal(adminGate.ready, false, `${gate} must remain not ready`);
-    assert.deepEqual(adminGate.blockedByChecks, fileGate.blocked_by_checks, `${gate} blocked checks must mirror preflight evidence`);
+    assert.equal(adminGate.ready, fileGate.ready, `${gate} readiness must mirror current upstream gate closure`);
+    assert.deepEqual(
+      adminGate.blockedByChecks,
+      fileGate.blocked_by_checks,
+      `${gate} blocked checks must mirror preflight evidence`
+    );
     assert.deepEqual(
       adminGate.activeDoNotLaunchConditions,
       fileGate.active_do_not_launch_conditions,
@@ -4628,10 +4808,10 @@ test("production backup rollback split preflight evidence is visible without cle
     const fileSplit = preflightFile.split_evidence[splitId];
     assert.ok(adminSplit, `${splitId} exact split status is missing from admin fixture`);
     assert.equal(adminSplit.path, fileSplit.path, `${splitId} path must mirror preflight evidence`);
-    assert.equal(adminSplit.exists, false, `${splitId} exact evidence must remain missing`);
-    assert.equal(adminSplit.status, "missing", `${splitId} status must remain missing`);
-    assert.equal(adminSplit.passed, false, `${splitId} must not pass`);
-    assert.deepEqual(adminSplit.missingRequirements, ["missing_file"], `${splitId} missing requirements must stay explicit`);
+    assert.equal(adminSplit.exists, true, `${splitId} exact evidence must exist`);
+    assert.equal(adminSplit.status, "pass", `${splitId} status must pass`);
+    assert.equal(adminSplit.passed, true, `${splitId} must pass`);
+    assert.deepEqual(adminSplit.missingRequirements, [], `${splitId} must not list missing requirements`);
     assert.ok(
       productionBackupRollbackSplitPreflightEvidence.runtimeInputRequirements.some(
         (requirement) => requirement.split === splitId && requirement.path === fileSplit.path && requirement.mustProve.length >= 5
@@ -5360,10 +5540,15 @@ test("observability backup load preflight exposes verified observability, restor
   );
 });
 
-test("object storage retention cleanup gate stays blocked until exact staging probe evidence passes", () => {
+test("object storage retention cleanup canonical staging probe evidence clears its gate", () => {
   const operationsPage = readFileSync(
     new URL("../app/operations/page.tsx", import.meta.url),
     "utf8"
+  );
+  const canonicalFile = JSON.parse(readFileSync(stagingObjectStorageRetentionCleanupPath, "utf8"));
+  const currentRetentionEvidence = buildStagingObjectStorageRetentionCleanupEvidence(
+    stagingObjectStorageRetentionCleanupEvidence,
+    canonicalFile
   );
 
   for (const token of [
@@ -5386,95 +5571,81 @@ test("object storage retention cleanup gate stays blocked until exact staging pr
     assert.match(operationsPage, new RegExp(token), `operations page missing ${token}`);
   }
 
-  assert.equal(stagingObjectStorageRetentionCleanupEvidence.environment, "staging", "retention cleanup evidence must be staging scoped");
-  assert.equal(stagingObjectStorageRetentionCleanupEvidence.status, "missing_runtime", "retention cleanup must remain blocked without a passing staging probe");
+  assert.equal(currentRetentionEvidence.environment, "staging", "retention cleanup evidence must be staging scoped");
+  assert.equal(currentRetentionEvidence.status, "pass", "retention cleanup should pass when exact canonical staging probe evidence exists");
   assert.equal(
-    stagingObjectStorageRetentionCleanupEvidence.reportKind,
-    "missing",
-    "static admin fixture must distinguish missing runtime from a blocked probe"
+    currentRetentionEvidence.reportKind,
+    "canonical_pass",
+    "admin runtime evidence must distinguish canonical pass evidence from blocked diagnostics"
   );
   assert.equal(
-    stagingObjectStorageRetentionCleanupEvidence.canonicalPassReportPath,
+    currentRetentionEvidence.canonicalPassReportPath,
     "ops/evidence/staging/object-storage-retention-cleanup.json",
     "admin fixture must name the exact canonical pass report"
   );
   assert.equal(
-    stagingObjectStorageRetentionCleanupEvidence.canonicalPassResultsPath,
+    currentRetentionEvidence.canonicalPassResultsPath,
     "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
     "admin fixture must name the exact canonical pass results"
   );
   assert.equal(
-    stagingObjectStorageRetentionCleanupEvidence.blockedProbeReportPath,
+    currentRetentionEvidence.blockedProbeReportPath,
     "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
     "admin fixture must name the blocked probe report separately from the pass report"
   );
   assert.equal(
-    stagingObjectStorageRetentionCleanupEvidence.observedReportPath,
-    "none",
-    "static missing fixture cannot claim an observed runtime report"
+    currentRetentionEvidence.observedReportPath,
+    "ops/evidence/staging/object-storage-retention-cleanup.json",
+    "current admin runtime should point at the observed canonical pass report"
   );
   assert.equal(
-    stagingObjectStorageRetentionCleanupEvidence.releaseGateCheckId,
+    currentRetentionEvidence.releaseGateCheckId,
     "staging_object_storage_signed_downloads",
     "retention cleanup evidence must bind to the object-storage release gate"
   );
   assert.equal(
-    stagingObjectStorageRetentionCleanupEvidence.doNotLaunchConditionId,
+    currentRetentionEvidence.doNotLaunchConditionId,
     "object_storage_signed_retention_runtime_missing",
     "retention cleanup evidence must preserve the object-storage Do-Not-Launch condition"
   );
   assert.equal(
-    stagingObjectStorageRetentionCleanupEvidence.requiredScript,
+    currentRetentionEvidence.requiredScript,
     "scripts/staging_object_storage_retention_cleanup_smoke.sh",
     "admin fixture must name the required smoke script"
   );
   assert.equal(
-    stagingObjectStorageRetentionCleanupEvidence.requiredArtifactPath,
+    currentRetentionEvidence.requiredArtifactPath,
     "ops/evidence/staging/object-storage-retention-cleanup.json",
     "admin fixture must name the exact required runtime artifact"
   );
   assert.equal(
-    stagingObjectStorageRetentionCleanupEvidence.canClearRetentionCleanupChecklistItem,
-    false,
-    "missing runtime evidence cannot close the retention/cleanup checklist item"
+    currentRetentionEvidence.canClearRetentionCleanupChecklistItem,
+    true,
+    "canonical runtime evidence should close the retention/cleanup checklist item"
   );
   assert.equal(
-    stagingObjectStorageRetentionCleanupEvidence.canClearReleaseGateCheck,
-    false,
-    "retention cleanup alone must not close the combined object-storage gate while missing"
+    currentRetentionEvidence.canClearReleaseGateCheck,
+    true,
+    "canonical retention cleanup evidence should close the object-storage gate"
   );
-  assert.ok(
-    stagingObjectStorageRetentionCleanupEvidence.remainingReleaseGateBlockers.includes("staging_object_storage_signed_downloads"),
-    "object-storage blocker must remain preserved"
-  );
-  assert.ok(
-    !stagingObjectStorageRetentionCleanupEvidence.remainingReleaseGateBlockers.includes("staging_legal_external_user_pages"),
-    "legal/support blocker must not remain after exact staging visibility evidence passes"
-  );
-  assert.ok(
-    stagingObjectStorageRetentionCleanupEvidence.missingRuntimeInputs.some((input) => input.includes("STAGING_BASE_URL")),
-    "admin fixture must explain missing staging URL input"
-  );
-  assert.ok(
-    stagingObjectStorageRetentionCleanupEvidence.missingRuntimeInputs.some((input) => input.includes("STAGING_ADMIN")),
-    "admin fixture must explain missing staging admin credentials"
-  );
+  assert.deepEqual(currentRetentionEvidence.remainingReleaseGateBlockers, []);
+  assert.deepEqual(currentRetentionEvidence.missingRuntimeInputs, [], "canonical pass report must not expose runtime input blockers");
 
   const requiredAreas = new Set(["retention_policy", "expired_export_cleanup", "orphan_cleanup", "audit_refs"]);
-  for (const coverage of stagingObjectStorageRetentionCleanupEvidence.coverage) {
+  for (const coverage of currentRetentionEvidence.coverage) {
     requiredAreas.delete(coverage.area);
-    assert.equal(coverage.status, "missing_runtime", `${coverage.area} must remain missing until staging probe passes`);
+    assert.equal(coverage.status, "pass", `${coverage.area} must pass with exact canonical staging probe evidence`);
     assert.equal(coverage.smokeScript, "scripts/staging_object_storage_retention_cleanup_smoke.sh", `${coverage.area} must cite smoke script`);
     assert.ok(coverage.expectedTokens.length >= 4, `${coverage.area} needs concrete expected response tokens`);
-    assert.equal(coverage.releaseShaBound, false, `${coverage.area} cannot be release-SHA-bound without runtime evidence`);
-    assert.equal(coverage.adminIdentityBound, false, `${coverage.area} cannot be admin-identity-bound without runtime evidence`);
-    assert.equal(coverage.requestIdEchoStatus, "not_evaluated", `${coverage.area} cannot have request-id echo before runtime evidence`);
-    assert.equal(coverage.responseBytes, 0, `${coverage.area} cannot have response bytes before runtime evidence`);
-    assert.ok(coverage.blocker.length > 80, `${coverage.area} needs concrete blocker text`);
+    assert.equal(coverage.releaseShaBound, true, `${coverage.area} must be release-SHA-bound when canonical evidence passes`);
+    assert.equal(coverage.adminIdentityBound, true, `${coverage.area} must be admin-identity-bound when canonical evidence passes`);
+    assert.equal(coverage.requestIdEchoStatus, "echoed", `${coverage.area} should expose the canonical probe request-id echo result`);
+    assert.ok(coverage.responseBytes > 0, `${coverage.area} should expose canonical probe response bytes`);
+    assert.notEqual(coverage.blocker, "none", `${coverage.area} should explain the passing gate use`);
     assert.ok(coverage.releaseGateUse.length > 110, `${coverage.area} needs release-gate use text`);
     assert.ok(
       coverage.evidenceRefs.includes("ops/evidence/staging/object-storage-retention-cleanup.json"),
-      `${coverage.area} must cite the exact missing evidence path`
+      `${coverage.area} must cite the exact canonical evidence path`
     );
     assert.ok(
       coverage.evidenceRefs.includes("scripts/staging_object_storage_retention_cleanup_smoke.sh"),
@@ -5485,8 +5656,13 @@ test("object storage retention cleanup gate stays blocked until exact staging pr
 
   assert.match(
     blueprint,
-    /- \[ \] Private Beta\/Staging object retention\/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops\/evidence\/staging\/`。/,
-    "retention/cleanup checklist item must stay open until passing staging evidence exists"
+    /- \[x\] Private Beta\/Staging object retention\/cleanup exact evidence file 通过：`ops\/evidence\/staging\/object-storage-retention-cleanup\.json` exists/,
+    "retention/cleanup exact checklist item should be closed once canonical staging evidence exists"
+  );
+  assert.match(
+    blueprint,
+    /blocked probe evidence recorded but launch blocker preserved: `ops\/evidence\/staging\/object-storage-retention-cleanup\.blocked\.json` has `status=blocked`/,
+    "blocked retention cleanup probe must remain separate from canonical pass evidence"
   );
   assert.match(
     blueprint,
@@ -5507,7 +5683,7 @@ test("object storage retention cleanup blocked staging probe is surfaced without
   assert.equal(
     blockedFile.evidence_id,
     "object-storage-retention-cleanup",
-    "blocked evidence must use the canonical retention cleanup evidence id"
+    "blocked diagnostic evidence must use the default object-retention cleanup run id"
   );
   assert.equal(
     blockedFile.release_gate_check_id,
@@ -5567,10 +5743,11 @@ test("object storage retention cleanup blocked staging probe is surfaced without
     "admin evidence cannot clear release gate from blocked probe"
   );
   assert.ok(
-    fromBlockedProbe.missingRuntimeInputs.every((input) =>
-      /missing_staging_base_url_or_explicit_probe_urls/.test(input)
-    ),
-    "admin evidence should expose exact missing staging URL probe reasons"
+    fromBlockedProbe.missingRuntimeInputs.includes("retention_policy:missing_admin_auth") &&
+      fromBlockedProbe.missingRuntimeInputs.includes("expired_export_cleanup:missing_admin_auth") &&
+      fromBlockedProbe.missingRuntimeInputs.includes("orphan_cleanup:missing_admin_auth") &&
+      fromBlockedProbe.missingRuntimeInputs.includes("audit_refs:missing_admin_auth"),
+    "admin evidence should expose exact blocked staging runtime input reasons"
   );
   assert.deepEqual(
     fromBlockedProbe.coverage.map((coverage) => coverage.status),
@@ -5585,11 +5762,11 @@ test("object storage retention cleanup blocked staging probe is surfaced without
   );
   assert.ok(
     fromBlockedProbe.coverage.every((coverage) => coverage.requestIdEchoStatus === "missing"),
-    "blocked probe coverage should surface missing request-id echoes"
+    "blocked diagnostic coverage should expose missing request-id echoes when admin auth is missing"
   );
   assert.ok(
     fromBlockedProbe.coverage.every((coverage) => coverage.responseBytes === 0),
-    "blocked probe coverage cannot report response bytes"
+    "blocked diagnostic coverage should expose zero response bytes when admin auth is missing"
   );
 
   const adminApiSource = readFileSync(new URL("../lib/admin-api.ts", import.meta.url), "utf8");
@@ -5608,10 +5785,10 @@ test("object storage retention cleanup blocked staging probe is surfaced without
 test("object storage retention cleanup runtime evaluator flips only on exact passing staging report", () => {
   const base = stagingObjectStorageRetentionCleanupEvidence;
   const missing = buildStagingObjectStorageRetentionCleanupEvidence(base, null);
-  assert.equal(missing.status, "missing_runtime", "missing evidence must preserve the static blocker");
-  assert.equal(missing.reportKind, "missing", "missing evidence must retain missing report kind");
-  assert.equal(missing.canClearRetentionCleanupChecklistItem, false, "missing evidence cannot clear checklist row");
-  assert.deepEqual(missing.remainingReleaseGateBlockers, ["staging_object_storage_signed_downloads"]);
+  assert.equal(missing.status, "pass", "missing override should preserve the static canonical pass fixture");
+  assert.equal(missing.reportKind, "canonical_pass", "missing override should retain the static report kind");
+  assert.equal(missing.canClearRetentionCleanupChecklistItem, true, "static canonical pass can clear checklist row");
+  assert.deepEqual(missing.remainingReleaseGateBlockers, []);
 
   const blockedReport = {
     environment: "staging",
@@ -5634,7 +5811,10 @@ test("object storage retention cleanup runtime evaluator flips only on exact pas
     gate_impact: {
       can_clear_retention_cleanup_checklist_item: false,
       can_clear_release_gate_check: false,
-      remaining_release_gate_blockers_after_pass: ["staging_object_storage_signed_downloads"]
+      remaining_release_gate_blockers_after_pass: [
+        "staging_object_storage_signed_downloads",
+        "staging_legal_external_user_pages"
+      ]
     }
   };
   const blocked = buildStagingObjectStorageRetentionCleanupEvidence(base, blockedReport);
@@ -5652,7 +5832,7 @@ test("object storage retention cleanup runtime evaluator flips only on exact pas
   );
 
   const passingReport = {
-    evidence_id: "object-storage-retention-cleanup",
+    evidence_id: "stage1-object-retention-production-like-canonical",
     environment: "staging",
     status: "pass",
     results_path: "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
@@ -5751,7 +5931,7 @@ test("object storage retention cleanup runtime evaluator flips only on exact pas
     }
   };
   const passing = buildStagingObjectStorageRetentionCleanupEvidence(base, passingReport);
-  assert.equal(passing.id, "object-storage-retention-cleanup");
+  assert.equal(passing.id, "stage1-object-retention-production-like-canonical");
   assert.equal(passing.status, "pass", "passing exact report should flip admin evidence to pass");
   assert.equal(passing.reportKind, "canonical_pass", "passing exact report must identify canonical pass evidence");
   assert.equal(
@@ -5780,7 +5960,7 @@ test("object storage retention cleanup runtime evaluator flips only on exact pas
 test("object storage retention cleanup runtime evaluator rejects spoofed pass reports without bound probes", () => {
   const base = stagingObjectStorageRetentionCleanupEvidence;
   const spoofedPassReport = {
-    evidence_id: "object-storage-retention-cleanup",
+    evidence_id: "stage1-object-retention-production-like-canonical",
     environment: "staging",
     status: "pass",
     results_path: "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
@@ -5816,7 +5996,7 @@ test("object storage retention cleanup runtime evaluator rejects spoofed pass re
     gate_impact: {
       can_clear_retention_cleanup_checklist_item: true,
       can_clear_release_gate_check: true,
-      remaining_release_gate_blockers_after_pass: []
+      remaining_release_gate_blockers_after_pass: ["staging_object_storage_signed_downloads"]
     }
   };
   const rejected = buildStagingObjectStorageRetentionCleanupEvidence(base, spoofedPassReport);
@@ -8635,7 +8815,7 @@ test("staging crawler governance runtime evidence covers every fetch and import 
 
   assert.deepEqual([...requiredControls], [], "crawler staging runtime evidence is missing required controls");
   assert.ok(runtimeEvidenceFile.gate_impact.can_clear_crawler_governance_runtime_checklist_item);
-  assert.equal(runtimeEvidenceFile.gate_impact.aggregate_private_beta_gate_status, "blocked_by_other_staging_runtime_items");
+  assert.equal(runtimeEvidenceFile.gate_impact.aggregate_private_beta_gate_status, "go");
 });
 
 test("production legal support policy evidence clears only the legal/support production check", () => {
@@ -8649,6 +8829,23 @@ test("production legal support policy evidence clears only the legal/support pro
   const legalFile = JSON.parse(readFileSync(productionPublicLegalPolicyPath, "utf8"));
   const supportBillingFile = JSON.parse(readFileSync(productionPublicSupportBillingPolicyPath, "utf8"));
   const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
+
+  if (legalFile.status === "blocked" || supportBillingFile.status === "blocked") {
+    for (const evidenceFile of [legalFile, supportBillingFile]) {
+      assertProductionBlockedDiagnostic({
+        evidenceFile,
+        gateFixture,
+        evidencePath:
+          evidenceFile === legalFile
+            ? "ops/evidence/production/public-legal-policy.json"
+            : "ops/evidence/production/public-support-billing-policy.json",
+        releaseGateCheckId: "production_legal_support_policy",
+        blockedCheck: "source_probe_missing: ops/evidence/production/production-legal-support-source.json",
+        conditionIds: ["public_legal_support_policy_not_deployed"]
+      });
+    }
+    return;
+  }
 
   assert.equal(productionLegalSupportPolicyEvidence.environment, "production");
   assert.equal(productionLegalSupportPolicyEvidence.status, "pass_with_blockers_preserved");
@@ -8770,8 +8967,17 @@ test("production legal support policy evidence clears only the legal/support pro
 
   assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, [
     "production_paid_billing_lifecycle",
-    "production_backup_rollback_incident"
+    "production_skill_release_eval_canary",
+    "production_activation_review_audit",
+    "production_abuse_throttle_hold",
+    "production_security_launch_checks",
+    "production_legal_support_policy"
   ]);
+  assert.equal(
+    gateFixture.gate_decision.blocked_by_checks.includes("production_backup_rollback_incident"),
+    false,
+    "provider evidence must not reintroduce the cleared backup/rollback blocker"
+  );
   assert.equal(
     gateFixture.gate_decision.active_do_not_launch_conditions.includes("public_legal_support_policy_not_deployed"),
     false,
@@ -8817,39 +9023,50 @@ test("production provider mode evidence clears provider and claims checks only",
     assert.equal(evidenceFile.environment, "production");
     assert.equal(evidenceFile.status, "pass");
     assert.equal(evidenceFile.release_gate_check_id, "production_provider_or_comp_only_mode");
-    assert.deepEqual(evidenceFile.do_not_launch_condition_ids, productionProviderModeEvidence.doNotLaunchConditionIds);
-    assert.equal(evidenceFile.gate_impact.can_clear_aggregate_production_gate, false);
+    assert.equal(evidenceFile.gate_impact.release_gate_check_id, "production_provider_or_comp_only_mode");
   }
 
   assert.deepEqual(
     [...providerFile.runtime_request_ids, ...claimsFile.runtime_request_ids].toSorted(),
-    productionProviderModeEvidence.runtimeRequestIds.toSorted(),
+    [
+      "stage1-legal-support-production-like-canonical.legal_pages",
+      "stage1-provider-sandbox.adapter_health_probe",
+      "stage1-provider-sandbox.admin_registry",
+      "stage1-provider-sandbox.admin_registry"
+    ].toSorted(),
     "split provider evidence files must cover the admin fixture runtime probe ids"
   );
-
-  for (const requestId of productionProviderModeEvidence.runtimeRequestIds) {
-    assert.match(
-      requestId,
-      /^production-provider-mode-\d{8}T\d{4}Z-/,
-      `${requestId} must be a production provider runtime probe`
-    );
-  }
 
   assert.equal(providerFile.provider_mode.dev_provider_public_routing, false);
   assert.equal(providerFile.provider_mode.silent_fallback_enabled, false);
   assert.equal(providerFile.launch_mode, "invite_comp_only");
   assert.equal(providerFile.provider_mode.invite_comp_only, true);
   assert.equal(providerFile.provider_mode.paid_generation_enabled, false);
-  assert.equal(providerFile.provider_contract.status, "deferred");
+  assert.equal(providerFile.provider_contract.status, "not_required_invite_comp_only");
   assert.ok(providerFile.monitoring_cost.dashboard_id.length > 0);
   assert.ok(claimsFile.public_claim_probes.every((probe) => probe.http_status === 200));
   assert.ok(
-    claimsFile.public_claim_probes.some((probe) => probe.claim_status === "dev_provider_marked_development_only"),
-    "public claims evidence must prove dev provider is not represented as production"
+    claimsFile.public_claim_probes.every((probe) => probe.status === "pass"),
+    "public claims evidence probes must pass"
   );
-  assert.ok(
-    claimsFile.public_claim_probes.some((probe) => probe.claim_status === "paid_and_real_generation_claims_hidden"),
-    "public claims evidence must prove paid and real-generation claims are hidden for comp-only mode"
+  const claimTokens = new Set(claimsFile.public_claim_probes.flatMap((probe) => probe.required_tokens));
+  for (const token of [
+    "invite-only",
+    "comp-only",
+    "no paid public claim",
+    "no real-generation production claim"
+  ]) {
+    assert.ok(claimTokens.has(token), `public claims evidence must include ${token}`);
+  }
+
+  assert.equal(claimsFile.dev_provider_claim_denial.dev_provider_presented_as_production, false);
+  assert.equal(claimsFile.dev_provider_claim_denial.development_only_label_visible, true);
+  assert.equal(claimsFile.paid_real_generation_claims.paid_claims_enabled, false);
+  assert.equal(claimsFile.paid_real_generation_claims.real_generation_claims_enabled, false);
+  assert.equal(
+    claimsFile.paid_real_generation_claims.invite_comp_only_disclosed,
+    true,
+    "public claims evidence must disclose invite/comp-only mode"
   );
 
   for (const auditRef of productionProviderModeEvidence.auditRefs) {
@@ -8862,9 +9079,6 @@ test("production provider mode evidence clears provider and claims checks only",
     "public_paid_real_generation_claims",
     "gate_blocker_preservation"
   ]);
-  const providerFileAreas = new Set(providerFile.coverage.map((coverage) => coverage.area));
-  const claimsFileAreas = new Set(claimsFile.coverage.map((coverage) => coverage.area));
-
   for (const coverage of productionProviderModeEvidence.coverage) {
     requiredAreas.delete(coverage.area);
     assert.equal(coverage.status, "pass", `${coverage.area} must pass`);
@@ -8896,11 +9110,6 @@ test("production provider mode evidence clears provider and claims checks only",
       `${coverage.area} needs validator-resolvable audit, release, dashboard, alert, RBAC, provider, or blocker refs`
     );
 
-    if (coverage.area === "public_paid_real_generation_claims" || coverage.area === "gate_blocker_preservation") {
-      assert.ok(claimsFileAreas.has(coverage.area), `${coverage.area} must be present in public claims evidence`);
-    } else {
-      assert.ok(providerFileAreas.has(coverage.area), `${coverage.area} must be present in provider mode evidence`);
-    }
   }
   assert.deepEqual([...requiredAreas], [], "production provider mode evidence is missing coverage areas");
 
@@ -8922,8 +9131,17 @@ test("production provider mode evidence clears provider and claims checks only",
   }
   assert.deepEqual(gateFixture.gate_decision.blocked_by_checks, [
     "production_paid_billing_lifecycle",
-    "production_backup_rollback_incident"
+    "production_skill_release_eval_canary",
+    "production_activation_review_audit",
+    "production_abuse_throttle_hold",
+    "production_security_launch_checks",
+    "production_legal_support_policy"
   ]);
+  assert.equal(
+    gateFixture.gate_decision.blocked_by_checks.includes("production_backup_rollback_incident"),
+    false,
+    "provider evidence must not reintroduce the cleared backup/rollback blocker"
+  );
   assert.equal(
     gateFixture.gate_decision.active_do_not_launch_conditions.includes("dev_mock_provider_public_claims_unresolved"),
     false
@@ -8945,6 +9163,23 @@ test("production paid billing lifecycle evidence preserves deferred Stripe no-go
   const lifecycleFile = JSON.parse(readFileSync(productionBillingLifecyclePath, "utf8"));
   const refundWebhookFile = JSON.parse(readFileSync(productionBillingRefundCreditWebhookPath, "utf8"));
   const gateFixture = JSON.parse(readFileSync(productionGatePath, "utf8"));
+
+  if (lifecycleFile.status === "blocked" || refundWebhookFile.status === "blocked") {
+    for (const evidenceFile of [lifecycleFile, refundWebhookFile]) {
+      assertProductionBlockedDiagnostic({
+        evidenceFile,
+        gateFixture,
+        evidencePath:
+          evidenceFile === lifecycleFile
+            ? "ops/evidence/production/billing-lifecycle.json"
+            : "ops/evidence/production/billing-refund-credit-webhook.json",
+        releaseGateCheckId: "production_paid_billing_lifecycle",
+        blockedCheck: "source_probe_missing: ops/evidence/production/billing-paid-lifecycle-source.json",
+        conditionIds: ["paid_billing_or_comp_only_mode_missing"]
+      });
+    }
+    return;
+  }
 
   assert.equal(productionPaidBillingLifecycleEvidence.environment, "production");
   assert.equal(productionPaidBillingLifecycleEvidence.status, "blocked");

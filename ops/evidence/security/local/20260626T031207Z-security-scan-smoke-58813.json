@@ -1,0 +1,130 @@
+{
+  "blueprint_items": [
+    "BE-2",
+    "BE-11",
+    "QA-8",
+    "OP-13"
+  ],
+  "blueprint_source": "Docs/Stage1_20260621_blueprint.md",
+  "checks": [
+    {
+      "check_id": "dependency_scan",
+      "evidence_refs": [
+        "ops/evidence/security/local/20260626T031207Z-security-scan-smoke-58813.web-npm-audit.json",
+        "ops/evidence/security/local/20260626T031207Z-security-scan-smoke-58813.admin-npm-audit.json",
+        "ops/evidence/security/local/20260626T031207Z-security-scan-smoke-58813.govulncheck.txt"
+      ],
+      "status": "open"
+    },
+    {
+      "check_id": "image_scan",
+      "evidence_refs": [
+        "ops/evidence/security/local/20260626T031207Z-security-scan-smoke-58813.trivy-image.txt"
+      ],
+      "status": "open"
+    },
+    {
+      "check_id": "secret_scan",
+      "evidence_refs": [
+        "ops/evidence/security/local/20260626T031207Z-security-scan-smoke-58813.secrets.txt",
+        "scripts/security_scan_smoke.sh"
+      ],
+      "status": "open"
+    }
+  ],
+  "ci_gate": "script_contract_complete; installed CI execution remains token-blocked outside ops/ci",
+  "created_at": "20260626T031207Z",
+  "created_by_lane": "lane5",
+  "environment": "local",
+  "kind": "security_scan",
+  "private_beta_gate": "open_until_dependency_image_secret_scans_run_in_staging_release_context",
+  "production_gate": "open_until_production_release_security_launch_checks_attach_strict_secret_rbac_csrf_csp_rate_limit_provider_stripe_evidence",
+  "release_sha": "",
+  "run_id": "20260626T031207Z-security-scan-smoke-58813",
+  "scan_contract": {
+    "dependency_scan": {
+      "admin_npm_audit": "ops/evidence/security/local/20260626T031207Z-security-scan-smoke-58813.admin-npm-audit.json",
+      "go_vulncheck": "ops/evidence/security/local/20260626T031207Z-security-scan-smoke-58813.govulncheck.txt",
+      "go_vulncheck_installed": false,
+      "npm_audit_files_exist": {
+        "admin": false,
+        "web": false
+      },
+      "npm_audit_level": "moderate",
+      "required_npm_audit_projects": [
+        "web",
+        "admin"
+      ],
+      "web_npm_audit": "ops/evidence/security/local/20260626T031207Z-security-scan-smoke-58813.web-npm-audit.json"
+    },
+    "docker_image_scan": {
+      "image_set": [
+        "zenari-stage0-backend",
+        "zenari-stage0-web",
+        "zenari-stage0-admin"
+      ],
+      "required_image_set": [
+        "zenari-stage0-backend",
+        "zenari-stage0-web",
+        "zenari-stage0-admin"
+      ],
+      "scanned_images": [
+        "zenari-stage0-backend:local-security-scan",
+        "zenari-stage0-web:local-security-scan",
+        "zenari-stage0-admin:local-security-scan"
+      ],
+      "trivy_db_downloaded_at": "",
+      "trivy_db_repositories": [
+        "ghcr.io/aquasecurity/trivy-db:2",
+        "mirror.gcr.io/aquasec/trivy-db:2"
+      ],
+      "trivy_db_updated_at": "",
+      "trivy_db_version": "",
+      "trivy_installed": false,
+      "trivy_output": "ops/evidence/security/local/20260626T031207Z-security-scan-smoke-58813.trivy-image.txt",
+      "trivy_skip_db_update": false,
+      "trivy_skip_java_db_update": true
+    },
+    "secret_scan": {
+      "allowlisted_test_fixture_paths": [
+        "backend/internal/billing/billing_test.go",
+        "backend/internal/billing/stripe_checkout_test.go",
+        "backend/internal/billing/stripe_webhook_test.go",
+        "backend/internal/config/config_test.go",
+        "backend/internal/security/redact_test.go",
+        "backend/internal/server/server_test.go",
+        "backend/internal/stage0/services_test.go"
+      ],
+      "committed_secret_findings": false,
+      "pattern_ids": [
+        "openai_key_shape",
+        "zai_key_shape",
+        "stripe_key_shape",
+        "stripe_publishable_key_shape",
+        "stripe_webhook_secret_shape",
+        "github_token_shape"
+      ],
+      "patterns_file": "ops/evidence/security/local/20260626T031207Z-security-scan-smoke-58813.secrets.txt"
+    }
+  },
+  "stage1_secret_scan_patterns": {
+    "github_token_shape": "ghp_[A-Za-z0-9_]{20,}",
+    "openai_key_shape": "sk-(proj-)?[A-Za-z0-9_-]{20,}",
+    "stripe_key_shape": "(sk|rk)_(live|test)_[A-Za-z0-9]{16,}",
+    "stripe_publishable_key_shape": "pk_(live|test)_[A-Za-z0-9]{16,}",
+    "stripe_webhook_secret_shape": "whsec_[A-Za-z0-9]{16,}",
+    "zai_key_shape": "[0-9a-f]{32}.[A-Za-z0-9_-]{16,}"
+  },
+  "stage1_security_coverage": {
+    "assets": "Visual asset storage refs, lineage, signed URL rejection, and raw payload persistence rejection",
+    "batch": "Batch child execution, provider failure redaction, result sink trace projection, and raw provider payload persistence flags",
+    "export": "Export manifest/render gates, safe object keys, trace provenance, and fail-closed download projection",
+    "provider": "OpenAI-compatible provider, provider registry, edit adapter, and video adapter secret containment",
+    "rate_limit": "Rate-limit and spend-cap evidence preserves raw_secret_projection=false",
+    "stripe": "Stripe checkout, portal, cancel, invoice, webhook signature, live/test separation, and lifecycle reconciliation projections",
+    "support": "Support ticket body, metadata, and linked evidence redaction",
+    "toolchain": "backend Go and Docker builds pin to Go 1.26.4 so govulncheck uses a patched standard library for called-symbol checks",
+    "trace": "Trace user/export projection forbids raw prompt, provider payload, raw safety payload, and secret fields"
+  },
+  "status": "planned"
+}

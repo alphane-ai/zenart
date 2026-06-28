@@ -1,0 +1,28 @@
+{
+  "fixture_id": "partial_failure",
+  "contract_version": 1,
+  "batch": {
+    "id": "batch_partial",
+    "tenant_id": "tenant_1",
+    "user_id": "user_1",
+    "project_id": "project_1",
+    "workspace_id": "workspace_1",
+    "prompt_context": {"text": "Create four packaging variants.", "selected_object_ids": [], "reference_asset_ids": ["asset_pack_1"], "brand_kit_id": "brand_kit_1", "model_hints": ["image-fast-v1"], "tool_hint": "image.generate"},
+    "requested_count": 4,
+    "allowed_models": ["image-fast-v1"],
+    "quota_reservation_id": "quota_partial",
+    "quota_estimated_units": 16,
+    "quota_committed_units": 8,
+    "quota_refunded_units": 8,
+    "trace_id": "trace_batch_partial",
+    "status": "partial_succeeded"
+  },
+  "children": [
+    {"id": "child_partial_1", "batch_id": "batch_partial", "tenant_id": "tenant_1", "status": "succeeded", "provider_id": "zenari-image-sandbox", "model_id": "image-fast-v1", "tool_type": "image.generate", "seed": "partial-001", "retry_count": 0, "max_retries": 2, "quota_estimate_units": 4, "quota_committed_units": 4, "quota_refunded_units": 0, "asset_id": "asset_partial_1", "canvas_object_id": "object_partial_1", "trace_id": "trace_child_partial_1", "visible_trace_ref": "trace_projection_child_partial_1"},
+    {"id": "child_partial_2", "batch_id": "batch_partial", "tenant_id": "tenant_1", "status": "succeeded", "provider_id": "zenari-image-sandbox", "model_id": "image-fast-v1", "tool_type": "image.generate", "seed": "partial-002", "retry_count": 0, "max_retries": 2, "quota_estimate_units": 4, "quota_committed_units": 4, "quota_refunded_units": 0, "asset_id": "asset_partial_2", "canvas_object_id": "object_partial_2", "trace_id": "trace_child_partial_2", "visible_trace_ref": "trace_projection_child_partial_2"},
+    {"id": "child_partial_3", "batch_id": "batch_partial", "tenant_id": "tenant_1", "status": "failed", "provider_id": "zenari-image-sandbox", "model_id": "image-fast-v1", "tool_type": "image.generate", "seed": "partial-003", "retry_count": 2, "max_retries": 2, "quota_estimate_units": 4, "quota_committed_units": 0, "quota_refunded_units": 4, "trace_id": "trace_child_partial_3", "visible_trace_ref": "trace_projection_child_partial_3", "failure_code": "provider_unavailable", "failure_message": "sandbox timeout", "metadata": {"retryable": "false", "retry_state": "exhausted", "dead_letter_state": "dead_lettered", "dead_letter_reason": "retry_budget_exhausted"}},
+    {"id": "child_partial_4", "batch_id": "batch_partial", "tenant_id": "tenant_1", "status": "blocked", "provider_id": "zenari-image-sandbox", "model_id": "image-fast-v1", "tool_type": "image.generate", "seed": "partial-004", "retry_count": 0, "max_retries": 0, "quota_estimate_units": 4, "quota_committed_units": 0, "quota_refunded_units": 4, "trace_id": "trace_child_partial_4", "visible_trace_ref": "trace_projection_child_partial_4", "review_reason": "safety_review_required"}
+  ],
+  "progress": {"queued": 0, "running": 0, "succeeded": 2, "failed": 1, "cancelled": 0, "blocked": 1, "retryable": 0},
+  "user_projection": {"visible_model_label": "image-fast-v1", "children": [{"id": "child_partial_1", "status": "succeeded", "asset_id": "asset_partial_1", "canvas_object_id": "object_partial_1", "visible_trace_ref": "trace_projection_child_partial_1"}, {"id": "child_partial_2", "status": "succeeded", "asset_id": "asset_partial_2", "canvas_object_id": "object_partial_2", "visible_trace_ref": "trace_projection_child_partial_2"}, {"id": "child_partial_3", "status": "failed", "failure_code": "provider_unavailable", "visible_trace_ref": "trace_projection_child_partial_3"}, {"id": "child_partial_4", "status": "blocked", "review_reason": "safety_review_required", "visible_trace_ref": "trace_projection_child_partial_4"}]}
+}

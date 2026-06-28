@@ -17,7 +17,7 @@ import (
 )
 
 func TestLocalStoreScopesKeysByTenant(t *testing.T) {
-	store, err := NewLocalStore(t.TempDir(), "zenart-test", "secret")
+	store, err := NewLocalStore(t.TempDir(), "zenari-test", "secret")
 	if err != nil {
 		t.Fatalf("NewLocalStore() error = %v", err)
 	}
@@ -47,7 +47,7 @@ func TestLocalStoreScopesKeysByTenant(t *testing.T) {
 
 func TestLocalStoreRejectsUnsafeTenantIDBeforeFilesystemWrite(t *testing.T) {
 	root := t.TempDir()
-	store, err := NewLocalStore(root, "zenart-test", "secret")
+	store, err := NewLocalStore(root, "zenari-test", "secret")
 	if err != nil {
 		t.Fatalf("NewLocalStore() error = %v", err)
 	}
@@ -72,10 +72,10 @@ func TestNewLocalStoreRejectsUnsafeBucketBeforeFilesystemUse(t *testing.T) {
 	root := t.TempDir()
 	for _, bucket := range []string{
 		"../escape",
-		"zenart_test",
-		"ZenArt-Test",
-		"zenart..test",
-		"zenart.-test",
+		"zenari_test",
+		"Zenari-Test",
+		"zenari..test",
+		"zenari.-test",
 		"192.168.0.1",
 		"ab",
 	} {
@@ -94,7 +94,7 @@ func TestNewLocalStoreRejectsUnsafeBucketBeforeFilesystemUse(t *testing.T) {
 
 func TestLocalStoreRejectsUnsafeObjectKeyBeforeFilesystemWrite(t *testing.T) {
 	root := t.TempDir()
-	store, err := NewLocalStore(root, "zenart-test", "secret")
+	store, err := NewLocalStore(root, "zenari-test", "secret")
 	if err != nil {
 		t.Fatalf("NewLocalStore() error = %v", err)
 	}
@@ -108,13 +108,13 @@ func TestLocalStoreRejectsUnsafeObjectKeyBeforeFilesystemWrite(t *testing.T) {
 			t.Fatalf("Put() key %q error = %v, want invalid object key", key, err)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(root, "zenart-test")); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(filepath.Join(root, "zenari-test")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("unsafe object key created bucket path error = %v, want not exist", err)
 	}
 }
 
 func TestLocalStoreSignedURLIncludesTenantScopedKey(t *testing.T) {
-	store, err := NewLocalStore(t.TempDir(), "zenart-test", "secret")
+	store, err := NewLocalStore(t.TempDir(), "zenari-test", "secret")
 	if err != nil {
 		t.Fatalf("NewLocalStore() error = %v", err)
 	}
@@ -133,7 +133,7 @@ func TestLocalStoreSignedURLIncludesTenantScopedKey(t *testing.T) {
 
 func TestLocalStorePutWritesExpiryMarkerAndDeleteRemovesObject(t *testing.T) {
 	root := t.TempDir()
-	store, err := NewLocalStore(root, "zenart-test", "secret")
+	store, err := NewLocalStore(root, "zenari-test", "secret")
 	if err != nil {
 		t.Fatalf("NewLocalStore() error = %v", err)
 	}
@@ -146,7 +146,7 @@ func TestLocalStorePutWritesExpiryMarkerAndDeleteRemovesObject(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Put() error = %v", err)
 	}
-	objectPath := filepath.Join(root, "zenart-test", filepath.FromSlash(obj.Key))
+	objectPath := filepath.Join(root, "zenari-test", filepath.FromSlash(obj.Key))
 	if _, err := os.Stat(objectPath + ".expires"); err != nil {
 		t.Fatalf("expiry marker stat error = %v", err)
 	}
@@ -163,7 +163,7 @@ func TestLocalStorePutWritesExpiryMarkerAndDeleteRemovesObject(t *testing.T) {
 
 func TestLocalStorePutWithoutRetentionRemovesStaleExpiryMarker(t *testing.T) {
 	root := t.TempDir()
-	store, err := NewLocalStore(root, "zenart-test", "secret")
+	store, err := NewLocalStore(root, "zenari-test", "secret")
 	if err != nil {
 		t.Fatalf("NewLocalStore() error = %v", err)
 	}
@@ -176,7 +176,7 @@ func TestLocalStorePutWithoutRetentionRemovesStaleExpiryMarker(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Put() with retention error = %v", err)
 	}
-	objectPath := filepath.Join(root, "zenart-test", filepath.FromSlash(obj.Key))
+	objectPath := filepath.Join(root, "zenari-test", filepath.FromSlash(obj.Key))
 	if _, err := os.Stat(objectPath + ".expires"); err != nil {
 		t.Fatalf("expiry marker stat error = %v", err)
 	}
@@ -193,7 +193,7 @@ func TestLocalStorePutWithoutRetentionRemovesStaleExpiryMarker(t *testing.T) {
 
 func TestLocalStoreCleanupExpiredForTenantOnlyDeletesTenantMarkers(t *testing.T) {
 	root := t.TempDir()
-	store, err := NewLocalStore(root, "zenart-test", "secret")
+	store, err := NewLocalStore(root, "zenari-test", "secret")
 	if err != nil {
 		t.Fatalf("NewLocalStore() error = %v", err)
 	}
@@ -227,7 +227,7 @@ func TestLocalStoreCleanupExpiredForTenantOnlyDeletesTenantMarkers(t *testing.T)
 
 func TestLocalStoreCleanupExpiredSkipsUnscopedExpiryMarkers(t *testing.T) {
 	root := t.TempDir()
-	store, err := NewLocalStore(root, "zenart-test", "secret")
+	store, err := NewLocalStore(root, "zenari-test", "secret")
 	if err != nil {
 		t.Fatalf("NewLocalStore() error = %v", err)
 	}
@@ -240,7 +240,7 @@ func TestLocalStoreCleanupExpiredSkipsUnscopedExpiryMarkers(t *testing.T) {
 		t.Fatalf("Put(scoped expired) error = %v", err)
 	}
 
-	unscopedPath := filepath.Join(root, "zenart-test", "exports", "unscoped.zip")
+	unscopedPath := filepath.Join(root, "zenari-test", "exports", "unscoped.zip")
 	if err := os.MkdirAll(filepath.Dir(unscopedPath), 0o750); err != nil {
 		t.Fatalf("MkdirAll(unscoped) error = %v", err)
 	}
@@ -271,7 +271,7 @@ func TestLocalStoreCleanupExpiredSkipsUnscopedExpiryMarkers(t *testing.T) {
 
 func TestLocalStoreCleanupExpiredSkipsCrossTenantMarkerForTenantCleanup(t *testing.T) {
 	root := t.TempDir()
-	store, err := NewLocalStore(root, "zenart-test", "secret")
+	store, err := NewLocalStore(root, "zenari-test", "secret")
 	if err != nil {
 		t.Fatalf("NewLocalStore() error = %v", err)
 	}
@@ -309,7 +309,7 @@ func TestNewStoreSelectsS3CompatibleProvider(t *testing.T) {
 		Endpoint:       "http://minio:9000",
 		PublicEndpoint: "http://localhost:9000",
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: true,
@@ -327,7 +327,7 @@ func TestNewS3StoreRejectsCredentialBearingEndpoints(t *testing.T) {
 		Provider:       "s3-compatible",
 		Endpoint:       "https://access:secret@s3.example.test",
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: true,
@@ -341,7 +341,7 @@ func TestNewS3StoreRejectsCredentialBearingEndpoints(t *testing.T) {
 		Endpoint:       "https://s3.example.test",
 		PublicEndpoint: "https://access:secret@downloads.example.test",
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: true,
@@ -392,7 +392,7 @@ func TestNewS3StoreRejectsEndpointQueryAndFragment(t *testing.T) {
 			cfg := tc.cfg
 			cfg.Provider = "s3-compatible"
 			cfg.Region = "us-east-1"
-			cfg.Bucket = "zenart-test"
+			cfg.Bucket = "zenari-test"
 			cfg.AccessKey = "access"
 			cfg.SecretKey = "secret"
 			cfg.ForcePathStyle = true
@@ -414,10 +414,10 @@ func TestNewS3StoreRejectsUnsafeBucketBeforeRequest(t *testing.T) {
 
 	for _, bucket := range []string{
 		"../escape",
-		"zenart_test",
-		"ZenArt-Test",
-		"zenart..test",
-		"zenart-.test",
+		"zenari_test",
+		"Zenari-Test",
+		"zenari..test",
+		"zenari-.test",
 		"192.168.0.1",
 		"ab",
 	} {
@@ -447,7 +447,7 @@ func TestS3StoreSignedURLUsesTenantScopedPathStyleKey(t *testing.T) {
 		Endpoint:       "http://minio:9000",
 		PublicEndpoint: "http://localhost:9000",
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: true,
@@ -470,7 +470,7 @@ func TestS3StoreSignedURLUsesTenantScopedPathStyleKey(t *testing.T) {
 	if parsed.Scheme != "http" || parsed.Host != "localhost:9000" {
 		t.Fatalf("signed URL host = %s://%s, want public endpoint", parsed.Scheme, parsed.Host)
 	}
-	if parsed.Path != "/zenart-test/tenants/tenant_1/exports/package.zip" {
+	if parsed.Path != "/zenari-test/tenants/tenant_1/exports/package.zip" {
 		t.Fatalf("signed URL path = %q, want tenant-scoped path-style key", parsed.Path)
 	}
 	query := parsed.Query()
@@ -498,7 +498,7 @@ func TestS3StoreDeleteUsesTenantScopedDelete(t *testing.T) {
 		Provider:       "s3-compatible",
 		Endpoint:       server.URL,
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: true,
@@ -510,8 +510,8 @@ func TestS3StoreDeleteUsesTenantScopedDelete(t *testing.T) {
 		t.Fatalf("Delete() error = %v", err)
 	}
 	wantPaths := []string{
-		"/zenart-test/tenants/tenant_1/exports/package.zip",
-		"/zenart-test/tenants/tenant_1/exports/package.zip.expires",
+		"/zenari-test/tenants/tenant_1/exports/package.zip",
+		"/zenari-test/tenants/tenant_1/exports/package.zip.expires",
 	}
 	if len(gotPaths) != len(wantPaths) {
 		t.Fatalf("paths = %#v, want %#v", gotPaths, wantPaths)
@@ -537,7 +537,7 @@ func TestS3StoreDeleteRejectsCrossTenantKeyBeforeRequest(t *testing.T) {
 		Provider:       "s3-compatible",
 		Endpoint:       server.URL,
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: true,
@@ -564,7 +564,7 @@ func TestS3StoreRejectsUnsafeTenantAndKeyBeforeRequest(t *testing.T) {
 		Provider:       "s3-compatible",
 		Endpoint:       server.URL,
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: true,
@@ -615,7 +615,7 @@ func TestS3StorePutWritesAndRemovesExpiryMarkers(t *testing.T) {
 		Provider:       "s3-compatible",
 		Endpoint:       server.URL,
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: true,
@@ -636,27 +636,27 @@ func TestS3StorePutWritesAndRemovesExpiryMarkers(t *testing.T) {
 	if len(puts) != 2 {
 		t.Fatalf("PUT paths = %#v, want object and marker", puts)
 	}
-	if puts[0] != "/zenart-test/tenants/tenant_1/exports/package.zip" || puts[1] != "/zenart-test/tenants/tenant_1/exports/package.zip.expires" {
+	if puts[0] != "/zenari-test/tenants/tenant_1/exports/package.zip" || puts[1] != "/zenari-test/tenants/tenant_1/exports/package.zip.expires" {
 		t.Fatalf("PUT paths = %#v, want tenant object then expiry marker", puts)
 	}
 	if markerBody != retentionUntil.Format(time.RFC3339) {
 		t.Fatalf("marker body = %q, want %q", markerBody, retentionUntil.Format(time.RFC3339))
 	}
-	objectHeaders := headersByPath["/zenart-test/tenants/tenant_1/exports/package.zip"]
-	if objectHeaders.Get("X-Amz-Meta-Zenart-Retention-State") != "active" {
-		t.Fatalf("object retention state header = %q, want active", objectHeaders.Get("X-Amz-Meta-Zenart-Retention-State"))
+	objectHeaders := headersByPath["/zenari-test/tenants/tenant_1/exports/package.zip"]
+	if objectHeaders.Get("X-Amz-Meta-Zenari-Retention-State") != "active" {
+		t.Fatalf("object retention state header = %q, want active", objectHeaders.Get("X-Amz-Meta-Zenari-Retention-State"))
 	}
-	if objectHeaders.Get("X-Amz-Meta-Zenart-Retention-Until") != retentionUntil.Format(time.RFC3339) {
-		t.Fatalf("object retention until header = %q, want %q", objectHeaders.Get("X-Amz-Meta-Zenart-Retention-Until"), retentionUntil.Format(time.RFC3339))
+	if objectHeaders.Get("X-Amz-Meta-Zenari-Retention-Until") != retentionUntil.Format(time.RFC3339) {
+		t.Fatalf("object retention until header = %q, want %q", objectHeaders.Get("X-Amz-Meta-Zenari-Retention-Until"), retentionUntil.Format(time.RFC3339))
 	}
-	if auth := objectHeaders.Get("Authorization"); !strings.Contains(auth, "x-amz-meta-zenart-retention-state") || !strings.Contains(auth, "x-amz-meta-zenart-retention-until") {
+	if auth := objectHeaders.Get("Authorization"); !strings.Contains(auth, "x-amz-meta-zenari-retention-state") || !strings.Contains(auth, "x-amz-meta-zenari-retention-until") {
 		t.Fatalf("object Authorization = %q, want signed retention metadata headers", auth)
 	}
-	markerHeaders := headersByPath["/zenart-test/tenants/tenant_1/exports/package.zip.expires"]
-	if markerHeaders.Get("X-Amz-Meta-Zenart-Retention-Marker") != "true" {
-		t.Fatalf("marker retention header = %q, want true", markerHeaders.Get("X-Amz-Meta-Zenart-Retention-Marker"))
+	markerHeaders := headersByPath["/zenari-test/tenants/tenant_1/exports/package.zip.expires"]
+	if markerHeaders.Get("X-Amz-Meta-Zenari-Retention-Marker") != "true" {
+		t.Fatalf("marker retention header = %q, want true", markerHeaders.Get("X-Amz-Meta-Zenari-Retention-Marker"))
 	}
-	if auth := markerHeaders.Get("Authorization"); !strings.Contains(auth, "x-amz-meta-zenart-retention-marker") {
+	if auth := markerHeaders.Get("Authorization"); !strings.Contains(auth, "x-amz-meta-zenari-retention-marker") {
 		t.Fatalf("marker Authorization = %q, want signed marker metadata header", auth)
 	}
 
@@ -667,22 +667,95 @@ func TestS3StorePutWritesAndRemovesExpiryMarkers(t *testing.T) {
 	}, strings.NewReader("new zip bytes")); err != nil {
 		t.Fatalf("Put() without retention error = %v", err)
 	}
-	if len(deletes) != 1 || deletes[0] != "/zenart-test/tenants/tenant_1/exports/package.zip.expires" {
+	if len(deletes) != 1 || deletes[0] != "/zenari-test/tenants/tenant_1/exports/package.zip.expires" {
 		t.Fatalf("DELETE paths = %#v, want stale expiry marker delete", deletes)
+	}
+}
+
+func TestS3StorePutErrorDoesNotLeakSecretOrBody(t *testing.T) {
+	const (
+		accessKey = "AKIAIOSFODNN7EXAMPLE"
+		secretKey = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+		signature = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+	)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "" {
+			t.Fatal("S3-compatible put must send signed request")
+		}
+		w.Header().Set("X-Amz-Request-Id", "req-put-500")
+		w.Header().Set("Cf-Ray", "cf-ray-put")
+		w.Header().Set("Content-Type", "application/xml")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`<Error>
+  <Code>InternalError</Code>
+  <Message>Authorization failed for AWS4-HMAC-SHA256 Credential=` + accessKey + `/20260526/auto/s3/aws4_request, Signature=` + signature + ` download=https://cdn.example.test/file?X-Amz-Signature=` + signature + `</Message>
+  <RequestId>req-body-500</RequestId>
+</Error>`))
+	}))
+	defer server.Close()
+
+	store, err := NewS3Store(config.ObjectStorageConfig{
+		Provider:       "s3-compatible",
+		Endpoint:       server.URL,
+		Region:         "auto",
+		Bucket:         "zenari-test",
+		AccessKey:      accessKey,
+		SecretKey:      secretKey,
+		ForcePathStyle: true,
+	}, server.Client())
+	if err != nil {
+		t.Fatalf("NewS3Store() error = %v", err)
+	}
+
+	_, err = store.Put(context.Background(), Object{
+		TenantID:    "tenant_1",
+		Key:         "exports/package.zip",
+		ContentType: "application/zip",
+	}, strings.NewReader("zip bytes"))
+	if err == nil {
+		t.Fatal("Put() error = nil, want sanitized S3 failure")
+	}
+	got := err.Error()
+	for _, want := range []string{
+		"s3 put object failed",
+		"http_status=500",
+		"body_sha256=",
+		"request_id=req-put-500",
+		"cf_ray=cf-ray-put",
+		"code=InternalError",
+		"message=redacted object storage details",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("Put() error = %q, missing %q", got, want)
+		}
+	}
+	for _, leaked := range []string{
+		accessKey,
+		secretKey,
+		signature,
+		"Authorization",
+		"AWS4-HMAC-SHA256 Credential",
+		"X-Amz-Signature",
+		"https://cdn.example.test/file",
+		"req-body-500",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("Put() error = %q, leaked %q", got, leaked)
+		}
 	}
 }
 
 func TestS3StoreCleanupExpiredListsMarkersAndDeletesExpiredObjects(t *testing.T) {
 	getBodies := map[string]string{
-		"/zenart-test/tenants/tenant_1/exports/expired.zip.expires": time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC).Format(time.RFC3339),
-		"/zenart-test/tenants/tenant_1/exports/live.zip.expires":    time.Date(2026, 5, 28, 12, 0, 0, 0, time.UTC).Format(time.RFC3339),
+		"/zenari-test/tenants/tenant_1/exports/expired.zip.expires": time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC).Format(time.RFC3339),
+		"/zenari-test/tenants/tenant_1/exports/live.zip.expires":    time.Date(2026, 5, 28, 12, 0, 0, 0, time.UTC).Format(time.RFC3339),
 	}
 	var deleted []string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			if r.URL.Query().Get("list-type") == "2" {
-				if r.URL.Path != "/zenart-test" || r.URL.Query().Get("prefix") != "tenants/" {
+				if r.URL.Path != "/zenari-test" || r.URL.Query().Get("prefix") != "tenants/" {
 					t.Fatalf("list request path/query = %s?%s", r.URL.Path, r.URL.RawQuery)
 				}
 				w.Header().Set("Content-Type", "application/xml")
@@ -714,7 +787,7 @@ func TestS3StoreCleanupExpiredListsMarkersAndDeletesExpiredObjects(t *testing.T)
 		Provider:       "s3-compatible",
 		Endpoint:       server.URL,
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: true,
@@ -731,8 +804,8 @@ func TestS3StoreCleanupExpiredListsMarkersAndDeletesExpiredObjects(t *testing.T)
 		t.Fatalf("CleanupExpired() deleted = %d, want 1", deletedCount)
 	}
 	wantDeleted := []string{
-		"/zenart-test/tenants/tenant_1/exports/expired.zip",
-		"/zenart-test/tenants/tenant_1/exports/expired.zip.expires",
+		"/zenari-test/tenants/tenant_1/exports/expired.zip",
+		"/zenari-test/tenants/tenant_1/exports/expired.zip.expires",
 	}
 	if len(deleted) != len(wantDeleted) {
 		t.Fatalf("deleted paths = %#v, want %#v", deleted, wantDeleted)
@@ -744,10 +817,64 @@ func TestS3StoreCleanupExpiredListsMarkersAndDeletesExpiredObjects(t *testing.T)
 	}
 }
 
+func TestS3StoreListErrorDoesNotLeakSecretOrBody(t *testing.T) {
+	const secretKey = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("list-type") != "2" {
+			t.Fatalf("unexpected request %s?%s", r.URL.Path, r.URL.RawQuery)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("X-Amz-Request-Id", "req-list-429")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte(`{
+  "Code": "SlowDown",
+  "Message": "rate limited; secret_access_key=` + secretKey + `; retry later",
+  "RequestId": "req-body-429"
+}`))
+	}))
+	defer server.Close()
+
+	store, err := NewS3Store(config.ObjectStorageConfig{
+		Provider:       "s3-compatible",
+		Endpoint:       server.URL,
+		Region:         "auto",
+		Bucket:         "zenari-test",
+		AccessKey:      "access",
+		SecretKey:      secretKey,
+		ForcePathStyle: true,
+	}, server.Client())
+	if err != nil {
+		t.Fatalf("NewS3Store() error = %v", err)
+	}
+
+	_, err = store.CleanupExpired(context.Background(), time.Date(2026, 5, 27, 12, 0, 0, 0, time.UTC))
+	if err == nil {
+		t.Fatal("CleanupExpired() error = nil, want sanitized list failure")
+	}
+	got := err.Error()
+	for _, want := range []string{
+		"s3 list objects failed",
+		"http_status=429",
+		"body_sha256=",
+		"request_id=req-list-429",
+		"code=SlowDown",
+		"message=redacted object storage details",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("CleanupExpired() error = %q, missing %q", got, want)
+		}
+	}
+	for _, leaked := range []string{secretKey, "secret_access_key", "req-body-429", "rate limited"} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("CleanupExpired() error = %q, leaked %q", got, leaked)
+		}
+	}
+}
+
 func TestS3StoreCleanupExpiredSkipsInvalidExpiryMarkers(t *testing.T) {
 	getBodies := map[string]string{
-		"/zenart-test/tenants/tenant_1/exports/expired.zip.expires": time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC).Format(time.RFC3339),
-		"/zenart-test/tenants/tenant_1/exports/corrupt.zip.expires": "not-rfc3339",
+		"/zenari-test/tenants/tenant_1/exports/expired.zip.expires": time.Date(2026, 5, 26, 12, 0, 0, 0, time.UTC).Format(time.RFC3339),
+		"/zenari-test/tenants/tenant_1/exports/corrupt.zip.expires": "not-rfc3339",
 	}
 	var deleted []string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -786,7 +913,7 @@ func TestS3StoreCleanupExpiredSkipsInvalidExpiryMarkers(t *testing.T) {
 		Provider:       "s3-compatible",
 		Endpoint:       server.URL,
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: true,
@@ -803,8 +930,8 @@ func TestS3StoreCleanupExpiredSkipsInvalidExpiryMarkers(t *testing.T) {
 		t.Fatalf("CleanupExpired() deleted = %d, want only valid expired object", deletedCount)
 	}
 	wantDeleted := []string{
-		"/zenart-test/tenants/tenant_1/exports/expired.zip",
-		"/zenart-test/tenants/tenant_1/exports/expired.zip.expires",
+		"/zenari-test/tenants/tenant_1/exports/expired.zip",
+		"/zenari-test/tenants/tenant_1/exports/expired.zip.expires",
 	}
 	if len(deleted) != len(wantDeleted) {
 		t.Fatalf("deleted paths = %#v, want %#v", deleted, wantDeleted)
@@ -833,7 +960,7 @@ func TestS3StoreCleanupExpiredForTenantListsTenantPrefixOnly(t *testing.T) {
 </ListBucketResult>`))
 				return
 			}
-			if r.URL.Path != "/zenart-test/tenants/tenant_1/exports/expired.zip.expires" {
+			if r.URL.Path != "/zenari-test/tenants/tenant_1/exports/expired.zip.expires" {
 				w.WriteHeader(http.StatusNotFound)
 				return
 			}
@@ -851,7 +978,7 @@ func TestS3StoreCleanupExpiredForTenantListsTenantPrefixOnly(t *testing.T) {
 		Provider:       "s3-compatible",
 		Endpoint:       server.URL,
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: true,
@@ -871,8 +998,8 @@ func TestS3StoreCleanupExpiredForTenantListsTenantPrefixOnly(t *testing.T) {
 		t.Fatalf("list prefix = %q, want tenant-scoped prefix", listPrefix)
 	}
 	wantDeleted := []string{
-		"/zenart-test/tenants/tenant_1/exports/expired.zip",
-		"/zenart-test/tenants/tenant_1/exports/expired.zip.expires",
+		"/zenari-test/tenants/tenant_1/exports/expired.zip",
+		"/zenari-test/tenants/tenant_1/exports/expired.zip.expires",
 	}
 	if len(deleted) != len(wantDeleted) {
 		t.Fatalf("deleted paths = %#v, want %#v", deleted, wantDeleted)
@@ -905,7 +1032,7 @@ func TestS3StoreCleanupExpiredForTenantIgnoresOutOfPrefixListResults(t *testing.
 				return
 			}
 			getPaths = append(getPaths, r.URL.Path)
-			if r.URL.Path != "/zenart-test/tenants/tenant_1/exports/expired.zip.expires" {
+			if r.URL.Path != "/zenari-test/tenants/tenant_1/exports/expired.zip.expires" {
 				t.Fatalf("cleanup read out-of-prefix marker %s", r.URL.Path)
 			}
 			_, _ = w.Write([]byte(expired.Format(time.RFC3339)))
@@ -925,7 +1052,7 @@ func TestS3StoreCleanupExpiredForTenantIgnoresOutOfPrefixListResults(t *testing.
 		Provider:       "s3-compatible",
 		Endpoint:       server.URL,
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: true,
@@ -941,12 +1068,12 @@ func TestS3StoreCleanupExpiredForTenantIgnoresOutOfPrefixListResults(t *testing.
 	if deletedCount != 1 {
 		t.Fatalf("deleted = %d, want only in-prefix expired object", deletedCount)
 	}
-	if len(getPaths) != 1 || getPaths[0] != "/zenart-test/tenants/tenant_1/exports/expired.zip.expires" {
+	if len(getPaths) != 1 || getPaths[0] != "/zenari-test/tenants/tenant_1/exports/expired.zip.expires" {
 		t.Fatalf("marker reads = %#v, want only tenant_1 marker", getPaths)
 	}
 	wantDeleted := []string{
-		"/zenart-test/tenants/tenant_1/exports/expired.zip",
-		"/zenart-test/tenants/tenant_1/exports/expired.zip.expires",
+		"/zenari-test/tenants/tenant_1/exports/expired.zip",
+		"/zenari-test/tenants/tenant_1/exports/expired.zip.expires",
 	}
 	if len(deleted) != len(wantDeleted) {
 		t.Fatalf("deleted paths = %#v, want %#v", deleted, wantDeleted)
@@ -977,7 +1104,7 @@ func TestHTTPProbeSignsS3CompatiblePathStyleBucketCheck(t *testing.T) {
 		Provider:       "s3-compatible",
 		Endpoint:       server.URL,
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: true,
@@ -986,7 +1113,7 @@ func TestHTTPProbeSignsS3CompatiblePathStyleBucketCheck(t *testing.T) {
 	if err := probe.Check(context.Background()); err != nil {
 		t.Fatalf("Check() error = %v", err)
 	}
-	if gotPath != "/zenart-test" {
+	if gotPath != "/zenari-test" {
 		t.Fatalf("bucket probe path = %q, want path-style bucket path", gotPath)
 	}
 	if !strings.Contains(gotAuth, "AWS4-HMAC-SHA256") || !strings.Contains(gotAuth, "Credential=access/") {
@@ -1018,7 +1145,7 @@ func TestHTTPProbeSignsS3CompatibleVirtualHostBucketCheck(t *testing.T) {
 		Provider:       "s3-compatible",
 		Endpoint:       "http://s3.example.test",
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: false,
@@ -1027,7 +1154,7 @@ func TestHTTPProbeSignsS3CompatibleVirtualHostBucketCheck(t *testing.T) {
 	if err := probe.Check(context.Background()); err != nil {
 		t.Fatalf("Check() error = %v", err)
 	}
-	if !strings.HasPrefix(gotHost, "zenart-test.") {
+	if !strings.HasPrefix(gotHost, "zenari-test.") {
 		t.Fatalf("bucket probe host = %q, want virtual-host-style bucket host", gotHost)
 	}
 	if gotPath != "/" {
@@ -1048,7 +1175,7 @@ func TestHTTPProbeFailsClosedWhenS3CredentialsRejected(t *testing.T) {
 		Provider:       "s3-compatible",
 		Endpoint:       server.URL,
 		Region:         "us-east-1",
-		Bucket:         "zenart-test",
+		Bucket:         "zenari-test",
 		AccessKey:      "access",
 		SecretKey:      "secret",
 		ForcePathStyle: true,
@@ -1057,6 +1184,70 @@ func TestHTTPProbeFailsClosedWhenS3CredentialsRejected(t *testing.T) {
 	err := probe.Check(context.Background())
 	if err == nil || !strings.Contains(err.Error(), "credentials rejected") {
 		t.Fatalf("Check() error = %v, want credentials rejected error", err)
+	}
+}
+
+func TestHTTPProbeErrorDoesNotLeakSecretOrBody(t *testing.T) {
+	const (
+		accessKey = "AKIAIOSFODNN7EXAMPLE"
+		secretKey = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+		signature = "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd"
+	)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") == "" {
+			t.Fatal("S3-compatible probe must send signed request")
+		}
+		w.Header().Set("X-Amz-Request-Id", "req-probe-403")
+		w.Header().Set("X-Amz-Id-2", "host-id-probe")
+		w.Header().Set("Content-Type", "application/xml")
+		w.WriteHeader(http.StatusForbidden)
+		_, _ = w.Write([]byte(`<Error>
+  <Code>AccessDenied</Code>
+  <Message>Authorization header ` + r.Header.Get("Authorization") + ` rejected with secret ` + secretKey + ` and signed URL https://r2.example.test/zenari?X-Amz-Signature=` + signature + `</Message>
+  <RequestId>req-body-403</RequestId>
+</Error>`))
+	}))
+	defer server.Close()
+
+	probe := NewHTTPProbe(server.Client(), config.ObjectStorageConfig{
+		Provider:       "s3-compatible",
+		Endpoint:       server.URL,
+		Region:         "auto",
+		Bucket:         "zenari-test",
+		AccessKey:      accessKey,
+		SecretKey:      secretKey,
+		ForcePathStyle: true,
+	})
+
+	err := probe.Check(context.Background())
+	if err == nil {
+		t.Fatal("Check() error = nil, want sanitized probe failure")
+	}
+	got := err.Error()
+	for _, want := range []string{
+		"credentials rejected",
+		"http_status=403",
+		"body_sha256=",
+		"request_id=req-probe-403",
+		"host_id=host-id-probe",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("Check() error = %q, missing %q", got, want)
+		}
+	}
+	for _, leaked := range []string{
+		accessKey,
+		secretKey,
+		signature,
+		"Authorization header",
+		"AWS4-HMAC-SHA256",
+		"X-Amz-Signature",
+		"https://r2.example.test/zenari",
+		"req-body-403",
+	} {
+		if strings.Contains(got, leaked) {
+			t.Fatalf("Check() error = %q, leaked %q", got, leaked)
+		}
 	}
 }
 

@@ -1,0 +1,131 @@
+{
+  "schema_version": "stage1.production_governance_release.contract.v1",
+  "fixture_id": "stage1_production_governance_release_local_contract",
+  "kind": "production_governance_release_exact_evidence_contract",
+  "canonical_activation_evidence_path": "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
+  "canonical_abuse_evidence_path": "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+  "canonical_skill_evidence_path": "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+  "strict_activation_schema_version": "stage1.production_activation_review_audit.v1",
+  "strict_abuse_schema_version": "stage1.production_abuse_throttle_hold.v1",
+  "strict_skill_schema_version": "stage1.production_skill_release_eval_canary.v1",
+  "release_gate_status": "contract_ready_exact_production_governance_release_evidence_open",
+  "required_environment": "production",
+  "required_release_sha_pattern": "^[0-9a-f]{40}$",
+  "required_components": [
+    {
+      "component_id": "activation_review_audit",
+      "release_gate_check_id": "production_activation_review_audit",
+      "required_sections": [
+        "high_risk_rbac",
+        "reviewer_rationale",
+        "second_review",
+        "audit_immutability",
+        "activation_gates",
+        "runtime_request_ids",
+        "audit_refs"
+      ],
+      "required_proofs": [
+        "high-risk RBAC",
+        "reviewer rationale",
+        "second review",
+        "audit immutability",
+        "activation gates"
+      ]
+    },
+    {
+      "component_id": "abuse_throttle_hold",
+      "release_gate_check_id": "production_abuse_throttle_hold",
+      "required_sections": [
+        "account_hold",
+        "rate_limit",
+        "spend_cap_or_kill_switch",
+        "rbac_audit",
+        "runtime_request_ids",
+        "audit_refs"
+      ],
+      "required_proofs": [
+        "account hold",
+        "rate limit",
+        "spend cap or kill switch",
+        "audit refs"
+      ]
+    },
+    {
+      "component_id": "skill_release_eval_canary",
+      "release_gate_check_id": "production_skill_release_eval_canary",
+      "required_sections": [
+        "owner_risk",
+        "eval_suite",
+        "safety_refs",
+        "canary_metrics",
+        "rollback_target",
+        "release_notes",
+        "runtime_request_ids",
+        "audit_refs"
+      ],
+      "required_proofs": [
+        "owner",
+        "risk level",
+        "eval suite",
+        "safety refs",
+        "canary metrics",
+        "rollback target"
+      ]
+    }
+  ],
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false
+  },
+  "blocked_diagnostic_policy": {
+    "validator_flag": "--allow-preflight",
+    "status": "blocked",
+    "canonical_pass_path": false,
+    "check_level_only": false,
+    "can_clear_release_gate_check": false,
+    "requires_blocked_checks": true,
+    "requires_preserved_release_gate_check_id": true,
+    "accepted_schema_versions": [
+      "stage1.production_activation_review_audit.blocked.v1",
+      "stage1.production_abuse_throttle_hold.blocked.v1",
+      "stage1.production_skill_release_eval_canary.blocked.v1"
+    ],
+    "accepted_kinds": [
+      "production_activation_review_audit",
+      "production_abuse_throttle_hold",
+      "production_skill_release_eval_canary"
+    ]
+  },
+  "strict_evidence_policy": {
+    "environment": "production",
+    "status": "pass",
+    "release_sha_full_40_hex": true,
+    "release_sha_must_match_between_all_files": true,
+    "canonical_pass_path_required": true,
+    "gate_impact_can_clear_component_required": true,
+    "aggregate_production_gate_impact_must_not_claim_clearance": true,
+    "runtime_request_ids_required": true,
+    "audit_refs_required": true,
+    "allow_check_level_only_pass": false,
+    "allow_local_devport_debug": false,
+    "allow_local_devport_evidence": false,
+    "allow_dry_run": false,
+    "allow_blocked_status": false,
+    "allow_no_go_status": false,
+    "allow_pass_with_blockers_preserved": false,
+    "allow_preserved_do_not_launch_conditions": false,
+    "allow_raw_or_secret_payloads": false
+  },
+  "remaining_evidence": [
+    "strict production activation review/audit exact pass evidence replacing pass_with_blockers_preserved evidence",
+    "strict production abuse throttle/hold exact pass evidence replacing pass_with_blockers_preserved evidence",
+    "strict production skill release/eval/canary exact pass evidence replacing pass_with_blockers_preserved evidence",
+    "production launch aggregate remains no-go until all production launch components pass"
+  ]
+}

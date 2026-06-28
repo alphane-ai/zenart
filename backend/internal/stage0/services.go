@@ -22,6 +22,7 @@ import (
 	"github.com/alphane-ai/zenart/backend/internal/objectstore"
 	"github.com/alphane-ai/zenart/backend/internal/security"
 	"github.com/alphane-ai/zenart/backend/internal/store"
+	"github.com/alphane-ai/zenart/backend/internal/support"
 	"github.com/alphane-ai/zenart/backend/internal/task"
 )
 
@@ -117,6 +118,92 @@ type Page[T any] struct {
 	NextPageToken string `json:"next_page_token,omitempty"`
 }
 
+type Skill struct {
+	ID            string    `json:"id"`
+	TenantID      *string   `json:"tenant_id,omitempty"`
+	Name          string    `json:"name"`
+	Domain        string    `json:"domain"`
+	Owner         string    `json:"owner"`
+	RiskLevel     string    `json:"risk_level"`
+	Status        string    `json:"status"`
+	ActiveVersion string    `json:"active_version,omitempty"`
+	CreatedAt     time.Time `json:"created_at,omitempty"`
+	UpdatedAt     time.Time `json:"updated_at,omitempty"`
+}
+
+type SkillVersion struct {
+	ID                      string                  `json:"id"`
+	SkillID                 string                  `json:"skill_id"`
+	Version                 string                  `json:"version"`
+	Status                  string                  `json:"status"`
+	EvalSuiteID             *string                 `json:"eval_suite_id"`
+	ReleaseGate             SkillVersionReleaseGate `json:"release_gate"`
+	ReleaseNotes            string                  `json:"release_notes"`
+	RollbackTargetVersionID *string                 `json:"rollback_target_version_id,omitempty"`
+	CreatedAt               time.Time               `json:"created_at,omitempty"`
+}
+
+type SkillVersionReleaseGate struct {
+	RequiresEvalPass          bool    `json:"requires_eval_pass"`
+	EligibleForCanary         bool    `json:"eligible_for_canary"`
+	EligibleForActive         bool    `json:"eligible_for_active"`
+	BlockingReason            string  `json:"blocking_reason"`
+	LastEvalResultID          *string `json:"last_eval_result_id"`
+	LastEvalStatus            *string `json:"last_eval_status"`
+	EvalContractComplete      bool    `json:"eval_contract_complete"`
+	CriticalSafetyRegressions int     `json:"critical_safety_regressions"`
+}
+
+type EvalSubject struct {
+	SubjectType              string `json:"subject_type"`
+	SubjectID                string `json:"subject_id"`
+	Version                  string `json:"version"`
+	CandidateStatusAfterEval string `json:"candidate_status_after_eval"`
+}
+
+type EvalResult struct {
+	ResultID        string         `json:"result_id"`
+	TenantID        string         `json:"tenant_id,omitempty"`
+	SuiteID         string         `json:"suite_id"`
+	Subject         EvalSubject    `json:"subject"`
+	Status          string         `json:"status"`
+	CompletedAt     time.Time      `json:"completed_at"`
+	CreatedAt       time.Time      `json:"created_at"`
+	Summary         map[string]any `json:"summary"`
+	FixtureResults  []any          `json:"fixture_results"`
+	RunnerContract  map[string]any `json:"runner_contract"`
+	StorageContract map[string]any `json:"storage_contract"`
+}
+
+type EvalResultFilters struct {
+	TenantID       string
+	SuiteID        string
+	Status         string
+	SubjectType    string
+	SubjectID      string
+	SubjectVersion string
+	CompletedAfter time.Time
+	LatestOnly     bool
+	Limit          int
+}
+
+type EvalResultArtifact struct {
+	ResultID      string         `json:"result_id"`
+	TenantID      string         `json:"tenant_id"`
+	SuiteID       string         `json:"suite_id"`
+	Subject       EvalSubject    `json:"subject"`
+	Status        string         `json:"status"`
+	CompletedAt   time.Time      `json:"completed_at"`
+	ObjectKey     string         `json:"object_key"`
+	ContentType   string         `json:"content_type"`
+	SHA256        string         `json:"sha256"`
+	ArtifactLinks []string       `json:"artifact_links"`
+	DownloadURL   string         `json:"download_url"`
+	ExpiresAt     time.Time      `json:"expires_at"`
+	AccessPolicy  map[string]any `json:"access_policy"`
+	AuditRequired bool           `json:"audit_required"`
+}
+
 type Export struct {
 	ID            string          `json:"id"`
 	TenantID      string          `json:"tenant_id,omitempty"`
@@ -141,12 +228,43 @@ type ExportCreate struct {
 	Format string `json:"format"`
 }
 
+type PackageItemCreate map[string]any
+
+type PackageCreate struct {
+	Items    []PackageItemCreate `json:"items"`
+	Manifest map[string]any      `json:"manifest,omitempty"`
+}
+
+type PackageItem struct {
+	ID            string         `json:"id"`
+	AssetID       *string        `json:"asset_id,omitempty"`
+	CanvasFrameID *string        `json:"canvas_frame_id,omitempty"`
+	Type          string         `json:"type"`
+	SortOrder     int            `json:"sort_order"`
+	Provenance    map[string]any `json:"provenance,omitempty"`
+	CreatedAt     time.Time      `json:"created_at"`
+}
+
+type Package struct {
+	ID         string         `json:"id"`
+	TenantID   string         `json:"tenant_id,omitempty"`
+	ProjectID  string         `json:"project_id"`
+	Status     string         `json:"status"`
+	Manifest   map[string]any `json:"manifest"`
+	QAReport   map[string]any `json:"qa_report"`
+	Provenance map[string]any `json:"provenance"`
+	Items      []PackageItem  `json:"items,omitempty"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at,omitempty"`
+}
+
 type SupportTicket struct {
 	ID             string         `json:"id"`
 	TenantID       string         `json:"tenant_id"`
 	UserID         string         `json:"user_id"`
 	ProjectID      *string        `json:"project_id,omitempty"`
 	TaskID         *string        `json:"task_id,omitempty"`
+	BatchID        *string        `json:"batch_id,omitempty"`
 	TraceID        *string        `json:"trace_id,omitempty"`
 	AssetID        *string        `json:"asset_id,omitempty"`
 	Category       string         `json:"category"`
@@ -154,6 +272,7 @@ type SupportTicket struct {
 	Body           string         `json:"body"`
 	LinkedExportID *string        `json:"linked_export_id,omitempty"`
 	QuotaBucketID  *string        `json:"quota_bucket_id,omitempty"`
+	BillingRefID   *string        `json:"billing_reference_id,omitempty"`
 	Metadata       map[string]any `json:"metadata"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
@@ -162,12 +281,14 @@ type SupportTicket struct {
 type SupportTicketCreate struct {
 	ProjectID      string         `json:"project_id"`
 	TaskID         string         `json:"task_id"`
+	BatchID        string         `json:"batch_id"`
 	TraceID        string         `json:"trace_id"`
 	AssetID        string         `json:"asset_id"`
 	Category       string         `json:"category"`
 	Body           string         `json:"body"`
 	LinkedExportID string         `json:"linked_export_id"`
 	QuotaBucketID  string         `json:"quota_bucket_id"`
+	BillingRefID   string         `json:"billing_reference_id"`
 	Metadata       map[string]any `json:"metadata"`
 }
 
@@ -229,6 +350,78 @@ type ObjectMetadata struct {
 	DerivedFrom    *string        `json:"derived_from_object_id,omitempty"`
 	Metadata       map[string]any `json:"metadata"`
 	CreatedAt      time.Time      `json:"created_at"`
+}
+
+type AssetLibraryEntry struct {
+	ID              string         `json:"id"`
+	Asset           map[string]any `json:"asset"`
+	Visibility      string         `json:"visibility"`
+	Favorite        bool           `json:"favorite"`
+	Archived        bool           `json:"archived"`
+	Reusable        bool           `json:"reusable"`
+	AllowedProjects []string       `json:"allowed_projects,omitempty"`
+	Tags            []string       `json:"tags,omitempty"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+}
+
+type AssetLibraryEntryCreate struct {
+	AssetID         string   `json:"asset_id"`
+	ProjectID       string   `json:"project_id,omitempty"`
+	Visibility      string   `json:"visibility"`
+	Favorite        bool     `json:"favorite,omitempty"`
+	Reusable        bool     `json:"reusable,omitempty"`
+	AllowedProjects []string `json:"allowed_projects,omitempty"`
+	Tags            []string `json:"tags,omitempty"`
+}
+
+type AssetLibraryEntryUpdate struct {
+	Visibility      *string  `json:"visibility,omitempty"`
+	Favorite        *bool    `json:"favorite,omitempty"`
+	Archived        *bool    `json:"archived,omitempty"`
+	Reusable        *bool    `json:"reusable,omitempty"`
+	AllowedProjects []string `json:"allowed_projects,omitempty"`
+	Tags            []string `json:"tags,omitempty"`
+}
+
+type BrandKit struct {
+	ID              string           `json:"id"`
+	Name            string           `json:"name"`
+	Status          string           `json:"status"`
+	Logos           []map[string]any `json:"logos"`
+	Palette         []map[string]any `json:"palette"`
+	Fonts           []map[string]any `json:"fonts"`
+	Guidelines      []map[string]any `json:"guidelines"`
+	SourceRefs      []map[string]any `json:"source_refs,omitempty"`
+	ProjectBindings []map[string]any `json:"project_bindings,omitempty"`
+	CreatedAt       time.Time        `json:"created_at"`
+	UpdatedAt       time.Time        `json:"updated_at"`
+}
+
+type BrandKitCreate struct {
+	Name            string           `json:"name"`
+	Status          string           `json:"status,omitempty"`
+	Logos           []map[string]any `json:"logos"`
+	Palette         []map[string]any `json:"palette"`
+	Fonts           []map[string]any `json:"fonts,omitempty"`
+	Guidelines      []map[string]any `json:"guidelines,omitempty"`
+	SourceRefs      []map[string]any `json:"source_refs,omitempty"`
+	ProjectBindings []map[string]any `json:"project_bindings,omitempty"`
+}
+
+type BrandKitUpdate struct {
+	Name            *string          `json:"name,omitempty"`
+	Status          *string          `json:"status,omitempty"`
+	Logos           []map[string]any `json:"logos,omitempty"`
+	Palette         []map[string]any `json:"palette,omitempty"`
+	Fonts           []map[string]any `json:"fonts,omitempty"`
+	Guidelines      []map[string]any `json:"guidelines,omitempty"`
+	SourceRefs      []map[string]any `json:"source_refs,omitempty"`
+	ProjectBindings []map[string]any `json:"project_bindings,omitempty"`
+}
+
+type ProjectDefaultBrandKitSet struct {
+	BrandKitID string `json:"brand_kit_id"`
 }
 
 type ExportArtifact struct {
@@ -401,6 +594,97 @@ type SafetyDecision struct {
 	CreatedAt        time.Time `json:"created_at"`
 }
 
+type SafetyReviewItem struct {
+	ID                 string         `json:"id"`
+	TenantID           string         `json:"tenant_id,omitempty"`
+	SafetyDecisionID   string         `json:"safety_decision_id"`
+	SubjectType        string         `json:"subject_type"`
+	SubjectID          string         `json:"subject_id"`
+	EnforcementPoint   string         `json:"enforcement_point"`
+	SafetyDecision     string         `json:"safety_decision"`
+	SafetyRationale    string         `json:"safety_rationale"`
+	RuleID             *string        `json:"rule_id,omitempty"`
+	RuleKey            string         `json:"rule_key,omitempty"`
+	RuleVersion        string         `json:"rule_version,omitempty"`
+	Severity           string         `json:"severity"`
+	OverrideEligible   bool           `json:"override_eligible"`
+	AuditRequired      bool           `json:"audit_required"`
+	ReviewStatus       string         `json:"review_status"`
+	ReviewDecision     string         `json:"review_decision,omitempty"`
+	ReviewerID         string         `json:"reviewer_id,omitempty"`
+	ReviewRationale    string         `json:"review_rationale,omitempty"`
+	AuditRef           string         `json:"audit_ref,omitempty"`
+	CreatedAt          time.Time      `json:"created_at"`
+	ReviewedAt         *time.Time     `json:"reviewed_at,omitempty"`
+	SafeProjection     map[string]any `json:"safe_projection"`
+	RequiredEvidence   []string       `json:"required_evidence_refs"`
+	UserVisibleOutcome string         `json:"user_visible_outcome"`
+}
+
+type ExportOverrideDecisionInput struct {
+	TenantID       string         `json:"tenant_id"`
+	ExportID       string         `json:"export_id"`
+	SourceType     string         `json:"source_type"`
+	SourceID       string         `json:"source_id"`
+	TraceID        string         `json:"trace_id"`
+	RequestedBy    string         `json:"requested_by"`
+	RequestedRole  string         `json:"requested_by_role"`
+	ResolvedBy     string         `json:"resolved_by"`
+	ResolvedRole   string         `json:"resolved_by_role"`
+	Outcome        string         `json:"outcome"`
+	DenialReason   string         `json:"denial_reason"`
+	Rationale      string         `json:"rationale"`
+	AuditLogID     string         `json:"audit_log_id"`
+	IdempotencyKey string         `json:"idempotency_key"`
+	Metadata       map[string]any `json:"metadata,omitempty"`
+	CreatedAt      time.Time      `json:"created_at"`
+}
+
+type ExportOverrideDecision struct {
+	ID                 string         `json:"id"`
+	TenantID           string         `json:"tenant_id"`
+	ExportID           string         `json:"export_id"`
+	SourceType         string         `json:"source_type"`
+	SourceID           string         `json:"source_id"`
+	TraceID            string         `json:"trace_id"`
+	RequestedByRole    string         `json:"requested_by_role"`
+	ResolvedByRole     string         `json:"resolved_by_role"`
+	Outcome            string         `json:"outcome"`
+	DenialReason       *string        `json:"denial_reason"`
+	SourceGateResolved bool           `json:"source_gate_resolved"`
+	FinalExportAllowed bool           `json:"final_export_allowed"`
+	AuditLogID         string         `json:"audit_log_id"`
+	IdempotencyKey     string         `json:"idempotency_key,omitempty"`
+	Metadata           map[string]any `json:"metadata,omitempty"`
+	CreatedAt          time.Time      `json:"created_at"`
+}
+
+type SafetyReviewDecisionInput struct {
+	TenantID         string
+	SafetyDecisionID string
+	ReviewerID       string
+	Decision         string
+	Rationale        string
+	AuditRef         string
+	IdempotencyKey   string
+	Metadata         map[string]any
+	CreatedAt        time.Time
+}
+
+type SafetyReviewDecision struct {
+	ID                 string         `json:"id"`
+	TenantID           string         `json:"tenant_id,omitempty"`
+	SafetyDecisionID   string         `json:"safety_decision_id"`
+	ReviewerID         string         `json:"reviewer_id"`
+	Decision           string         `json:"decision"`
+	Rationale          string         `json:"rationale"`
+	AuditRef           string         `json:"audit_ref"`
+	IdempotencyKey     string         `json:"idempotency_key"`
+	Metadata           map[string]any `json:"metadata,omitempty"`
+	CreatedAt          time.Time      `json:"created_at"`
+	UserVisibleOutcome string         `json:"user_visible_outcome"`
+}
+
 type RuntimeSafetyPolicyInput struct {
 	TenantID        string
 	ProjectID       string
@@ -421,6 +705,764 @@ type Repository struct {
 
 func NewRepository(db store.DBTX) Repository {
 	return Repository{db: db}
+}
+
+func (r Repository) ListSkills(ctx context.Context, tenantID, status string, limit int) (Page[Skill], error) {
+	tenantID = strings.TrimSpace(tenantID)
+	if tenantID == "" {
+		return Page[Skill]{}, errors.Join(ErrValidation, errors.New("tenant_id is required"))
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	args := []any{tenantID, limit}
+	query := `
+SELECT
+	s.id,
+	s.tenant_id,
+	s.name,
+	s.domain,
+	s.owner,
+	s.risk_level,
+	s.status,
+	COALESCE(active.version, ''),
+	s.created_at,
+	s.updated_at
+FROM skills s
+LEFT JOIN skill_release_channels channel
+	ON channel.skill_id = s.id
+	AND channel.channel = 'production'
+LEFT JOIN skill_versions active
+	ON active.id = channel.active_version_id
+WHERE (s.tenant_id IS NULL OR s.tenant_id = $1)`
+	if strings.TrimSpace(status) != "" {
+		args = append(args, strings.TrimSpace(status))
+		query += fmt.Sprintf(" AND s.status = $%d", len(args))
+	}
+	query += " ORDER BY s.updated_at DESC, s.created_at DESC LIMIT $2"
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return Page[Skill]{}, err
+	}
+	defer rows.Close()
+
+	var page Page[Skill]
+	for rows.Next() {
+		var skill Skill
+		if err := rows.Scan(
+			&skill.ID,
+			&skill.TenantID,
+			&skill.Name,
+			&skill.Domain,
+			&skill.Owner,
+			&skill.RiskLevel,
+			&skill.Status,
+			&skill.ActiveVersion,
+			&skill.CreatedAt,
+			&skill.UpdatedAt,
+		); err != nil {
+			return Page[Skill]{}, err
+		}
+		page.Items = append(page.Items, skill)
+	}
+	return page, rows.Err()
+}
+
+func (r Repository) ListSkillVersions(ctx context.Context, tenantID, skillID string, limit int) (Page[SkillVersion], error) {
+	tenantID = strings.TrimSpace(tenantID)
+	skillID = strings.TrimSpace(skillID)
+	if tenantID == "" || skillID == "" {
+		return Page[SkillVersion]{}, errors.Join(ErrValidation, errors.New("tenant_id and skill_id are required"))
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	rows, err := r.db.Query(ctx, `
+SELECT
+	sv.id,
+	sv.skill_id,
+	sv.version,
+	sv.status,
+	sv.eval_suite_id,
+	COALESCE(latest_eval.id, ''),
+	COALESCE(latest_eval.status, ''),
+	COALESCE((latest_eval.summary->>'trace_complete')::boolean, (latest_eval.summary->'summary'->>'trace_complete')::boolean, false),
+	COALESCE((latest_eval.summary->>'export_contract_complete')::boolean, (latest_eval.summary->'summary'->>'export_contract_complete')::boolean, false),
+	COALESCE((latest_eval.summary->>'qa_fixture_coverage_complete')::boolean, (latest_eval.summary->'summary'->>'qa_fixture_coverage_complete')::boolean, false),
+	COALESCE((latest_eval.summary->>'critical_safety_regressions')::int, (latest_eval.summary->'summary'->>'critical_safety_regressions')::int, 0),
+	sv.release_notes,
+	sv.rollback_target_version_id,
+	sv.created_at
+FROM skill_versions sv
+JOIN skills s ON s.id = sv.skill_id
+LEFT JOIN LATERAL (
+	SELECT er.id, er.status, er.summary
+	FROM eval_results er
+	WHERE er.tenant_id = $1
+	  AND er.subject_type = 'skill_version'
+	  AND er.subject_id = sv.id
+	  AND er.subject_version = sv.version
+	  AND (sv.eval_suite_id IS NULL OR er.eval_suite_id = sv.eval_suite_id)
+	ORDER BY er.completed_at DESC, er.created_at DESC
+	LIMIT 1
+) latest_eval ON true
+WHERE sv.skill_id = $2
+  AND (s.tenant_id IS NULL OR s.tenant_id = $1)
+ORDER BY sv.created_at DESC
+LIMIT $3`,
+		tenantID,
+		skillID,
+		limit,
+	)
+	if err != nil {
+		return Page[SkillVersion]{}, err
+	}
+	defer rows.Close()
+
+	var page Page[SkillVersion]
+	for rows.Next() {
+		var version SkillVersion
+		var lastEvalResultID, lastEvalStatus string
+		var traceComplete, exportContractComplete, qaCoverageComplete bool
+		if err := rows.Scan(
+			&version.ID,
+			&version.SkillID,
+			&version.Version,
+			&version.Status,
+			&version.EvalSuiteID,
+			&lastEvalResultID,
+			&lastEvalStatus,
+			&traceComplete,
+			&exportContractComplete,
+			&qaCoverageComplete,
+			&version.ReleaseGate.CriticalSafetyRegressions,
+			&version.ReleaseNotes,
+			&version.RollbackTargetVersionID,
+			&version.CreatedAt,
+		); err != nil {
+			return Page[SkillVersion]{}, err
+		}
+		version.ReleaseGate = skillVersionReleaseGate(version.Status, nullableString(lastEvalResultID), nullableString(lastEvalStatus), traceComplete, exportContractComplete, qaCoverageComplete, version.ReleaseGate.CriticalSafetyRegressions)
+		page.Items = append(page.Items, version)
+	}
+	return page, rows.Err()
+}
+
+func (r Repository) ListEvalResults(ctx context.Context, filters EvalResultFilters) (Page[EvalResult], error) {
+	filters.TenantID = strings.TrimSpace(filters.TenantID)
+	if filters.TenantID == "" {
+		return Page[EvalResult]{}, errors.Join(ErrValidation, errors.New("tenant_id is required"))
+	}
+	if filters.Limit <= 0 || filters.Limit > 100 {
+		filters.Limit = 50
+	}
+	args := []any{filters.TenantID, filters.Limit}
+	query := `
+SELECT id, tenant_id, eval_suite_id, subject_type, subject_id, subject_version, status, summary, runner, runner_sha256, completed_at, created_at
+FROM eval_results
+WHERE tenant_id = $1`
+	addFilter := func(column, value string) {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			return
+		}
+		args = append(args, value)
+		query += fmt.Sprintf(" AND %s = $%d", column, len(args))
+	}
+	addFilter("eval_suite_id", filters.SuiteID)
+	addFilter("status", filters.Status)
+	addFilter("subject_type", filters.SubjectType)
+	addFilter("subject_id", filters.SubjectID)
+	addFilter("subject_version", filters.SubjectVersion)
+	if !filters.CompletedAfter.IsZero() {
+		args = append(args, filters.CompletedAfter.UTC())
+		query += fmt.Sprintf(" AND completed_at >= $%d", len(args))
+	}
+	if filters.LatestOnly {
+		query = `
+SELECT DISTINCT ON (subject_type, subject_id, subject_version)
+	id, tenant_id, eval_suite_id, subject_type, subject_id, subject_version, status, summary, runner, runner_sha256, completed_at, created_at
+FROM (` + query + `
+) filtered
+ORDER BY subject_type, subject_id, subject_version, completed_at DESC, created_at DESC
+LIMIT $2`
+	} else {
+		query += " ORDER BY completed_at DESC, created_at DESC LIMIT $2"
+	}
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return Page[EvalResult]{}, err
+	}
+	defer rows.Close()
+
+	var page Page[EvalResult]
+	for rows.Next() {
+		result, err := scanEvalResult(rows)
+		if err != nil {
+			return Page[EvalResult]{}, err
+		}
+		page.Items = append(page.Items, result)
+	}
+	return page, rows.Err()
+}
+
+func (r Repository) GetEvalResultArtifact(ctx context.Context, tenantID, resultID string, now time.Time) (EvalResultArtifact, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	resultID = strings.TrimSpace(resultID)
+	if tenantID == "" || resultID == "" {
+		return EvalResultArtifact{}, errors.Join(ErrValidation, errors.New("tenant_id and result_id are required"))
+	}
+	var result EvalResult
+	var summaryJSON []byte
+	var runner, runnerSHA256 string
+	err := r.db.QueryRow(ctx, `
+SELECT id, tenant_id, eval_suite_id, subject_type, subject_id, subject_version, status, summary, runner, runner_sha256, completed_at, created_at
+FROM eval_results
+WHERE tenant_id = $1 AND id = $2`,
+		tenantID,
+		resultID,
+	).Scan(
+		&result.ResultID,
+		&result.TenantID,
+		&result.SuiteID,
+		&result.Subject.SubjectType,
+		&result.Subject.SubjectID,
+		&result.Subject.Version,
+		&result.Status,
+		&summaryJSON,
+		&runner,
+		&runnerSHA256,
+		&result.CompletedAt,
+		&result.CreatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return EvalResultArtifact{}, ErrNotFound
+	}
+	if err != nil {
+		return EvalResultArtifact{}, err
+	}
+	result.Summary, result.FixtureResults, result.RunnerContract, result.StorageContract = evalProjectionFromSummary(summaryJSON, runner, runnerSHA256)
+	result.Subject.CandidateStatusAfterEval = evalCandidateStatus(result.Status)
+	if now.IsZero() {
+		now = time.Now().UTC()
+	}
+	objectKey := "tenants/" + tenantID + "/eval-results/" + result.ResultID + ".json"
+	artifactBytes := jsonValue(map[string]any{
+		"result_id":        result.ResultID,
+		"tenant_id":        result.TenantID,
+		"suite_id":         result.SuiteID,
+		"subject":          result.Subject,
+		"status":           result.Status,
+		"completed_at":     result.CompletedAt,
+		"created_at":       result.CreatedAt,
+		"summary":          result.Summary,
+		"fixture_results":  result.FixtureResults,
+		"runner_contract":  result.RunnerContract,
+		"storage_contract": result.StorageContract,
+	})
+	sum := sha256.Sum256(artifactBytes)
+	expiresAt := now.Add(15 * time.Minute)
+	return EvalResultArtifact{
+		ResultID:      result.ResultID,
+		TenantID:      result.TenantID,
+		SuiteID:       result.SuiteID,
+		Subject:       result.Subject,
+		Status:        result.Status,
+		CompletedAt:   result.CompletedAt,
+		ObjectKey:     objectKey,
+		ContentType:   "application/json",
+		SHA256:        hex.EncodeToString(sum[:]),
+		ArtifactLinks: evalArtifactLinks(result),
+		DownloadURL:   "/api/admin/v1/eval/results/" + url.PathEscape(result.ResultID) + "/artifact?tenant_id=" + url.QueryEscape(tenantID) + "&expires_at=" + url.QueryEscape(expiresAt.Format(time.RFC3339)),
+		ExpiresAt:     expiresAt,
+		AccessPolicy: map[string]any{
+			"direct_object_access_allowed": false,
+			"audit_access_required":        true,
+			"max_expires_in_seconds":       900,
+		},
+		AuditRequired: true,
+	}, nil
+}
+
+func scanEvalResult(rows store.Rows) (EvalResult, error) {
+	var result EvalResult
+	var summaryJSON []byte
+	var runner, runnerSHA256 string
+	if err := rows.Scan(
+		&result.ResultID,
+		&result.TenantID,
+		&result.SuiteID,
+		&result.Subject.SubjectType,
+		&result.Subject.SubjectID,
+		&result.Subject.Version,
+		&result.Status,
+		&summaryJSON,
+		&runner,
+		&runnerSHA256,
+		&result.CompletedAt,
+		&result.CreatedAt,
+	); err != nil {
+		return EvalResult{}, err
+	}
+	result.Subject.CandidateStatusAfterEval = evalCandidateStatus(result.Status)
+	result.Summary, result.FixtureResults, result.RunnerContract, result.StorageContract = evalProjectionFromSummary(summaryJSON, runner, runnerSHA256)
+	return result, nil
+}
+
+func skillVersionReleaseGate(status string, resultID, resultStatus *string, traceComplete, exportContractComplete, qaCoverageComplete bool, criticalSafetyRegressions int) SkillVersionReleaseGate {
+	evalStatus := stringValue(resultStatus)
+	evalContractComplete := traceComplete && exportContractComplete && qaCoverageComplete
+	eligibleForCanary := evalStatus == "pass" && evalContractComplete && criticalSafetyRegressions == 0
+	eligibleForActive := eligibleForCanary && (status == "internal_canary" || status == "allowlist_canary" || status == "percent_canary" || status == "active")
+	blockingReason := ""
+	switch {
+	case resultID == nil:
+		blockingReason = "missing_eval_result"
+	case evalStatus != "pass":
+		blockingReason = "latest_eval_status_" + firstNonEmpty(evalStatus, "unknown")
+	case !traceComplete:
+		blockingReason = "trace_contract_incomplete"
+	case !exportContractComplete:
+		blockingReason = "export_contract_incomplete"
+	case !qaCoverageComplete:
+		blockingReason = "qa_fixture_coverage_incomplete"
+	case criticalSafetyRegressions > 0:
+		blockingReason = "critical_safety_regressions"
+	case !eligibleForActive:
+		blockingReason = "not_in_active_release_state"
+	}
+	return SkillVersionReleaseGate{
+		RequiresEvalPass:          true,
+		EligibleForCanary:         eligibleForCanary,
+		EligibleForActive:         eligibleForActive,
+		BlockingReason:            blockingReason,
+		LastEvalResultID:          resultID,
+		LastEvalStatus:            resultStatus,
+		EvalContractComplete:      evalContractComplete,
+		CriticalSafetyRegressions: criticalSafetyRegressions,
+	}
+}
+
+func evalProjectionFromSummary(summaryJSON []byte, runner, runnerSHA256 string) (map[string]any, []any, map[string]any, map[string]any) {
+	var raw map[string]any
+	_ = json.Unmarshal(summaryJSON, &raw)
+	raw = security.RedactMap(raw)
+	if raw == nil {
+		raw = map[string]any{}
+	}
+	summary := raw
+	if nested, ok := raw["summary"].(map[string]any); ok {
+		summary = security.RedactMap(nested)
+	}
+	fixtureResults := evalArray(raw, "fixture_results")
+	if len(fixtureResults) == 0 {
+		fixtureResults = evalArray(summary, "fixture_results")
+	}
+	delete(summary, "fixture_results")
+	runnerContract := evalMap(raw, "runner_contract")
+	if len(runnerContract) == 0 {
+		runnerContract = evalMap(raw, "runner")
+	}
+	if len(runnerContract) == 0 {
+		runnerContract = map[string]any{}
+	}
+	runner = strings.TrimSpace(firstNonEmpty(runner, stringFromMap(runnerContract, "runner", "")))
+	runnerSHA256 = strings.TrimSpace(firstNonEmpty(runnerSHA256, stringFromMap(runnerContract, "runner_sha256", "")))
+	if runner != "" {
+		runnerContract["runner"] = runner
+	}
+	if runnerSHA256 != "" {
+		runnerContract["runner_sha256"] = runnerSHA256
+	}
+	if _, ok := runnerContract["deterministic_replay_command"]; !ok {
+		runnerContract["deterministic_replay_command"] = "python3 scripts/run_stage0_eval.py --check"
+	}
+	if _, ok := runnerContract["writes_stored_fixture"]; !ok {
+		runnerContract["writes_stored_fixture"] = true
+	}
+	if _, ok := runnerContract["check_mode_compares_exact_json"]; !ok {
+		runnerContract["check_mode_compares_exact_json"] = true
+	}
+	if _, ok := runnerContract["source_fixture_digests"]; !ok {
+		runnerContract["source_fixture_digests"] = []any{}
+	}
+	storageContract := evalMap(raw, "storage_contract")
+	if len(storageContract) == 0 {
+		storageContract = map[string]any{}
+	}
+	storageContract = evalStorageContractDefaults(storageContract)
+	return security.RedactMap(summary), redactArray(fixtureResults), security.RedactMap(runnerContract), security.RedactMap(storageContract)
+}
+
+func evalMap(values map[string]any, key string) map[string]any {
+	value, ok := values[key].(map[string]any)
+	if !ok || value == nil {
+		return map[string]any{}
+	}
+	return security.RedactMap(value)
+}
+
+func evalArray(values map[string]any, key string) []any {
+	items, ok := values[key].([]any)
+	if !ok {
+		return nil
+	}
+	return redactArray(items)
+}
+
+func redactArray(items []any) []any {
+	if len(items) == 0 {
+		return nil
+	}
+	out := make([]any, 0, len(items))
+	for _, item := range items {
+		out = append(out, security.RedactValue(item))
+	}
+	return out
+}
+
+func evalStorageContractDefaults(contract map[string]any) map[string]any {
+	defaults := map[string]any{
+		"table":                                 "eval_results",
+		"tenant_scoped":                         true,
+		"subject_scoped":                        true,
+		"summary_json_contains_fixture_results": true,
+		"admin_read_projection_required":        true,
+		"read_without_eval_rerun":               true,
+		"latest_result_resolvable":              true,
+		"immutable_rows":                        true,
+		"no_public_delete_operation":            true,
+	}
+	for key, value := range defaults {
+		if _, ok := contract[key]; !ok {
+			contract[key] = value
+		}
+	}
+	return security.RedactMap(contract)
+}
+
+func evalCandidateStatus(status string) string {
+	switch strings.TrimSpace(status) {
+	case "pass":
+		return "eligible_for_active"
+	case "fail":
+		return "blocked"
+	case "blocked":
+		return "blocked"
+	default:
+		return "draft"
+	}
+}
+
+func evalArtifactLinks(result EvalResult) []string {
+	links := []string{
+		"eval_result_json",
+		"summary_json",
+		"fixture_results_json",
+		"source_fixture_digests_json",
+		"runner_manifest_json",
+	}
+	if len(result.FixtureResults) > 0 {
+		links = append(links, "qa_results_json", "safety_decisions_json", "trace_export_gate_matrix_json")
+	}
+	return links
+}
+
+func (r Repository) ListPackages(ctx context.Context, tenantID, projectID, status string, limit int) (Page[Package], error) {
+	tenantID = strings.TrimSpace(tenantID)
+	projectID = strings.TrimSpace(projectID)
+	if tenantID == "" || projectID == "" {
+		return Page[Package]{}, errors.Join(ErrValidation, errors.New("tenant_id and project_id are required"))
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	args := []any{tenantID, projectID, limit}
+	query := `
+SELECT id, tenant_id, project_id, status, manifest, created_at, updated_at
+FROM packages
+WHERE tenant_id = $1 AND project_id = $2`
+	if strings.TrimSpace(status) != "" {
+		args = append(args, strings.TrimSpace(status))
+		query += fmt.Sprintf(" AND status = $%d", len(args))
+	}
+	query += " ORDER BY updated_at DESC, created_at DESC LIMIT $3"
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return Page[Package]{}, err
+	}
+	defer rows.Close()
+
+	var page Page[Package]
+	for rows.Next() {
+		pkg, err := scanPackageRows(rows)
+		if err != nil {
+			return Page[Package]{}, err
+		}
+		items, err := r.listPackageItems(ctx, tenantID, pkg.ID)
+		if err != nil {
+			return Page[Package]{}, err
+		}
+		pkg.Items = items
+		page.Items = append(page.Items, pkg)
+	}
+	return page, rows.Err()
+}
+
+func (r Repository) CreatePackage(ctx context.Context, tenantID, userID, projectID string, input PackageCreate) (Package, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	userID = strings.TrimSpace(userID)
+	projectID = strings.TrimSpace(projectID)
+	if tenantID == "" || userID == "" || projectID == "" {
+		return Package{}, errors.Join(ErrValidation, errors.New("tenant_id, user_id, and project_id are required"))
+	}
+	if len(input.Items) == 0 {
+		return Package{}, errors.Join(ErrValidation, errors.New("items are required"))
+	}
+	workflowID, err := r.projectWorkflowID(ctx, tenantID, projectID)
+	if err != nil {
+		return Package{}, err
+	}
+	items := make([]PackageItem, 0, len(input.Items))
+	for idx, rawItem := range input.Items {
+		item, err := normalizePackageItemCreate(rawItem, idx)
+		if err != nil {
+			return Package{}, err
+		}
+		items = append(items, item)
+	}
+	now := time.Now().UTC()
+	packageID := id.New("package")
+	manifest := security.RedactMap(input.Manifest)
+	if manifest == nil {
+		manifest = map[string]any{}
+	}
+	manifest["package_id"] = packageID
+	manifest["project_id"] = projectID
+	if workflowID != "" {
+		manifest["workflow_id"] = workflowID
+	}
+	manifest["item_count"] = len(input.Items)
+	if _, err := r.db.Exec(ctx, `
+INSERT INTO packages(id, tenant_id, project_id, created_by, status, manifest, created_at, updated_at)
+VALUES($1, $2, $3, $4, 'draft', $5, $6, $6)`,
+		packageID,
+		tenantID,
+		projectID,
+		userID,
+		jsonObject(manifest),
+		now,
+	); err != nil {
+		return Package{}, err
+	}
+
+	for idx := range items {
+		item := items[idx]
+		item.ID = id.New("package_item")
+		item.CreatedAt = now
+		_, err = r.db.Exec(ctx, `
+INSERT INTO package_items(id, tenant_id, package_id, asset_id, canvas_frame_id, item_type, sort_order, provenance, created_at)
+VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+			item.ID,
+			tenantID,
+			packageID,
+			item.AssetID,
+			item.CanvasFrameID,
+			item.Type,
+			item.SortOrder,
+			jsonObject(item.Provenance),
+			now,
+		)
+		if err != nil {
+			return Package{}, err
+		}
+		items[idx] = item
+	}
+	return Package{
+		ID:         packageID,
+		TenantID:   tenantID,
+		ProjectID:  projectID,
+		Status:     "draft",
+		Manifest:   manifest,
+		QAReport:   map[string]any{},
+		Provenance: map[string]any{},
+		Items:      items,
+		CreatedAt:  now,
+		UpdatedAt:  now,
+	}, nil
+}
+
+func (r Repository) projectWorkflowID(ctx context.Context, tenantID, projectID string) (string, error) {
+	var workflowID string
+	err := r.db.QueryRow(ctx, `
+SELECT COALESCE(workflow_id, '')
+FROM projects
+WHERE tenant_id = $1 AND id = $2`,
+		tenantID,
+		projectID,
+	).Scan(&workflowID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrNotFound
+	}
+	if err != nil {
+		return "", err
+	}
+	return workflowID, nil
+}
+
+func (r Repository) listPackageItems(ctx context.Context, tenantID, packageID string) ([]PackageItem, error) {
+	rows, err := r.db.Query(ctx, `
+SELECT id, asset_id, canvas_frame_id, item_type, sort_order, provenance, created_at
+FROM package_items
+WHERE tenant_id = $1 AND package_id = $2
+ORDER BY sort_order ASC, created_at ASC`,
+		tenantID,
+		packageID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PackageItem{}
+	for rows.Next() {
+		item, err := scanPackageItemRows(rows)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func scanPackageRows(row interface{ Scan(dest ...any) error }) (Package, error) {
+	var pkg Package
+	var manifestJSON []byte
+	if err := row.Scan(&pkg.ID, &pkg.TenantID, &pkg.ProjectID, &pkg.Status, &manifestJSON, &pkg.CreatedAt, &pkg.UpdatedAt); err != nil {
+		return Package{}, err
+	}
+	_ = json.Unmarshal(manifestJSON, &pkg.Manifest)
+	pkg.Manifest = security.RedactMap(pkg.Manifest)
+	pkg.QAReport = map[string]any{}
+	pkg.Provenance = map[string]any{}
+	if value, ok := pkg.Manifest["qa_report"].(map[string]any); ok {
+		pkg.QAReport = security.RedactMap(value)
+	}
+	if value, ok := pkg.Manifest["provenance"].(map[string]any); ok {
+		pkg.Provenance = security.RedactMap(value)
+	}
+	return pkg, nil
+}
+
+func scanPackageItemRows(row interface{ Scan(dest ...any) error }) (PackageItem, error) {
+	var item PackageItem
+	var provenanceJSON []byte
+	if err := row.Scan(&item.ID, &item.AssetID, &item.CanvasFrameID, &item.Type, &item.SortOrder, &provenanceJSON, &item.CreatedAt); err != nil {
+		return PackageItem{}, err
+	}
+	_ = json.Unmarshal(provenanceJSON, &item.Provenance)
+	item.Provenance = security.RedactMap(item.Provenance)
+	return item, nil
+}
+
+func normalizePackageItemCreate(raw PackageItemCreate, index int) (PackageItem, error) {
+	input := map[string]any(raw)
+	provenance := map[string]any{}
+	if value, ok := input["provenance"].(map[string]any); ok {
+		provenance = security.RedactMap(value)
+	}
+	for key, value := range input {
+		switch key {
+		case "asset_id", "assetId", "canvas_frame_id", "canvasFrameId", "type", "item_type", "itemType", "sort_order", "sortOrder", "provenance":
+			continue
+		default:
+			provenance[key] = security.RedactValue(value)
+		}
+	}
+	itemType := firstNonEmpty(packageItemString(input, "type"), packageItemString(input, "item_type"), packageItemString(input, "itemType"))
+	if itemType == "" {
+		itemType = "reference"
+	}
+	switch itemType {
+	case "candidate", "canvas-frame", "canvas_frame", "reference", "asset":
+	default:
+		return PackageItem{}, errors.Join(ErrValidation, fmt.Errorf("unsupported package item type %q", itemType))
+	}
+	if itemType == "canvas_frame" {
+		itemType = "canvas-frame"
+	}
+	assetID := firstNonEmpty(packageItemString(input, "asset_id"), packageItemString(input, "assetId"))
+	canvasFrameID := firstNonEmpty(packageItemString(input, "canvas_frame_id"), packageItemString(input, "canvasFrameId"))
+	if assetID == "" && canvasFrameID == "" {
+		if sourceID := packageItemString(input, "source_id"); sourceID != "" {
+			provenance["source_id"] = sourceID
+		} else if sourceID := packageItemString(input, "sourceId"); sourceID != "" {
+			provenance["source_id"] = sourceID
+		} else {
+			return PackageItem{}, errors.Join(ErrValidation, errors.New("package item requires asset_id, canvas_frame_id, or source_id"))
+		}
+	}
+	sortOrder := packageItemInt(input, "sort_order", index)
+	sortOrder = packageItemInt(input, "sortOrder", sortOrder)
+	item := PackageItem{
+		Type:       itemType,
+		SortOrder:  sortOrder,
+		Provenance: provenance,
+	}
+	if assetID != "" {
+		item.AssetID = &assetID
+	}
+	if canvasFrameID != "" {
+		item.CanvasFrameID = &canvasFrameID
+	}
+	return item, nil
+}
+
+func packageItemString(input map[string]any, key string) string {
+	value, ok := input[key]
+	if !ok {
+		return ""
+	}
+	switch typed := value.(type) {
+	case string:
+		return strings.TrimSpace(security.RedactString(typed))
+	default:
+		return strings.TrimSpace(fmt.Sprint(typed))
+	}
+}
+
+func packageItemInt(input map[string]any, key string, fallback int) int {
+	value, ok := input[key]
+	if !ok {
+		return fallback
+	}
+	switch typed := value.(type) {
+	case int:
+		return typed
+	case int64:
+		return int(typed)
+	case float64:
+		return int(typed)
+	case json.Number:
+		parsed, err := typed.Int64()
+		if err == nil {
+			return int(parsed)
+		}
+	case string:
+		var parsed int
+		if _, err := fmt.Sscanf(strings.TrimSpace(typed), "%d", &parsed); err == nil {
+			return parsed
+		}
+	}
+	return fallback
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
 }
 
 func (r Repository) CreateExport(ctx context.Context, tenantID, userID, packageID string, input ExportCreate, schemaVersion int) (task.Task, error) {
@@ -547,7 +1589,7 @@ func (r Repository) CreateUpload(ctx context.Context, opts UploadOptions) (Uploa
 		opts.URLTTL = 10 * time.Minute
 	}
 	if strings.TrimSpace(opts.Bucket) == "" {
-		opts.Bucket = "zenart-local"
+		opts.Bucket = "zenari-local"
 	}
 	if opts.SignURL == nil {
 		return Upload{}, errors.New("upload URL signer is required")
@@ -769,7 +1811,7 @@ func (r Repository) RecordExportArtifact(ctx context.Context, artifact ExportArt
 		artifact.StorageProvider = "configured"
 	}
 	if artifact.Bucket == "" {
-		artifact.Bucket = "zenart-local"
+		artifact.Bucket = "zenari-local"
 	}
 	if artifact.Manifest == nil {
 		artifact.Manifest = map[string]any{}
@@ -1086,6 +2128,807 @@ WHERE tenant_id = $1`
 		page.Items = append(page.Items, export)
 	}
 	return page, rows.Err()
+}
+
+func (r Repository) ListAssetLibrary(ctx context.Context, tenantID, projectID, status string, limit int) (Page[AssetLibraryEntry], error) {
+	tenantID = strings.TrimSpace(tenantID)
+	projectID = strings.TrimSpace(projectID)
+	if tenantID == "" {
+		return Page[AssetLibraryEntry]{}, errors.Join(ErrValidation, errors.New("tenant_id is required"))
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	args := []any{tenantID, projectID, limit}
+	query := `
+SELECT
+	l.id,
+	COALESCE(
+		jsonb_build_object(
+			'id', a.id,
+			'asset_type', a.asset_type,
+			'status', a.status,
+			'object_metadata', jsonb_build_object(
+				'id', o.id,
+				'bucket', o.bucket,
+				'object_key', o.object_key,
+				'content_type', o.content_type,
+				'byte_size', o.byte_size,
+				'checksum', o.checksum,
+				'created_at', o.created_at
+			),
+			'storage_ref', jsonb_build_object(
+				'bucket', o.bucket,
+				'object_key', o.object_key,
+				'content_type', o.content_type,
+				'byte_size', o.byte_size,
+				'checksum', o.checksum
+			),
+			'thumbnail_ref', a.provenance->'thumbnail_ref',
+			'lineage', COALESCE(a.provenance->'lineage', jsonb_build_object(
+				'source', jsonb_build_object('kind', 'asset_library'),
+				'object_metadata_id', a.object_metadata_id,
+				'raw_payload_persisted', false
+			)),
+			'provenance', COALESCE(a.provenance, '{}'::jsonb),
+			'created_at', a.created_at
+		),
+		'{}'::jsonb
+	),
+	l.visibility,
+	l.favorite,
+	l.archived,
+	l.reusable,
+	l.allowed_project_ids,
+	l.tags,
+	l.created_at,
+	l.updated_at
+FROM asset_library_entries l
+JOIN assets a ON a.tenant_id = l.tenant_id AND a.id = l.asset_id
+JOIN object_metadata o ON o.tenant_id = a.tenant_id AND o.id = a.object_metadata_id
+WHERE l.tenant_id = $1
+  AND ($2 = '' OR a.project_id = $2 OR $2 = ANY(l.allowed_project_ids) OR l.visibility = 'tenant')`
+	if strings.TrimSpace(status) != "" {
+		args = append(args, strings.TrimSpace(status))
+		query += fmt.Sprintf(" AND a.status = $%d", len(args))
+	}
+	query += " ORDER BY l.updated_at DESC, l.id LIMIT $3"
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return Page[AssetLibraryEntry]{}, err
+	}
+	defer rows.Close()
+
+	var page Page[AssetLibraryEntry]
+	for rows.Next() {
+		var entry AssetLibraryEntry
+		var assetJSON []byte
+		if err := rows.Scan(
+			&entry.ID,
+			&assetJSON,
+			&entry.Visibility,
+			&entry.Favorite,
+			&entry.Archived,
+			&entry.Reusable,
+			&entry.AllowedProjects,
+			&entry.Tags,
+			&entry.CreatedAt,
+			&entry.UpdatedAt,
+		); err != nil {
+			return Page[AssetLibraryEntry]{}, err
+		}
+		_ = json.Unmarshal(assetJSON, &entry.Asset)
+		entry.Asset = security.RedactMap(entry.Asset)
+		page.Items = append(page.Items, entry)
+	}
+	return page, rows.Err()
+}
+
+func (r Repository) CreateAssetLibraryEntry(ctx context.Context, tenantID, userID string, input AssetLibraryEntryCreate) (AssetLibraryEntry, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	userID = strings.TrimSpace(userID)
+	input.AssetID = strings.TrimSpace(input.AssetID)
+	input.ProjectID = strings.TrimSpace(input.ProjectID)
+	input.Visibility = normalizeAssetLibraryVisibility(input.Visibility)
+	input.AllowedProjects = normalizeStringList(input.AllowedProjects)
+	input.Tags = normalizeStringList(input.Tags)
+	if tenantID == "" || userID == "" || input.AssetID == "" {
+		return AssetLibraryEntry{}, errors.Join(ErrValidation, errors.New("tenant_id, user_id, and asset_id are required"))
+	}
+	if err := validateAssetLibraryWrite(input.Visibility, input.Reusable, input.AllowedProjects, input.Tags); err != nil {
+		return AssetLibraryEntry{}, err
+	}
+	if input.Visibility == "project" && input.ProjectID == "" && len(input.AllowedProjects) == 0 {
+		return AssetLibraryEntry{}, errors.Join(ErrValidation, errors.New("project visibility requires project_id or allowed_projects"))
+	}
+	now := time.Now().UTC()
+	entryID := id.New("asset_library")
+	_, err := r.db.Exec(ctx, `
+INSERT INTO asset_library_entries(id, tenant_id, asset_id, visibility, favorite, archived, reusable, allowed_project_ids, tags, created_by, created_at, updated_at)
+SELECT $1, $2, a.id, $4, $5, false, $6, $7, $8, $9, $10, $10
+FROM assets a
+WHERE a.tenant_id = $2
+  AND a.id = $3
+  AND ($11 = '' OR a.project_id = $11 OR $11 = ANY($7) OR $4 = 'tenant')
+ON CONFLICT (tenant_id, id) DO UPDATE
+SET visibility = EXCLUDED.visibility,
+    favorite = EXCLUDED.favorite,
+    archived = false,
+    reusable = EXCLUDED.reusable,
+    allowed_project_ids = EXCLUDED.allowed_project_ids,
+    tags = EXCLUDED.tags,
+    updated_at = EXCLUDED.updated_at`,
+		entryID,
+		tenantID,
+		input.AssetID,
+		input.Visibility,
+		input.Favorite,
+		input.Reusable,
+		input.AllowedProjects,
+		input.Tags,
+		userID,
+		now,
+		input.ProjectID,
+	)
+	if err != nil {
+		return AssetLibraryEntry{}, err
+	}
+	entry, err := r.GetAssetLibraryEntry(ctx, tenantID, entryID)
+	if err != nil {
+		return AssetLibraryEntry{}, err
+	}
+	return entry, nil
+}
+
+func (r Repository) GetAssetLibraryEntry(ctx context.Context, tenantID, entryID string) (AssetLibraryEntry, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	entryID = strings.TrimSpace(entryID)
+	if tenantID == "" || entryID == "" {
+		return AssetLibraryEntry{}, errors.Join(ErrValidation, errors.New("tenant_id and entry_id are required"))
+	}
+	row := r.db.QueryRow(ctx, `
+SELECT
+	l.id,
+	COALESCE(
+		jsonb_build_object(
+			'id', a.id,
+			'asset_type', a.asset_type,
+			'status', a.status,
+			'object_metadata', jsonb_build_object(
+				'id', o.id,
+				'bucket', o.bucket,
+				'object_key', o.object_key,
+				'content_type', o.content_type,
+				'byte_size', o.byte_size,
+				'checksum', o.checksum,
+				'created_at', o.created_at
+			),
+			'storage_ref', jsonb_build_object(
+				'bucket', o.bucket,
+				'object_key', o.object_key,
+				'content_type', o.content_type,
+				'byte_size', o.byte_size,
+				'checksum', o.checksum
+			),
+			'thumbnail_ref', a.provenance->'thumbnail_ref',
+			'lineage', COALESCE(a.provenance->'lineage', jsonb_build_object(
+				'source', jsonb_build_object('kind', 'asset_library'),
+				'object_metadata_id', a.object_metadata_id,
+				'raw_payload_persisted', false
+			)),
+			'provenance', COALESCE(a.provenance, '{}'::jsonb),
+			'created_at', a.created_at
+		),
+		'{}'::jsonb
+	),
+	l.visibility,
+	l.favorite,
+	l.archived,
+	l.reusable,
+	l.allowed_project_ids,
+	l.tags,
+	l.created_at,
+	l.updated_at
+FROM asset_library_entries l
+JOIN assets a ON a.tenant_id = l.tenant_id AND a.id = l.asset_id
+JOIN object_metadata o ON o.tenant_id = a.tenant_id AND o.id = a.object_metadata_id
+WHERE l.tenant_id = $1 AND l.id = $2`,
+		tenantID,
+		entryID,
+	)
+	entry, err := scanAssetLibraryEntryRow(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return AssetLibraryEntry{}, ErrNotFound
+	}
+	return entry, err
+}
+
+func (r Repository) UpdateAssetLibraryEntry(ctx context.Context, tenantID, userID, entryID string, input AssetLibraryEntryUpdate) (AssetLibraryEntry, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	userID = strings.TrimSpace(userID)
+	entryID = strings.TrimSpace(entryID)
+	if tenantID == "" || userID == "" || entryID == "" {
+		return AssetLibraryEntry{}, errors.Join(ErrValidation, errors.New("tenant_id, user_id, and entry_id are required"))
+	}
+	current, err := r.GetAssetLibraryEntry(ctx, tenantID, entryID)
+	if err != nil {
+		return AssetLibraryEntry{}, err
+	}
+	visibility := current.Visibility
+	if input.Visibility != nil {
+		visibility = normalizeAssetLibraryVisibility(*input.Visibility)
+	}
+	favorite := current.Favorite
+	if input.Favorite != nil {
+		favorite = *input.Favorite
+	}
+	archived := current.Archived
+	if input.Archived != nil {
+		archived = *input.Archived
+	}
+	reusable := current.Reusable
+	if input.Reusable != nil {
+		reusable = *input.Reusable
+	}
+	allowedProjects := current.AllowedProjects
+	if input.AllowedProjects != nil {
+		allowedProjects = normalizeStringList(input.AllowedProjects)
+	}
+	tags := current.Tags
+	if input.Tags != nil {
+		tags = normalizeStringList(input.Tags)
+	}
+	if archived {
+		favorite = false
+	}
+	if err := validateAssetLibraryWrite(visibility, reusable, allowedProjects, tags); err != nil {
+		return AssetLibraryEntry{}, err
+	}
+	now := time.Now().UTC()
+	tag, err := r.db.Exec(ctx, `
+UPDATE asset_library_entries
+SET visibility = $3,
+    favorite = $4,
+    archived = $5,
+    reusable = $6,
+    allowed_project_ids = $7,
+    tags = $8,
+    updated_at = $9
+WHERE tenant_id = $1 AND id = $2`,
+		tenantID,
+		entryID,
+		visibility,
+		favorite,
+		archived,
+		reusable,
+		allowedProjects,
+		tags,
+		now,
+	)
+	if err != nil {
+		return AssetLibraryEntry{}, err
+	}
+	if tag.RowsAffected() == 0 {
+		return AssetLibraryEntry{}, ErrNotFound
+	}
+	entry, err := r.GetAssetLibraryEntry(ctx, tenantID, entryID)
+	if err != nil {
+		return AssetLibraryEntry{}, err
+	}
+	return entry, nil
+}
+
+func (r Repository) ListBrandKits(ctx context.Context, tenantID, projectID, status string, limit int) (Page[BrandKit], error) {
+	tenantID = strings.TrimSpace(tenantID)
+	projectID = strings.TrimSpace(projectID)
+	if tenantID == "" {
+		return Page[BrandKit]{}, errors.Join(ErrValidation, errors.New("tenant_id is required"))
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	args := []any{tenantID, projectID, limit}
+	query := `
+SELECT id, name, status, logo_asset_refs, palette, fonts, guidelines, source_refs, project_bindings, created_at, updated_at
+FROM brand_kits
+WHERE tenant_id = $1
+  AND ($2 = '' OR project_bindings @> jsonb_build_array(jsonb_build_object('project_id', $2)))`
+	if strings.TrimSpace(status) != "" {
+		args = append(args, strings.TrimSpace(status))
+		query += fmt.Sprintf(" AND status = $%d", len(args))
+	}
+	query += " ORDER BY updated_at DESC, id LIMIT $3"
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return Page[BrandKit]{}, err
+	}
+	defer rows.Close()
+
+	var page Page[BrandKit]
+	for rows.Next() {
+		kit, err := scanBrandKitRows(rows)
+		if err != nil {
+			return Page[BrandKit]{}, err
+		}
+		page.Items = append(page.Items, kit)
+	}
+	return page, rows.Err()
+}
+
+func (r Repository) GetProjectDefaultBrandKit(ctx context.Context, tenantID, projectID string) (BrandKit, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	projectID = strings.TrimSpace(projectID)
+	if tenantID == "" || projectID == "" {
+		return BrandKit{}, errors.Join(ErrValidation, errors.New("tenant_id and project_id are required"))
+	}
+	row := r.db.QueryRow(ctx, `
+SELECT id, name, status, logo_asset_refs, palette, fonts, guidelines, source_refs, project_bindings, created_at, updated_at
+FROM brand_kits
+WHERE tenant_id = $1
+  AND status = 'active'
+  AND project_bindings @> jsonb_build_array(jsonb_build_object('project_id', $2, 'default', true))
+ORDER BY updated_at DESC, id
+LIMIT 1`,
+		tenantID,
+		projectID,
+	)
+	kit, err := scanBrandKitRow(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return BrandKit{}, ErrNotFound
+	}
+	if err != nil {
+		return BrandKit{}, err
+	}
+	return kit, nil
+}
+
+func (r Repository) CreateBrandKit(ctx context.Context, tenantID, userID string, input BrandKitCreate) (BrandKit, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	userID = strings.TrimSpace(userID)
+	input.Name = strings.TrimSpace(input.Name)
+	input.Status = normalizeBrandKitStatus(input.Status)
+	input.ProjectBindings = normalizeProjectBindings(input.ProjectBindings)
+	if tenantID == "" || userID == "" || input.Name == "" {
+		return BrandKit{}, errors.Join(ErrValidation, errors.New("tenant_id, user_id, and name are required"))
+	}
+	if err := validateBrandKitWrite(input.Name, input.Status, input.Logos, input.Palette, input.Fonts, input.Guidelines, input.SourceRefs, input.ProjectBindings); err != nil {
+		return BrandKit{}, err
+	}
+	input.Name = security.RedactString(input.Name)
+	input.Logos = redactMapSlice(input.Logos)
+	input.Palette = redactMapSlice(input.Palette)
+	input.Fonts = redactMapSlice(input.Fonts)
+	input.Guidelines = redactMapSlice(input.Guidelines)
+	input.SourceRefs = redactMapSlice(input.SourceRefs)
+	input.ProjectBindings = redactMapSlice(input.ProjectBindings)
+	now := time.Now().UTC()
+	kitID := id.New("brand_kit")
+	_, err := r.db.Exec(ctx, `
+INSERT INTO brand_kits(id, tenant_id, name, status, logo_asset_refs, palette, fonts, guidelines, source_refs, project_bindings, created_by, created_at, updated_at)
+VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $12)`,
+		kitID,
+		tenantID,
+		input.Name,
+		input.Status,
+		jsonValue(input.Logos),
+		jsonValue(input.Palette),
+		jsonValue(input.Fonts),
+		jsonValue(input.Guidelines),
+		jsonValue(input.SourceRefs),
+		jsonValue(input.ProjectBindings),
+		userID,
+		now,
+	)
+	if err != nil {
+		return BrandKit{}, err
+	}
+	kit, err := r.GetBrandKit(ctx, tenantID, kitID)
+	if err != nil {
+		return BrandKit{}, err
+	}
+	return kit, nil
+}
+
+func (r Repository) GetBrandKit(ctx context.Context, tenantID, kitID string) (BrandKit, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	kitID = strings.TrimSpace(kitID)
+	if tenantID == "" || kitID == "" {
+		return BrandKit{}, errors.Join(ErrValidation, errors.New("tenant_id and brand_kit_id are required"))
+	}
+	row := r.db.QueryRow(ctx, `
+SELECT id, name, status, logo_asset_refs, palette, fonts, guidelines, source_refs, project_bindings, created_at, updated_at
+FROM brand_kits
+WHERE tenant_id = $1 AND id = $2`,
+		tenantID,
+		kitID,
+	)
+	kit, err := scanBrandKitRow(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return BrandKit{}, ErrNotFound
+	}
+	return kit, err
+}
+
+func (r Repository) UpdateBrandKit(ctx context.Context, tenantID, userID, kitID string, input BrandKitUpdate) (BrandKit, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	userID = strings.TrimSpace(userID)
+	kitID = strings.TrimSpace(kitID)
+	if tenantID == "" || userID == "" || kitID == "" {
+		return BrandKit{}, errors.Join(ErrValidation, errors.New("tenant_id, user_id, and brand_kit_id are required"))
+	}
+	current, err := r.GetBrandKit(ctx, tenantID, kitID)
+	if err != nil {
+		return BrandKit{}, err
+	}
+	name := current.Name
+	if input.Name != nil {
+		name = strings.TrimSpace(*input.Name)
+	}
+	status := current.Status
+	if input.Status != nil {
+		status = normalizeBrandKitStatus(*input.Status)
+	}
+	logos := current.Logos
+	if input.Logos != nil {
+		logos = input.Logos
+	}
+	palette := current.Palette
+	if input.Palette != nil {
+		palette = input.Palette
+	}
+	fonts := current.Fonts
+	if input.Fonts != nil {
+		fonts = input.Fonts
+	}
+	guidelines := current.Guidelines
+	if input.Guidelines != nil {
+		guidelines = input.Guidelines
+	}
+	sourceRefs := current.SourceRefs
+	if input.SourceRefs != nil {
+		sourceRefs = input.SourceRefs
+	}
+	projectBindings := current.ProjectBindings
+	if input.ProjectBindings != nil {
+		projectBindings = normalizeProjectBindings(input.ProjectBindings)
+	}
+	if name == "" {
+		return BrandKit{}, errors.Join(ErrValidation, errors.New("name is required"))
+	}
+	if err := validateBrandKitWrite(name, status, logos, palette, fonts, guidelines, sourceRefs, projectBindings); err != nil {
+		return BrandKit{}, err
+	}
+	name = security.RedactString(name)
+	logos = redactMapSlice(logos)
+	palette = redactMapSlice(palette)
+	fonts = redactMapSlice(fonts)
+	guidelines = redactMapSlice(guidelines)
+	sourceRefs = redactMapSlice(sourceRefs)
+	projectBindings = redactMapSlice(projectBindings)
+	now := time.Now().UTC()
+	tag, err := r.db.Exec(ctx, `
+UPDATE brand_kits
+SET name = $3,
+    status = $4,
+    logo_asset_refs = $5,
+    palette = $6,
+    fonts = $7,
+    guidelines = $8,
+    source_refs = $9,
+    project_bindings = $10,
+    updated_at = $11
+WHERE tenant_id = $1 AND id = $2`,
+		tenantID,
+		kitID,
+		name,
+		status,
+		jsonValue(logos),
+		jsonValue(palette),
+		jsonValue(fonts),
+		jsonValue(guidelines),
+		jsonValue(sourceRefs),
+		jsonValue(projectBindings),
+		now,
+	)
+	if err != nil {
+		return BrandKit{}, err
+	}
+	if tag.RowsAffected() == 0 {
+		return BrandKit{}, ErrNotFound
+	}
+	kit, err := r.GetBrandKit(ctx, tenantID, kitID)
+	if err != nil {
+		return BrandKit{}, err
+	}
+	return kit, nil
+}
+
+func (r Repository) SetProjectDefaultBrandKit(ctx context.Context, tenantID, userID, projectID string, input ProjectDefaultBrandKitSet) (BrandKit, error) {
+	tenantID = strings.TrimSpace(tenantID)
+	userID = strings.TrimSpace(userID)
+	projectID = strings.TrimSpace(projectID)
+	input.BrandKitID = strings.TrimSpace(input.BrandKitID)
+	if tenantID == "" || userID == "" || projectID == "" || input.BrandKitID == "" {
+		return BrandKit{}, errors.Join(ErrValidation, errors.New("tenant_id, user_id, project_id, and brand_kit_id are required"))
+	}
+	if _, err := r.GetBrandKit(ctx, tenantID, input.BrandKitID); err != nil {
+		return BrandKit{}, err
+	}
+	now := time.Now().UTC()
+	if _, err := r.db.Exec(ctx, `
+UPDATE brand_kits
+SET project_bindings = COALESCE((
+	SELECT jsonb_agg(
+		CASE
+			WHEN binding->>'project_id' = $2 THEN jsonb_set(binding, '{default}', 'false'::jsonb, true)
+			ELSE binding
+		END
+	)
+	FROM jsonb_array_elements(project_bindings) AS binding
+), '[]'::jsonb),
+updated_at = $4
+WHERE tenant_id = $1
+  AND project_bindings @> jsonb_build_array(jsonb_build_object('project_id', $2, 'default', true))`,
+		tenantID,
+		projectID,
+		input.BrandKitID,
+		now,
+	); err != nil {
+		return BrandKit{}, err
+	}
+	tag, err := r.db.Exec(ctx, `
+UPDATE brand_kits
+SET project_bindings = CASE
+	WHEN project_bindings @> jsonb_build_array(jsonb_build_object('project_id', $2))
+	THEN (
+		SELECT jsonb_agg(
+			CASE
+				WHEN binding->>'project_id' = $2 THEN jsonb_set(binding, '{default}', 'true'::jsonb, true)
+				ELSE binding
+			END
+		)
+		FROM jsonb_array_elements(project_bindings) AS binding
+	)
+	ELSE project_bindings || jsonb_build_array(jsonb_build_object('project_id', $2, 'default', true))
+END,
+status = CASE WHEN status = 'archived' THEN 'active' ELSE status END,
+updated_at = $4
+WHERE tenant_id = $1 AND id = $3`,
+		tenantID,
+		projectID,
+		input.BrandKitID,
+		now,
+	)
+	if err != nil {
+		return BrandKit{}, err
+	}
+	if tag.RowsAffected() == 0 {
+		return BrandKit{}, ErrNotFound
+	}
+	kit, err := r.GetBrandKit(ctx, tenantID, input.BrandKitID)
+	if err != nil {
+		return BrandKit{}, err
+	}
+	return kit, nil
+}
+
+func scanAssetLibraryEntryRow(row store.Row) (AssetLibraryEntry, error) {
+	var entry AssetLibraryEntry
+	var assetJSON []byte
+	if err := row.Scan(
+		&entry.ID,
+		&assetJSON,
+		&entry.Visibility,
+		&entry.Favorite,
+		&entry.Archived,
+		&entry.Reusable,
+		&entry.AllowedProjects,
+		&entry.Tags,
+		&entry.CreatedAt,
+		&entry.UpdatedAt,
+	); err != nil {
+		return AssetLibraryEntry{}, err
+	}
+	_ = json.Unmarshal(assetJSON, &entry.Asset)
+	entry.Asset = security.RedactMap(entry.Asset)
+	return entry, nil
+}
+
+func normalizeAssetLibraryVisibility(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "tenant":
+		return "tenant"
+	case "private":
+		return "private"
+	default:
+		return "project"
+	}
+}
+
+func validateAssetLibraryWrite(visibility string, reusable bool, allowedProjects []string, tags []string) error {
+	switch visibility {
+	case "project", "tenant", "private":
+	default:
+		return errors.Join(ErrValidation, errors.New("visibility must be project, tenant, or private"))
+	}
+	if visibility == "private" && reusable {
+		return errors.Join(ErrValidation, errors.New("private library entry cannot be reusable"))
+	}
+	if findings := security.ClassifyValue(map[string]any{
+		"allowed_projects": allowedProjects,
+		"tags":             tags,
+	}); len(findings) > 0 {
+		return errors.Join(ErrValidation, errors.New("asset library metadata contains secret-like material"))
+	}
+	return nil
+}
+
+func normalizeBrandKitStatus(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "active":
+		return "active"
+	case "archived":
+		return "archived"
+	default:
+		return "draft"
+	}
+}
+
+func validateBrandKitWrite(name, status string, logos, palette, fonts, guidelines, sourceRefs, projectBindings []map[string]any) error {
+	switch status {
+	case "draft", "active", "archived":
+	default:
+		return errors.Join(ErrValidation, errors.New("status must be draft, active, or archived"))
+	}
+	if len(logos) == 0 {
+		return errors.Join(ErrValidation, errors.New("at least one logo asset is required"))
+	}
+	if len(palette) == 0 {
+		return errors.Join(ErrValidation, errors.New("at least one palette color is required"))
+	}
+	if findings := security.ClassifyValue(map[string]any{
+		"name":             name,
+		"logos":            logos,
+		"palette":          palette,
+		"fonts":            fonts,
+		"guidelines":       guidelines,
+		"source_refs":      sourceRefs,
+		"project_bindings": projectBindings,
+	}); len(findings) > 0 {
+		return errors.Join(ErrValidation, errors.New("brand kit contains secret-like material"))
+	}
+	for _, logo := range logos {
+		if strings.TrimSpace(stringFromMap(logo, "asset_id", "")) == "" {
+			return errors.Join(ErrValidation, errors.New("logo asset_id is required"))
+		}
+	}
+	for _, swatch := range palette {
+		if !regexp.MustCompile(`^#[0-9A-Fa-f]{6}$`).MatchString(strings.TrimSpace(stringFromMap(swatch, "hex", ""))) {
+			return errors.Join(ErrValidation, errors.New("palette color must be #RRGGBB"))
+		}
+	}
+	for _, font := range fonts {
+		if strings.TrimSpace(stringFromMap(font, "family", "")) == "" {
+			return errors.Join(ErrValidation, errors.New("font family is required"))
+		}
+	}
+	for _, binding := range projectBindings {
+		if strings.TrimSpace(stringFromMap(binding, "project_id", "")) == "" {
+			return errors.Join(ErrValidation, errors.New("project binding project_id is required"))
+		}
+	}
+	return nil
+}
+
+func normalizeProjectBindings(bindings []map[string]any) []map[string]any {
+	seenDefault := map[string]bool{}
+	out := make([]map[string]any, 0, len(bindings))
+	for _, binding := range bindings {
+		projectID := strings.TrimSpace(stringFromMap(binding, "project_id", ""))
+		if projectID == "" {
+			out = append(out, binding)
+			continue
+		}
+		next := map[string]any{}
+		for key, value := range binding {
+			next[key] = value
+		}
+		next["project_id"] = projectID
+		if boolFromMap(binding, "default") {
+			if seenDefault[projectID] {
+				next["default"] = false
+			} else {
+				next["default"] = true
+				seenDefault[projectID] = true
+			}
+		}
+		out = append(out, next)
+	}
+	return out
+}
+
+func normalizeStringList(values []string) []string {
+	out := make([]string, 0, len(values))
+	seen := map[string]struct{}{}
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
+	}
+	return out
+}
+
+func scanBrandKitRows(rows store.Rows) (BrandKit, error) {
+	var kit BrandKit
+	var logosJSON, paletteJSON, fontsJSON, guidelinesJSON, sourceRefsJSON, projectBindingsJSON []byte
+	if err := rows.Scan(
+		&kit.ID,
+		&kit.Name,
+		&kit.Status,
+		&logosJSON,
+		&paletteJSON,
+		&fontsJSON,
+		&guidelinesJSON,
+		&sourceRefsJSON,
+		&projectBindingsJSON,
+		&kit.CreatedAt,
+		&kit.UpdatedAt,
+	); err != nil {
+		return BrandKit{}, err
+	}
+	return decodeBrandKitJSON(kit, logosJSON, paletteJSON, fontsJSON, guidelinesJSON, sourceRefsJSON, projectBindingsJSON), nil
+}
+
+func scanBrandKitRow(row store.Row) (BrandKit, error) {
+	var kit BrandKit
+	var logosJSON, paletteJSON, fontsJSON, guidelinesJSON, sourceRefsJSON, projectBindingsJSON []byte
+	if err := row.Scan(
+		&kit.ID,
+		&kit.Name,
+		&kit.Status,
+		&logosJSON,
+		&paletteJSON,
+		&fontsJSON,
+		&guidelinesJSON,
+		&sourceRefsJSON,
+		&projectBindingsJSON,
+		&kit.CreatedAt,
+		&kit.UpdatedAt,
+	); err != nil {
+		return BrandKit{}, err
+	}
+	return decodeBrandKitJSON(kit, logosJSON, paletteJSON, fontsJSON, guidelinesJSON, sourceRefsJSON, projectBindingsJSON), nil
+}
+
+func decodeBrandKitJSON(kit BrandKit, logosJSON, paletteJSON, fontsJSON, guidelinesJSON, sourceRefsJSON, projectBindingsJSON []byte) BrandKit {
+	_ = json.Unmarshal(logosJSON, &kit.Logos)
+	_ = json.Unmarshal(paletteJSON, &kit.Palette)
+	_ = json.Unmarshal(fontsJSON, &kit.Fonts)
+	_ = json.Unmarshal(guidelinesJSON, &kit.Guidelines)
+	_ = json.Unmarshal(sourceRefsJSON, &kit.SourceRefs)
+	_ = json.Unmarshal(projectBindingsJSON, &kit.ProjectBindings)
+	kit.Name = security.RedactString(kit.Name)
+	kit.Logos = redactMapSlice(kit.Logos)
+	kit.Palette = redactMapSlice(kit.Palette)
+	kit.Fonts = redactMapSlice(kit.Fonts)
+	kit.Guidelines = redactMapSlice(kit.Guidelines)
+	kit.SourceRefs = redactMapSlice(kit.SourceRefs)
+	kit.ProjectBindings = redactMapSlice(kit.ProjectBindings)
+	return kit
+}
+
+func redactMapSlice(values []map[string]any) []map[string]any {
+	out := make([]map[string]any, 0, len(values))
+	for _, value := range values {
+		out = append(out, security.RedactMap(value))
+	}
+	return out
 }
 
 func (r Repository) CleanupExpiredExportsAndOrphanedObjects(ctx context.Context, now time.Time, objectCleanup func(context.Context, time.Time) (int, error)) (CleanupResult, error) {
@@ -1855,52 +3698,65 @@ WHERE tenant_id = $1 AND id = $2`,
 func (r Repository) CreateSupportTicket(ctx context.Context, tenantID, userID string, input SupportTicketCreate) (SupportTicket, error) {
 	tenantID = strings.TrimSpace(tenantID)
 	userID = strings.TrimSpace(userID)
-	category := strings.TrimSpace(input.Category)
-	body := security.RedactString(strings.TrimSpace(input.Body))
-	projectID := strings.TrimSpace(input.ProjectID)
-	taskID := strings.TrimSpace(input.TaskID)
-	traceID := strings.TrimSpace(input.TraceID)
-	assetID := strings.TrimSpace(input.AssetID)
-	exportID := strings.TrimSpace(input.LinkedExportID)
-	quotaBucketID := strings.TrimSpace(input.QuotaBucketID)
 	if tenantID == "" || userID == "" {
 		return SupportTicket{}, errors.Join(ErrValidation, errors.New("tenant_id and user_id are required"))
 	}
-	if category == "" || body == "" {
-		return SupportTicket{}, errors.Join(ErrValidation, errors.New("category and body are required"))
+	normalized, err := support.NormalizeAndRedact(input.Category, input.Body, support.TicketEvidence{
+		ProjectID:          input.ProjectID,
+		TaskID:             input.TaskID,
+		BatchID:            input.BatchID,
+		TraceID:            input.TraceID,
+		AssetID:            input.AssetID,
+		LinkedExportID:     input.LinkedExportID,
+		QuotaBucketID:      input.QuotaBucketID,
+		BillingReferenceID: input.BillingRefID,
+	}, input.Metadata)
+	if err != nil {
+		if errors.Is(err, support.ErrMissingEvidence) {
+			return SupportTicket{}, errors.Join(ErrValidation, errors.New("project_id, task_id, batch_id, trace_id, asset_id, linked_export_id, quota_bucket_id, and billing_reference_id are required"))
+		}
+		return SupportTicket{}, err
 	}
-	if projectID == "" || taskID == "" || traceID == "" || assetID == "" || exportID == "" || quotaBucketID == "" {
-		return SupportTicket{}, errors.Join(ErrValidation, errors.New("project_id, task_id, trace_id, asset_id, linked_export_id, and quota_bucket_id are required"))
+	if normalized.Category == "" || normalized.Body == "" {
+		return SupportTicket{}, errors.Join(ErrValidation, errors.New("category and body are required"))
 	}
 	now := time.Now().UTC()
 	ticket := SupportTicket{
 		ID:        id.New("support"),
 		TenantID:  tenantID,
 		UserID:    userID,
-		Category:  category,
+		Category:  normalized.Category,
 		Status:    "open",
-		Body:      body,
-		Metadata:  security.RedactMap(input.Metadata),
+		Body:      normalized.Body,
+		Metadata:  normalized.Metadata,
 		CreatedAt: now,
 		UpdatedAt: now,
 	}
-	if ticket.Metadata == nil {
-		ticket.Metadata = map[string]any{}
-	}
+	projectID := normalized.Evidence.ProjectID
+	taskID := normalized.Evidence.TaskID
+	batchID := normalized.Evidence.BatchID
+	traceID := normalized.Evidence.TraceID
+	assetID := normalized.Evidence.AssetID
+	exportID := normalized.Evidence.LinkedExportID
+	quotaBucketID := normalized.Evidence.QuotaBucketID
+	billingRefID := normalized.Evidence.BillingReferenceID
 	ticket.ProjectID = &projectID
 	ticket.TaskID = &taskID
+	ticket.BatchID = &batchID
 	ticket.TraceID = &traceID
 	ticket.AssetID = &assetID
 	ticket.LinkedExportID = &exportID
 	ticket.QuotaBucketID = &quotaBucketID
-	_, err := r.db.Exec(ctx, `
-INSERT INTO support_tickets(id, tenant_id, user_id, project_id, task_id, trace_id, asset_id, category, status, body, linked_export_id, quota_bucket_id, metadata, created_at, updated_at)
-VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)`,
+	ticket.BillingRefID = &billingRefID
+	_, err = r.db.Exec(ctx, `
+INSERT INTO support_tickets(id, tenant_id, user_id, project_id, task_id, batch_id, trace_id, asset_id, category, status, body, linked_export_id, quota_bucket_id, billing_reference_id, metadata, created_at, updated_at)
+VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $16)`,
 		ticket.ID,
 		ticket.TenantID,
 		ticket.UserID,
 		ticket.ProjectID,
 		ticket.TaskID,
+		ticket.BatchID,
 		ticket.TraceID,
 		ticket.AssetID,
 		ticket.Category,
@@ -1908,12 +3764,15 @@ VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)`,
 		ticket.Body,
 		ticket.LinkedExportID,
 		ticket.QuotaBucketID,
+		ticket.BillingRefID,
 		jsonObject(ticket.Metadata),
 		now,
 	)
 	if err != nil {
 		return SupportTicket{}, err
 	}
+	analyticsProperties := normalized.Evidence.AnalyticsProperties(ticket.Metadata)
+	analyticsProperties["category"] = ticket.Category
 	if err := r.RecordAnalyticsEvent(ctx, AnalyticsEvent{
 		TenantID:    tenantID,
 		UserID:      userID,
@@ -1921,16 +3780,8 @@ VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $14)`,
 		EventName:   "support_ticket_created",
 		SubjectType: "support_ticket",
 		SubjectID:   ticket.ID,
-		Properties: map[string]any{
-			"category":         ticket.Category,
-			"task_id":          stringValue(ticket.TaskID),
-			"trace_id":         stringValue(ticket.TraceID),
-			"asset_id":         stringValue(ticket.AssetID),
-			"linked_export_id": stringValue(ticket.LinkedExportID),
-			"quota_bucket_id":  stringValue(ticket.QuotaBucketID),
-			"metadata":         ticket.Metadata,
-		},
-		CreatedAt: now,
+		Properties:  analyticsProperties,
+		CreatedAt:   now,
 	}); err != nil {
 		return SupportTicket{}, err
 	}
@@ -1943,7 +3794,7 @@ func (r Repository) ListSupportTickets(ctx context.Context, tenantID, status str
 	}
 	args := []any{tenantID, limit}
 	query := `
-SELECT id, tenant_id, user_id, project_id, task_id, trace_id, asset_id, category, status, body, linked_export_id, quota_bucket_id, metadata, created_at, updated_at
+SELECT id, tenant_id, user_id, project_id, task_id, batch_id, trace_id, asset_id, category, status, body, linked_export_id, quota_bucket_id, billing_reference_id, metadata, created_at, updated_at
 FROM support_tickets
 WHERE tenant_id = $1`
 	if strings.TrimSpace(status) != "" {
@@ -1961,7 +3812,7 @@ WHERE tenant_id = $1`
 	for rows.Next() {
 		var ticket SupportTicket
 		var metadataJSON []byte
-		if err := rows.Scan(&ticket.ID, &ticket.TenantID, &ticket.UserID, &ticket.ProjectID, &ticket.TaskID, &ticket.TraceID, &ticket.AssetID, &ticket.Category, &ticket.Status, &ticket.Body, &ticket.LinkedExportID, &ticket.QuotaBucketID, &metadataJSON, &ticket.CreatedAt, &ticket.UpdatedAt); err != nil {
+		if err := rows.Scan(&ticket.ID, &ticket.TenantID, &ticket.UserID, &ticket.ProjectID, &ticket.TaskID, &ticket.BatchID, &ticket.TraceID, &ticket.AssetID, &ticket.Category, &ticket.Status, &ticket.Body, &ticket.LinkedExportID, &ticket.QuotaBucketID, &ticket.BillingRefID, &metadataJSON, &ticket.CreatedAt, &ticket.UpdatedAt); err != nil {
 			return Page[SupportTicket]{}, err
 		}
 		_ = json.Unmarshal(metadataJSON, &ticket.Metadata)
@@ -2206,6 +4057,145 @@ WHERE (tenant_id IS NULL OR tenant_id = $1)`
 	return page, rows.Err()
 }
 
+func (r Repository) ListSafetyReviewQueue(ctx context.Context, tenantID, status string, limit int) (Page[SafetyReviewItem], error) {
+	tenantID = strings.TrimSpace(tenantID)
+	if tenantID == "" {
+		return Page[SafetyReviewItem]{}, errors.Join(ErrValidation, errors.New("tenant_id is required"))
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 50
+	}
+	status = strings.TrimSpace(status)
+	rows, err := r.db.Query(ctx, `
+SELECT
+	sd.id,
+	sd.tenant_id,
+	sd.rule_id,
+	sd.subject_type,
+	sd.subject_id,
+	sd.enforcement_point,
+	sd.decision,
+	sd.rationale,
+	COALESCE(sr.rule_key, ''),
+	COALESCE(sr.version, ''),
+	COALESCE(sr.severity, CASE sd.decision WHEN 'block' THEN 'high' WHEN 'require_admin_review' THEN 'medium' ELSE 'low' END),
+	COALESCE(review.decision, 'pending') AS review_status,
+	COALESCE(review.decision, '') AS review_decision,
+	COALESCE(review.reviewer_id, '') AS reviewer_id,
+	COALESCE(review.rationale, '') AS review_rationale,
+	COALESCE(review.audit_ref, '') AS audit_ref,
+	sd.created_at,
+	review.created_at AS reviewed_at
+FROM safety_decisions sd
+LEFT JOIN safety_rules sr ON sr.id = sd.rule_id
+LEFT JOIN LATERAL (
+	SELECT decision, reviewer_id, rationale, audit_ref, created_at
+	FROM safety_review_decisions
+	WHERE tenant_id = sd.tenant_id AND safety_decision_id = sd.id
+	ORDER BY created_at DESC, id DESC
+	LIMIT 1
+) review ON true
+WHERE sd.tenant_id = $1
+  AND sd.decision IN ('warn', 'require_admin_review', 'block')
+  AND ($3 = '' OR COALESCE(review.decision, 'pending') = $3)
+ORDER BY sd.created_at DESC, sd.id DESC
+LIMIT $2`,
+		tenantID,
+		limit,
+		status,
+	)
+	if err != nil {
+		return Page[SafetyReviewItem]{}, err
+	}
+	defer rows.Close()
+
+	page := Page[SafetyReviewItem]{Items: []SafetyReviewItem{}}
+	for rows.Next() {
+		var item SafetyReviewItem
+		var reviewedAt *time.Time
+		if err := rows.Scan(
+			&item.SafetyDecisionID,
+			&item.TenantID,
+			&item.RuleID,
+			&item.SubjectType,
+			&item.SubjectID,
+			&item.EnforcementPoint,
+			&item.SafetyDecision,
+			&item.SafetyRationale,
+			&item.RuleKey,
+			&item.RuleVersion,
+			&item.Severity,
+			&item.ReviewStatus,
+			&item.ReviewDecision,
+			&item.ReviewerID,
+			&item.ReviewRationale,
+			&item.AuditRef,
+			&item.CreatedAt,
+			&reviewedAt,
+		); err != nil {
+			return Page[SafetyReviewItem]{}, err
+		}
+		item.ID = "safety_review_" + item.SafetyDecisionID
+		item.ReviewedAt = reviewedAt
+		item.OverrideEligible = safetyReviewOverrideEligible(item.SafetyDecision)
+		item.AuditRequired = true
+		item.RequiredEvidence = safetyReviewRequiredEvidenceRefs(item)
+		item.UserVisibleOutcome = safetyReviewUserVisibleOutcome(item.SafetyDecision, item.ReviewStatus)
+		item.SafeProjection = safetyReviewSafeProjection(item)
+		page.Items = append(page.Items, item)
+	}
+	return page, rows.Err()
+}
+
+func (r Repository) RecordSafetyReviewDecision(ctx context.Context, input SafetyReviewDecisionInput) (SafetyReviewDecision, error) {
+	input.normalize()
+	if err := input.validate(); err != nil {
+		return SafetyReviewDecision{}, err
+	}
+	if existing, ok, err := r.existingSafetyReviewDecision(ctx, input.TenantID, input.IdempotencyKey); err != nil || ok {
+		return existing, err
+	}
+	if err := r.ensureSafetyDecisionBelongsToTenant(ctx, input.TenantID, input.SafetyDecisionID); err != nil {
+		return SafetyReviewDecision{}, err
+	}
+	metadata := security.RedactMap(input.Metadata)
+	encoded, err := json.Marshal(metadata)
+	if err != nil {
+		return SafetyReviewDecision{}, err
+	}
+	record := SafetyReviewDecision{
+		ID:                 id.New("safety_review"),
+		TenantID:           input.TenantID,
+		SafetyDecisionID:   input.SafetyDecisionID,
+		ReviewerID:         input.ReviewerID,
+		Decision:           input.Decision,
+		Rationale:          input.Rationale,
+		AuditRef:           input.AuditRef,
+		IdempotencyKey:     input.IdempotencyKey,
+		Metadata:           metadata,
+		CreatedAt:          input.CreatedAt,
+		UserVisibleOutcome: safetyReviewUserVisibleOutcomeForDecision(input.Decision),
+	}
+	_, err = r.db.Exec(ctx, `
+INSERT INTO safety_review_decisions(id, tenant_id, safety_decision_id, reviewer_id, decision, rationale, audit_ref, idempotency_key, metadata, created_at)
+VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+		record.ID,
+		record.TenantID,
+		record.SafetyDecisionID,
+		record.ReviewerID,
+		record.Decision,
+		record.Rationale,
+		record.AuditRef,
+		record.IdempotencyKey,
+		encoded,
+		record.CreatedAt,
+	)
+	if err != nil {
+		return SafetyReviewDecision{}, err
+	}
+	return record, nil
+}
+
 func (r Repository) EnforceSafety(ctx context.Context, tenantID, subjectType, subjectID, point string) (SafetyDecision, error) {
 	tenantID = strings.TrimSpace(tenantID)
 	subjectType = strings.TrimSpace(subjectType)
@@ -2283,6 +4273,343 @@ func (r Repository) RequireSafetyAllowed(ctx context.Context, tenantID, subjectT
 		return decision, ErrSafetyReviewHold
 	}
 	return decision, nil
+}
+
+func safetyReviewOverrideEligible(decision string) bool {
+	switch strings.TrimSpace(decision) {
+	case "require_admin_review", "warn":
+		return true
+	default:
+		return false
+	}
+}
+
+func safetyReviewRequiredEvidenceRefs(item SafetyReviewItem) []string {
+	refs := []string{
+		"safety_decisions/" + item.SafetyDecisionID,
+		"audit_logs/safety.review",
+	}
+	if item.RuleID != nil && strings.TrimSpace(*item.RuleID) != "" {
+		refs = append(refs, "safety_rules/"+strings.TrimSpace(*item.RuleID))
+	}
+	if item.SubjectType != "" && item.SubjectID != "" {
+		refs = append(refs, item.SubjectType+"s/"+item.SubjectID)
+	}
+	return refs
+}
+
+func safetyReviewUserVisibleOutcome(decision, reviewStatus string) string {
+	switch strings.TrimSpace(reviewStatus) {
+	case "approved":
+		return "safety_review_approved"
+	case "rejected":
+		return "safety_review_rejected"
+	case "escalated":
+		return "safety_review_escalated"
+	case "blocked":
+		return "safety_review_blocked"
+	}
+	switch strings.TrimSpace(decision) {
+	case "block":
+		return "blocked_until_policy_change"
+	case "require_admin_review":
+		return "held_until_admin_review"
+	case "warn":
+		return "warning_visible_with_audit"
+	default:
+		return "pending_safety_review"
+	}
+}
+
+func safetyReviewUserVisibleOutcomeForDecision(decision string) string {
+	switch strings.TrimSpace(decision) {
+	case "approved":
+		return "safety_review_approved"
+	case "rejected":
+		return "safety_review_rejected"
+	case "escalated":
+		return "safety_review_escalated"
+	case "blocked":
+		return "safety_review_blocked"
+	default:
+		return "pending_safety_review"
+	}
+}
+
+func safetyReviewSafeProjection(item SafetyReviewItem) map[string]any {
+	return map[string]any{
+		"raw_prompt_persisted":           false,
+		"raw_provider_payload_persisted": false,
+		"raw_safety_payload_persisted":   false,
+		"secret_material_persisted":      false,
+		"tenant_scoped":                  item.TenantID != "",
+		"admin_only":                     true,
+	}
+}
+
+func (input *SafetyReviewDecisionInput) normalize() {
+	input.TenantID = strings.TrimSpace(input.TenantID)
+	input.SafetyDecisionID = strings.TrimSpace(input.SafetyDecisionID)
+	input.ReviewerID = strings.TrimSpace(input.ReviewerID)
+	input.Decision = strings.TrimSpace(input.Decision)
+	input.Rationale = security.RedactString(strings.TrimSpace(input.Rationale))
+	input.AuditRef = strings.TrimSpace(input.AuditRef)
+	input.IdempotencyKey = strings.TrimSpace(input.IdempotencyKey)
+	input.Metadata = security.RedactMap(input.Metadata)
+	if input.CreatedAt.IsZero() {
+		input.CreatedAt = time.Now().UTC()
+	} else {
+		input.CreatedAt = input.CreatedAt.UTC()
+	}
+}
+
+func (input SafetyReviewDecisionInput) validate() error {
+	if input.TenantID == "" || input.SafetyDecisionID == "" || input.ReviewerID == "" || input.IdempotencyKey == "" {
+		return errors.Join(ErrValidation, errors.New("tenant_id, safety_decision_id, reviewer_id, and idempotency_key are required"))
+	}
+	switch input.Decision {
+	case "approved", "rejected", "escalated", "blocked":
+	default:
+		return errors.Join(ErrValidation, errors.New("decision must be approved, rejected, escalated, or blocked"))
+	}
+	if input.Rationale == "" || input.Rationale == security.Redacted {
+		return errors.Join(ErrValidation, errors.New("non-secret review rationale is required"))
+	}
+	if input.AuditRef == "" {
+		return errors.Join(ErrValidation, errors.New("audit_ref is required"))
+	}
+	return nil
+}
+
+func (input *ExportOverrideDecisionInput) normalize() {
+	input.TenantID = strings.TrimSpace(input.TenantID)
+	input.ExportID = strings.TrimSpace(input.ExportID)
+	input.SourceType = strings.TrimSpace(input.SourceType)
+	input.SourceID = strings.TrimSpace(input.SourceID)
+	input.TraceID = strings.TrimSpace(input.TraceID)
+	input.RequestedBy = strings.TrimSpace(input.RequestedBy)
+	input.RequestedRole = strings.TrimSpace(input.RequestedRole)
+	input.ResolvedBy = strings.TrimSpace(input.ResolvedBy)
+	input.ResolvedRole = strings.TrimSpace(input.ResolvedRole)
+	input.Outcome = strings.TrimSpace(input.Outcome)
+	input.DenialReason = strings.TrimSpace(input.DenialReason)
+	input.Rationale = security.RedactString(strings.TrimSpace(input.Rationale))
+	input.AuditLogID = strings.TrimSpace(input.AuditLogID)
+	input.IdempotencyKey = strings.TrimSpace(input.IdempotencyKey)
+	input.Metadata = security.RedactMap(input.Metadata)
+	if input.CreatedAt.IsZero() {
+		input.CreatedAt = time.Now().UTC()
+	} else {
+		input.CreatedAt = input.CreatedAt.UTC()
+	}
+}
+
+func (input ExportOverrideDecisionInput) validate() error {
+	if input.TenantID == "" || input.ExportID == "" || input.SourceID == "" || input.TraceID == "" || input.RequestedBy == "" || input.ResolvedBy == "" || input.IdempotencyKey == "" {
+		return errors.Join(ErrValidation, errors.New("tenant_id, export_id, source_id, trace_id, requester, resolver, and idempotency_key are required"))
+	}
+	switch input.SourceType {
+	case "qa_result", "safety_decision", "export_contract":
+	default:
+		return errors.Join(ErrValidation, errors.New("source_type must be qa_result, safety_decision, or export_contract"))
+	}
+	switch input.Outcome {
+	case "approved", "denied":
+	default:
+		return errors.Join(ErrValidation, errors.New("decision must be approved or denied"))
+	}
+	if input.Outcome == "denied" && input.DenialReason == "" {
+		return errors.Join(ErrValidation, errors.New("denied export override requires denial_reason"))
+	}
+	if input.DenialReason != "" {
+		switch input.DenialReason {
+		case "source_not_override_eligible", "critical_safety_rule", "incomplete_export_artifacts", "missing_approval_audit":
+		default:
+			return errors.Join(ErrValidation, errors.New("denial_reason is not supported"))
+		}
+	}
+	if input.Rationale == "" || input.Rationale == security.Redacted {
+		return errors.Join(ErrValidation, errors.New("non-secret export override rationale is required"))
+	}
+	if input.AuditLogID == "" {
+		return errors.Join(ErrValidation, errors.New("audit_log_id is required"))
+	}
+	return nil
+}
+
+func (input ExportOverrideDecisionInput) sourceGateResolved() bool {
+	if input.Outcome != "approved" || input.DenialReason != "" {
+		return false
+	}
+	return input.SourceType == "qa_result"
+}
+
+func (r Repository) RecordExportOverrideDecision(ctx context.Context, input ExportOverrideDecisionInput) (ExportOverrideDecision, error) {
+	input.normalize()
+	if err := input.validate(); err != nil {
+		return ExportOverrideDecision{}, err
+	}
+	if existing, ok, err := r.existingExportOverrideDecision(ctx, input.TenantID, input.IdempotencyKey); err != nil || ok {
+		return existing, err
+	}
+	if _, err := r.GetExport(ctx, input.TenantID, input.ExportID); err != nil {
+		return ExportOverrideDecision{}, err
+	}
+	metadataJSON, err := json.Marshal(input.Metadata)
+	if err != nil {
+		return ExportOverrideDecision{}, err
+	}
+	overrideID := id.New("export_override")
+	sourceGateResolved := input.sourceGateResolved()
+	denialReason := any(nil)
+	if input.DenialReason != "" {
+		denialReason = input.DenialReason
+	}
+	_, err = r.db.Exec(ctx, `
+INSERT INTO export_override_decisions (
+	id, tenant_id, export_id, source_type, source_id, trace_id, requested_by, requested_by_role,
+	resolved_by, resolved_by_role, outcome, denial_reason, source_gate_resolved, final_export_allowed,
+	rationale, audit_log_id, idempotency_key, metadata, created_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, false, $14, $15, $16, $17, $18)`,
+		overrideID,
+		input.TenantID,
+		input.ExportID,
+		input.SourceType,
+		input.SourceID,
+		input.TraceID,
+		input.RequestedBy,
+		input.RequestedRole,
+		input.ResolvedBy,
+		input.ResolvedRole,
+		input.Outcome,
+		denialReason,
+		sourceGateResolved,
+		input.Rationale,
+		input.AuditLogID,
+		input.IdempotencyKey,
+		metadataJSON,
+		input.CreatedAt,
+	)
+	if err != nil {
+		return ExportOverrideDecision{}, err
+	}
+	return ExportOverrideDecision{
+		ID:                 overrideID,
+		TenantID:           input.TenantID,
+		ExportID:           input.ExportID,
+		SourceType:         input.SourceType,
+		SourceID:           input.SourceID,
+		TraceID:            input.TraceID,
+		RequestedByRole:    input.RequestedRole,
+		ResolvedByRole:     input.ResolvedRole,
+		Outcome:            input.Outcome,
+		DenialReason:       stringPtrOrNil(input.DenialReason),
+		SourceGateResolved: sourceGateResolved,
+		FinalExportAllowed: false,
+		AuditLogID:         input.AuditLogID,
+		IdempotencyKey:     input.IdempotencyKey,
+		Metadata:           input.Metadata,
+		CreatedAt:          input.CreatedAt,
+	}, nil
+}
+
+func (r Repository) existingExportOverrideDecision(ctx context.Context, tenantID, idempotencyKey string) (ExportOverrideDecision, bool, error) {
+	var record ExportOverrideDecision
+	var denialReason *string
+	var metadataJSON []byte
+	err := r.db.QueryRow(ctx, `
+SELECT id, tenant_id, export_id, source_type, source_id, trace_id, requested_by_role, resolved_by_role,
+       outcome, denial_reason, source_gate_resolved, final_export_allowed, audit_log_id, idempotency_key, metadata, created_at
+FROM export_override_decisions
+WHERE tenant_id = $1 AND idempotency_key = $2`,
+		tenantID,
+		idempotencyKey,
+	).Scan(
+		&record.ID,
+		&record.TenantID,
+		&record.ExportID,
+		&record.SourceType,
+		&record.SourceID,
+		&record.TraceID,
+		&record.RequestedByRole,
+		&record.ResolvedByRole,
+		&record.Outcome,
+		&denialReason,
+		&record.SourceGateResolved,
+		&record.FinalExportAllowed,
+		&record.AuditLogID,
+		&record.IdempotencyKey,
+		&metadataJSON,
+		&record.CreatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ExportOverrideDecision{}, false, nil
+	}
+	if err != nil {
+		return ExportOverrideDecision{}, false, err
+	}
+	record.DenialReason = denialReason
+	if len(metadataJSON) > 0 {
+		_ = json.Unmarshal(metadataJSON, &record.Metadata)
+		record.Metadata = security.RedactMap(record.Metadata)
+	}
+	return record, true, nil
+}
+
+func stringPtrOrNil(value string) *string {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	normalized := strings.TrimSpace(value)
+	return &normalized
+}
+
+func (r Repository) existingSafetyReviewDecision(ctx context.Context, tenantID, idempotencyKey string) (SafetyReviewDecision, bool, error) {
+	var record SafetyReviewDecision
+	var metadataJSON []byte
+	err := r.db.QueryRow(ctx, `
+SELECT id, tenant_id, safety_decision_id, reviewer_id, decision, rationale, audit_ref, idempotency_key, metadata, created_at
+FROM safety_review_decisions
+WHERE tenant_id = $1 AND idempotency_key = $2`,
+		tenantID,
+		idempotencyKey,
+	).Scan(
+		&record.ID,
+		&record.TenantID,
+		&record.SafetyDecisionID,
+		&record.ReviewerID,
+		&record.Decision,
+		&record.Rationale,
+		&record.AuditRef,
+		&record.IdempotencyKey,
+		&metadataJSON,
+		&record.CreatedAt,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return SafetyReviewDecision{}, false, nil
+	}
+	if err != nil {
+		return SafetyReviewDecision{}, false, err
+	}
+	_ = json.Unmarshal(metadataJSON, &record.Metadata)
+	record.Metadata = security.RedactMap(record.Metadata)
+	record.UserVisibleOutcome = safetyReviewUserVisibleOutcomeForDecision(record.Decision)
+	return record, true, nil
+}
+
+func (r Repository) ensureSafetyDecisionBelongsToTenant(ctx context.Context, tenantID, safetyDecisionID string) error {
+	var found string
+	err := r.db.QueryRow(ctx, `
+SELECT id
+FROM safety_decisions
+WHERE tenant_id = $1 AND id = $2`,
+		tenantID,
+		safetyDecisionID,
+	).Scan(&found)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	}
+	return err
 }
 
 func (r Repository) EnforceBriefSafety(ctx context.Context, tenantID, projectID string) (SafetyDecision, error) {
@@ -3261,7 +5588,7 @@ func exportDeliveryMetadata(format string, manifest map[string]any, extra map[st
 		"figma_ready": map[string]any{
 			"status":        "ready",
 			"descriptor":    "layout_spec",
-			"schema":        "zenart.figma_layout_spec.v1",
+			"schema":        "zenari.figma_layout_spec.v1",
 			"spec_key":      "figma/layout.json",
 			"assets_prefix": "assets/",
 			"layout":        layoutSpec,
@@ -3318,11 +5645,11 @@ func figmaLayoutSpec(manifest map[string]any) map[string]any {
 		})
 	}
 	return map[string]any{
-		"schema":     "zenart.figma_layout_spec.v1",
+		"schema":     "zenari.figma_layout_spec.v1",
 		"project_id": projectID,
 		"package_id": packageID,
 		"document": map[string]any{
-			"name":          "ZenArt Export " + packageID,
+			"name":          "Zenari Export " + packageID,
 			"color_profile": "srgb",
 			"units":         "px",
 		},
@@ -3362,6 +5689,13 @@ func stringFromMap(values map[string]any, key, fallback string) string {
 		return strings.TrimSpace(value)
 	}
 	return fallback
+}
+
+func boolFromMap(values map[string]any, key string) bool {
+	if value, ok := values[key].(bool); ok {
+		return value
+	}
+	return false
 }
 
 func xmlEscape(value string) string {

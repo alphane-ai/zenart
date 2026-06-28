@@ -3,7 +3,7 @@ import "./globals.css";
 import { AdminShell } from "@/components/AdminShell";
 
 export const metadata: Metadata = {
-  title: "ZenArt Admin",
+  title: "zenari.ai Admin",
   description: "Stage 0 Rev2 administration console"
 };
 

@@ -4,9 +4,9 @@ const candidateLabels = ["Editorial Clarity", "Studio System", "Gallery Motion",
 
 test("ecommerce growth pack user-web happy path exposes API, render, export, and download evidence", async ({ page }) => {
   await page.addInitScript(() => {
-    if (!window.sessionStorage.getItem("zenart-ecommerce-smoke-reset")) {
+    if (!window.sessionStorage.getItem("zenari-ecommerce-smoke-reset")) {
       window.localStorage.clear();
-      window.sessionStorage.setItem("zenart-ecommerce-smoke-reset", "true");
+      window.sessionStorage.setItem("zenari-ecommerce-smoke-reset", "true");
     }
   });
   await page.goto("/workspace");
@@ -47,7 +47,7 @@ test("ecommerce growth pack user-web happy path exposes API, render, export, and
   }
 
   await page.getByTestId("export-download").click();
-  await expect(page.getByText("zenart-001.zip")).toBeVisible();
+  await expect(page.getByText("zenari-001.zip")).toBeVisible();
 
   const workflowSmoke = page.locator("[data-workflow-api-smoke='stage0.rev2.workflow-api-smoke']");
   await expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-status", "pass");
@@ -65,7 +65,7 @@ test("ecommerce growth pack user-web happy path exposes API, render, export, and
   );
   await expect(workflowSmoke).toHaveAttribute(
     "data-workflow-api-smoke-operation-contracts",
-    /createExport:POST:\/packages\/\{package_id\}\/exports:include:X-ZenArt-CSRF:true/
+    /createExport:POST:\/packages\/\{package_id\}\/exports:include:X-Zenari-CSRF:true/
   );
 
   const renderingSmoke = page.locator("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");
@@ -102,5 +102,5 @@ test("ecommerce growth pack user-web happy path exposes API, render, export, and
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download" }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("zenart-001.zip");
+  expect(download.suggestedFilename()).toBe("zenari-001.zip");
 });

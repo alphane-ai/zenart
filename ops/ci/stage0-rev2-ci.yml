@@ -1,4 +1,4 @@
-name: Stage 0 Rev2 CI
+name: Stage 0 Rev2 + Stage 1 CI
 
 on:
   pull_request:
@@ -14,33 +14,34 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ZENART_ENV: CI
+  ZENARI_ENV: CI
   PROVIDER_MODE: dev
   CHECKOUT_PROVIDER: mock
   STAGE0_ACCESS_MODE: local
-  DATABASE_URL: postgres://zenart:zenart@localhost:5432/zenart?sslmode=disable
+  DATABASE_URL: postgres://zenari:zenari@localhost:5432/zenari?sslmode=disable
   REDIS_ADDR: localhost:6379
   OBJECT_STORAGE_ENDPOINT: http://localhost:9000
   OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:9000
-  OBJECT_STORAGE_BUCKET: zenart-ci
+  OBJECT_STORAGE_BUCKET: zenari-ci
   OBJECT_STORAGE_ACCESS_KEY: minioadmin
   OBJECT_STORAGE_SECRET_KEY: minioadmin
+  STRIPE_MODE: test
 
 jobs:
   repo-contracts:
-    name: Repo contracts and generated artifacts
+    name: Repo contracts, Stage 1 gates, and generated artifacts
     runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: zenart
-          POSTGRES_USER: zenart
-          POSTGRES_PASSWORD: zenart
+          POSTGRES_DB: zenari
+          POSTGRES_USER: zenari
+          POSTGRES_PASSWORD: zenari
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U zenart -d zenart"
+          --health-cmd "pg_isready -U zenari -d zenari"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 20
@@ -77,16 +78,91 @@ jobs:
         with:
           node-version: 22
 
-      - name: Validate compose and CI draft syntax
+      - name: Validate compose and CI workflow syntax
         run: |
           docker compose --env-file .env.example config --quiet
-          ruby -e "require 'yaml'; YAML.load_file('docker-compose.yml'); YAML.load_file('ops/ci/stage0-rev2-ci.yml')"
+          ruby -e "require 'yaml'; YAML.load_file('docker-compose.yml'); YAML.load_file('ops/ci/stage0-rev2-ci.yml'); YAML.load_file('.github/workflows/stage0-rev2-ci.yml')"
 
       - name: Validate generated OpenAPI clients are current
         run: python3 scripts/generate_openapi_clients.py --check
 
       - name: Validate Stage 0 Rev2 contract evidence
         run: python3 scripts/validate_stage0_rev2.py
+
+      - name: Validate Stage 1 pre-launch contracts
+        run: |
+          python3 scripts/validate_stage1_blueprint.py Docs/Stage1_20260621_blueprint.md
+          python3 scripts/validate_zenari_brand_migration.py
+          python3 scripts/stage1_scope_guard.py Docs/Stage1_20260621_blueprint.md
+          python3 scripts/validate_stage1_gap_inventory.py
+          python3 scripts/validate_stage1_env_example_contract.py
+          python3 scripts/validate_stage1_local_devport_registry.py --contract-only
+          python3 scripts/validate_stage1_release_image_boundary.py
+          python3 scripts/validate_stage1_batch_generation_contract.py
+          python3 scripts/validate_stage1_batch_result_storage_contract.py
+          python3 scripts/validate_stage1_batch_quota_reconciliation.py
+          python3 scripts/validate_stage1_batch_quota_runtime_replay.py
+          python3 scripts/validate_stage1_rate_limit_spend_cap_contract.py
+          python3 scripts/validate_stage1_api_error_taxonomy_contract.py
+          python3 scripts/validate_stage1_support_ticket_linking_contract.py
+          python3 scripts/validate_stage1_trace_projection_contract.py
+          python3 scripts/validate_stage1_canvas_assets_contract.py
+          python3 scripts/validate_stage1_canvas_interaction_contract.py
+          python3 scripts/validate_stage1_canvas_versioning_contract.py
+          python3 scripts/validate_stage1_edit_tools_mask_contract.py
+          python3 scripts/validate_stage1_prompt_composer_contract.py
+          python3 scripts/validate_stage1_mentions_contract.py
+          python3 scripts/validate_stage1_asset_library_brandkit_contract.py
+          python3 scripts/validate_stage1_provider_registry_contract.py
+          python3 scripts/validate_stage1_provider_cost_reconciliation.py
+          python3 scripts/validate_stage1_provider_edit_adapter_contract.py
+          python3 scripts/validate_stage1_provider_video_adapter_contract.py
+          python3 scripts/validate_stage1_admin_billing_ops_contract.py
+          python3 scripts/validate_stage1_team_seat_billing_contract.py
+          python3 scripts/validate_stage1_user_billing_invoice_contract.py
+          python3 scripts/validate_stage1_user_batch_progress_contract.py
+          python3 scripts/validate_stage1_result_placement_contract.py
+          python3 scripts/validate_stage1_safety_export_state_contract.py
+          python3 scripts/validate_stage1_rendered_export_asset_contract.py
+          python3 scripts/validate_stage1_provider_sandbox_evidence.py --contract-only
+          python3 scripts/validate_stage1_stripe_staging_evidence.py --contract-only
+          python3 scripts/validate_stage1_stripe_lifecycle_reconciliation.py
+          python3 scripts/validate_stage1_safety_qa_evidence.py --contract-only
+          python3 scripts/validate_stage1_security_scan_contract.py
+          python3 scripts/validate_stage1_skill_eval_release_contract.py
+          python3 scripts/validate_stage1_eval_skill_release_contract.py
+          python3 scripts/validate_stage1_export_ops_contract.py
+          python3 scripts/validate_stage1_export_manifest_render_contract.py
+          python3 scripts/validate_stage1_export_object_access_contract.py
+          python3 scripts/validate_stage1_release_readiness_contract.py
+          python3 scripts/validate_stage1_release_evidence_closure_queue.py --contract-only
+          python3 scripts/validate_stage1_external_resource_readiness.py --contract-only
+          python3 scripts/validate_stage1_r2_bucket_readiness.py --contract-only
+          python3 scripts/validate_stage1_audit_search_export_contract.py
+          python3 scripts/validate_stage1_operations_incident_runbook_contract.py
+          python3 scripts/validate_stage1_support_admin_deletion_governance_contract.py
+          python3 scripts/validate_stage1_staging_runtime.py --contract-only
+          python3 scripts/validate_stage1_production_launch.py --contract-only
+          python3 scripts/validate_stage1_production_dns_repair_packet.py --contract-only
+          python3 scripts/validate_stage1_production_blocker_checklist.py --contract-only
+          python3 scripts/validate_stage1_next_blockers_summary.py --contract-only
+          python3 scripts/generate_stage1_staging_runtime_evidence.py --contract-only
+          python3 scripts/generate_stage1_production_launch_evidence.py --contract-only
+
+      - name: Stripe sandbox selftest
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_API_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_SANDBOX_PRODUCT_ID: ${{ secrets.STRIPE_SANDBOX_PRODUCT_ID }}
+          STRIPE_DEFAULT_PRICE_ID: ${{ secrets.STRIPE_DEFAULT_PRICE_ID }}
+        run: |
+          if [[ -n "${STRIPE_SECRET_KEY:-}" && -n "${STRIPE_PUBLISHABLE_KEY:-}" && -n "${STRIPE_WEBHOOK_SECRET:-}" && -n "${STRIPE_SANDBOX_PRODUCT_ID:-}" && -n "${STRIPE_DEFAULT_PRICE_ID:-}" ]]; then
+            bash scripts/stripe_sandbox_selftest.sh
+          else
+            echo "Stripe sandbox selftest skipped: CI Stripe test secrets are not configured."
+          fi
 
       - name: Backend fmt, vet, unit, integration, and build
         working-directory: backend
@@ -141,54 +217,301 @@ jobs:
 
       - name: Secret scan smoke
         run: |
-          ! git grep -nE '(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|sk-[A-Za-z0-9_-]{20,}|ghp_[A-Za-z0-9_]{20,})' -- . ':!.env.example' ':!fixtures' ':!schemas' ':!ops/ci/stage0-rev2-ci.yml' ':!scripts/repo_validate.sh'
+          ! git grep -nE '(^|[^A-Za-z0-9_-])(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|LLM_OPENAI_API_KEY|ZAI_API_KEY)[[:space:]]*[:=][[:space:]]*["'\''"]?[A-Za-z0-9._~+/=-]{16,}|(^|[^A-Za-z0-9_-])sk-(proj-)?[A-Za-z0-9_-]{20,}|(^|[^A-Za-z0-9_-])[0-9a-f]{32}\.[A-Za-z0-9_-]{16,}|(^|[^A-Za-z0-9_-])(sk|rk)_(live|test)_[A-Za-z0-9]{16,}|(^|[^A-Za-z0-9_-])pk_(live|test)_[A-Za-z0-9]{16,}|(^|[^A-Za-z0-9_-])whsec_[A-Za-z0-9]{16,}|(^|[^A-Za-z0-9_])ghp_[A-Za-z0-9_]{20,}' -- . ':!.env.example' ':!fixtures' ':!schemas' ':!ops/ci/stage0-rev2-ci.yml' ':!.github/workflows/stage0-rev2-ci.yml' ':!scripts/repo_validate.sh' ':!scripts/security_scan_smoke.sh' ':!backend/internal/security/redact_test.go'
+
+      - name: Write PR/main exact CI evidence
+        run: |
+          python3 scripts/write_stage1_ci_pr_main_evidence.py \
+            --output ops/evidence/ci/stage0-rev2-pr-main-run.json
+          python3 scripts/validate_stage1_ci_exact_evidence.py --contract-only
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage0-rev2-pr-main-run
+          path: ops/evidence/ci/stage0-rev2-pr-main-run.json
 
   docker-images:
-    name: Docker image build draft
+    name: Docker image build exact evidence
     runs-on: ubuntu-latest
     needs: repo-contracts
-    strategy:
-      matrix:
-        image:
-          - name: backend
-            context: backend
-          - name: web
-            context: web
-          - name: admin
-            context: admin
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build SHA-tagged image
-        run: docker build --tag ghcr.io/alphane-ai/zenart-${{ matrix.image.name }}:${{ github.sha }} ${{ matrix.image.context }}
+      - name: Build SHA-tagged images and write exact CI evidence
+        run: |
+          set -euo pipefail
+          rm -rf ops/evidence/ci/docker-image-build-run
+          GIT_SHA="${GITHUB_SHA}" IMAGE_PREFIX=ghcr.io/alphane-ai/zenari OUT_DIR=ops/evidence/ci/docker-image-build-run scripts/docker_build_smoke.sh | tee /tmp/zenari-docker-build.out
+          DOCKER_REPORT="$(awk '/evidence written to / {print $NF}' /tmp/zenari-docker-build.out | tail -n 1)"
+          test -n "$DOCKER_REPORT"
+          python3 scripts/write_stage1_ci_docker_evidence.py \
+            --source "$DOCKER_REPORT" \
+            --output ops/evidence/ci/stage0-rev2-docker-image-build.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = Path("ops/evidence/ci/stage0-rev2-docker-image-build.json")
+          data = json.loads(report.read_text())
+          assert data["schema_version"] == "stage1.ci_docker_image_build.v1"
+          assert set(data["images"]) == {"web", "admin", "backend"}
+          assert all(row["digest"].startswith("sha256:") for row in data["images"].values())
+          PY
+          python3 scripts/validate_stage1_ci_exact_evidence.py --contract-only
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage0-rev2-docker-image-build
+          path: |
+            ops/evidence/ci/stage0-rev2-docker-image-build.json
+            ops/evidence/ci/docker-image-build-run/
 
   playwright-smoke:
-    name: Playwright smoke draft
+    name: Playwright smoke exact evidence
     runs-on: ubuntu-latest
     needs: repo-contracts
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run Playwright smoke wrapper in planned mode
-        run: DRY_RUN=1 scripts/playwright_smoke.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install frontend dependencies
+        run: |
+          npm ci --prefix web
+          npm ci --prefix admin
+          cd web && npx playwright install --with-deps chromium
+
+      - name: Start frontend smoke servers
+        run: |
+          npm --prefix web run dev -- --hostname 127.0.0.1 --port 26080 > /tmp/zenari-web-playwright.log 2>&1 &
+          npm --prefix admin run dev -- --hostname 127.0.0.1 --port 26081 > /tmp/zenari-admin-playwright.log 2>&1 &
+          python3 - <<'PY'
+          import time
+          import urllib.request
+
+          urls = [
+              "http://127.0.0.1:26080",
+              "http://127.0.0.1:26081",
+          ]
+          deadline = time.time() + 90
+          pending = set(urls)
+          while pending and time.time() < deadline:
+              for url in list(pending):
+                  try:
+                      with urllib.request.urlopen(url, timeout=3) as response:
+                          if response.status < 500:
+                              pending.remove(url)
+                  except Exception:
+                      pass
+              if pending:
+                  time.sleep(2)
+          if pending:
+              raise SystemExit(f"frontend smoke servers did not become ready: {sorted(pending)}")
+          PY
+
+      - name: Run Playwright smoke and write exact CI evidence
+        env:
+          WEB_URL: http://127.0.0.1:26080
+          ADMIN_URL: http://127.0.0.1:26081
+        run: |
+          set -euo pipefail
+          rm -rf ops/evidence/ci/playwright-smoke-run
+          OUT_DIR=ops/evidence/ci/playwright-smoke-run scripts/playwright_smoke.sh | tee /tmp/zenari-playwright-smoke.out
+          PLAYWRIGHT_REPORT="$(awk '/evidence written to / {print $NF}' /tmp/zenari-playwright-smoke.out | tail -n 1)"
+          test -n "$PLAYWRIGHT_REPORT"
+          python3 scripts/write_stage1_ci_playwright_evidence.py \
+            --source "$PLAYWRIGHT_REPORT" \
+            --output ops/evidence/ci/stage0-rev2-playwright-smoke.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = Path("ops/evidence/ci/stage0-rev2-playwright-smoke.json")
+          data = json.loads(report.read_text())
+          assert data["schema_version"] == "stage1.ci_playwright_smoke.v1"
+          assert data["coverage"]["billing"]["status"] == "pass"
+          assert data["coverage"]["workspace"]["status"] == "pass"
+          PY
+
+      - name: Validate exact Playwright CI evidence shape
+        run: |
+          set -euo pipefail
+          tmp_dir="$(mktemp -d)"
+          python3 - "$tmp_dir" <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          out = Path(sys.argv[1])
+          safe_false = {
+              "secret_material_persisted": False,
+              "raw_prompt_persisted": False,
+              "raw_provider_payload_persisted": False,
+              "raw_stripe_payload_persisted": False,
+              "raw_support_body_projected": False,
+              "signed_url_persisted": False,
+              "authorization_header_persisted": False,
+              "cookie_persisted": False,
+          }
+          base = {
+              "environment": "ci",
+              "status": "pass",
+              "release_sha": os.environ["GITHUB_SHA"],
+              "canonical_pass_path": True,
+              "dry_run": False,
+              "local_devport_debug": False,
+              "allow_local_devport_evidence": False,
+              "workflow_run": {
+                  "run_id": "1234567890",
+                  "run_url": "https://github.com/alphane-ai/zenari/actions/runs/1234567890",
+                  "workflow_file": ".github/workflows/stage0-rev2-ci.yml",
+                  "conclusion": "success",
+              },
+              "evidence_refs": [".github/workflows/stage0-rev2-ci.yml"],
+              **safe_false,
+          }
+          docker = {
+              **base,
+              "schema_version": "stage1.ci_docker_image_build.v1",
+              "kind": "ci_docker_image_build",
+              "release_gate_check_id": "ci_docker_image_build",
+              "images": {
+                  name: {
+                      "status": "pass",
+                      "digest": "sha256:" + str(index + 1) * 64,
+                      "evidence_refs": [f"docker://zenari/{name}@sha256"],
+                  }
+                  for index, name in enumerate(("web", "admin", "backend"))
+              },
+          }
+          docker["gate_impact"] = {"release_gate_check_id": "ci_docker_image_build", "can_clear_ci_gate_check": True}
+          (out / "stage0-rev2-docker-image-build.json").write_text(json.dumps(docker, indent=2, sort_keys=True) + "\n")
+          PY
+          python3 scripts/write_stage1_ci_pr_main_evidence.py \
+            --release-sha "${GITHUB_SHA}" \
+            --run-id "1234567890" \
+            --run-url "https://github.com/alphane-ai/zenari/actions/runs/1234567890" \
+            --event-name "pull_request" \
+            --base-ref "main" \
+            --head-ref "stage1/prelaunch" \
+            --canonical-pass-path \
+            --output "$tmp_dir/stage0-rev2-pr-main-run.json"
+          python3 scripts/validate_stage1_ci_exact_evidence.py \
+            --pr-main "$tmp_dir/stage0-rev2-pr-main-run.json" \
+            --playwright ops/evidence/ci/stage0-rev2-playwright-smoke.json \
+            --docker "$tmp_dir/stage0-rev2-docker-image-build.json"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage0-rev2-playwright-smoke
+          path: |
+            ops/evidence/ci/stage0-rev2-playwright-smoke.json
+            ops/evidence/ci/playwright-smoke-run/
+
+  ci-exact-evidence:
+    name: CI exact evidence aggregate validation
+    runs-on: ubuntu-latest
+    needs:
+      - repo-contracts
+      - docker-images
+      - playwright-smoke
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/zenari-ci-artifacts
+
+      - name: Validate exact CI evidence artifacts together
+        run: |
+          set -euo pipefail
+          mkdir -p ops/evidence/ci
+          copy_artifact() {
+            local artifact="$1"
+            local file="$2"
+            local source
+            source="$(find "/tmp/zenari-ci-artifacts/${artifact}" -type f -name "${file}" | head -n 1)"
+            test -n "${source}"
+            cp "${source}" "ops/evidence/ci/${file}"
+          }
+          copy_artifact stage0-rev2-pr-main-run stage0-rev2-pr-main-run.json
+          copy_artifact stage0-rev2-docker-image-build stage0-rev2-docker-image-build.json
+          copy_artifact stage0-rev2-playwright-smoke stage0-rev2-playwright-smoke.json
+          python3 scripts/validate_stage1_ci_exact_evidence.py
+          python3 scripts/generate_stage1_release_candidate_metadata.py
+          set +e
+          python3 scripts/generate_stage1_release_metadata_preflight.py \
+            --release-sha "${GITHUB_SHA}" \
+            --release-notes-path ops/release/stage1_release_candidate_metadata_draft.md \
+            --ci-docker-evidence ops/evidence/ci/stage0-rev2-docker-image-build.json \
+            --migration-evidence ops/evidence/release/staging/stage1-release-candidate-migration-draft.json \
+            --config-diff-evidence ops/evidence/release/staging/stage1-release-candidate-config-diff-draft.json \
+            --observability-evidence ops/evidence/release/staging/stage1-release-candidate-observability-draft.json \
+            --backup-restore-evidence ops/evidence/release/staging/stage1-release-candidate-backup-restore-draft.json \
+            --load-evidence ops/evidence/release/staging/stage1-release-candidate-load-draft.json \
+            --rollback-evidence ops/evidence/release/staging/stage1-release-candidate-rollback-draft.json \
+            --security-scan-evidence ops/evidence/release/staging/stage1-release-candidate-security-scan-draft.json
+          preflight_status=$?
+          set -e
+          if [ "$preflight_status" -ne 0 ] && [ "$preflight_status" -ne 2 ]; then
+            exit "$preflight_status"
+          fi
+          python3 scripts/generate_stage1_ci_release_gate_evidence.py
+          python3 scripts/render_no_go_release_notes.py --write
+          python3 scripts/validate_stage0_rev2.py
+          python3 scripts/generate_stage1_production_launch_evidence.py \
+            --evidence /tmp/stage1-production-launch.json \
+            --results /tmp/stage1-production-launch.ndjson
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          aggregate = json.loads(Path("/tmp/stage1-production-launch.json").read_text())
+          ci_evidence = aggregate.get("ci_evidence", [])
+          assert len(ci_evidence) == 3, ci_evidence
+          assert all(item.get("status") == "pass" for item in ci_evidence), ci_evidence
+          missing = [
+              blocker
+              for item in ci_evidence
+              for blocker in item.get("blockers", [])
+              if "missing CI evidence" in blocker
+          ]
+          assert not missing, missing
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stage1-ci-exact-evidence-aggregate
+          path: |
+            ops/evidence/ci/stage0-rev2-pr-main-run.json
+            ops/evidence/ci/stage0-rev2-playwright-smoke.json
+            ops/evidence/ci/stage0-rev2-docker-image-build.json
+            ops/evidence/release/staging/stage1-release-metadata-preflight.json
+            fixtures/stage0/rev2/release_gate_evidence.ci.json
+            ops/release/stage0_rev2_current_no_go_release_notes.md
 
   smoke-placeholders:
-    name: Deferred smoke gates
+    name: Deferred runtime evidence gates
     runs-on: ubuntu-latest
     needs: repo-contracts
     steps:
       - uses: actions/checkout@v4
 
-      - name: Record token-blocked installation and deferred runtime smoke
+      - name: Record installed workflow and deferred runtime smoke
         run: |
+          test -f .github/workflows/stage0-rev2-ci.yml
           test -f ops/evidence/stage0_environment_evidence.json
           python3 - <<'PY'
           import json
           from pathlib import Path
           data = json.loads(Path("ops/evidence/stage0_environment_evidence.json").read_text())
-          blocked = [item for item in data["open_items"] if item["id"] == "install_github_actions_workflow"]
-          assert blocked and blocked[0]["status"] == "blocked_by_token_scope"
+          installed = [item for item in data["open_items"] if item["id"] == "ci_installed_workflow"]
+          assert installed and installed[0]["status"] == "installed_pending_runtime_evidence"
           deferred = {item["id"] for item in data["open_items"]}
           assert "playwright_smoke" in deferred
+          assert "docker_image_build_runtime" in deferred
           assert "runtime_load_drills" in deferred
           PY

@@ -1,0 +1,149 @@
+{
+  "schema_version": "stage1.asset_library_brandkit.contract.v1",
+  "kind": "asset_library_brandkit_tenant_contract",
+  "blueprint_source": "Docs/Stage1_20260621_blueprint.md",
+  "blueprint_items": ["AS-8", "AS-9", "FE-13", "FE-14"],
+  "backend_packages": ["backend/internal/assets", "backend/internal/brandkit"],
+  "openapi_source": "openapi/zenart.v1.yaml",
+  "asset_library_contract": {
+    "entry_fields": ["asset", "visibility", "favorite", "archived", "reusable", "allowed_projects", "tags"],
+    "actions": ["insert_canvas", "attach_prompt", "favorite", "archive", "reuse_project"],
+    "visibility": ["project", "tenant", "private"],
+    "tenant_scoped_projection": "LibraryUserProjection",
+    "prompt_attachment_builder": "BuildPromptAttachment",
+    "canvas_insertion_builder": "BuildCanvasInsertion",
+    "tenant_sql": "TenantScopedListLibrarySQL",
+    "private_reuse_allowed": false,
+    "archived_prompt_or_canvas_use_allowed": false
+  },
+  "brand_kit_contract": {
+    "fields": ["logos", "palette", "fonts", "guidelines", "source_refs", "project_bindings"],
+    "statuses": ["draft", "active", "archived"],
+    "tenant_scoped_projection": "UserProjection",
+    "prompt_context_projection": "PromptContextProjection",
+    "project_default_lookup": "ProjectDefault",
+    "tenant_sql": "TenantScopedListBrandKitsSQL",
+    "prompt_context_requires_active": true,
+    "palette_hex_required": true,
+    "secret_like_guidelines_rejected": true
+  },
+  "persistence": {
+    "tables": ["asset_library_entries", "brand_kits"],
+    "tenant_constraints": [
+      "idx_asset_library_entries_tenant_id_unique",
+      "idx_brand_kits_tenant_id_unique",
+      "fk_asset_library_entries_tenant_asset",
+      "fk_asset_library_entries_tenant_created_by",
+      "fk_brand_kits_tenant_created_by"
+    ]
+  },
+  "api_runtime_contract": {
+    "routes": [
+      "GET /api/v1/assets/library",
+      "POST /api/v1/assets/library",
+      "PATCH /api/v1/assets/library/{entry_id}",
+      "GET /api/v1/brand-kits",
+      "POST /api/v1/brand-kits",
+      "PATCH /api/v1/brand-kits/{brand_kit_id}",
+      "GET /api/v1/projects/{project_id}/brand-kit-default",
+      "PUT /api/v1/projects/{project_id}/brand-kit-default"
+    ],
+    "handlers": [
+      "listAssetLibrary",
+      "createAssetLibraryEntry",
+      "updateAssetLibraryEntry",
+      "listBrandKits",
+      "createBrandKit",
+      "updateBrandKit",
+      "getProjectDefaultBrandKit",
+      "setProjectDefaultBrandKit"
+    ],
+    "repository_methods": [
+      "ListAssetLibrary",
+      "CreateAssetLibraryEntry",
+      "GetAssetLibraryEntry",
+      "UpdateAssetLibraryEntry",
+      "ListBrandKits",
+      "CreateBrandKit",
+      "GetBrandKit",
+      "UpdateBrandKit",
+      "GetProjectDefaultBrandKit",
+      "SetProjectDefaultBrandKit"
+    ],
+    "principal_tenant_required": true,
+    "project_filter_required": true,
+    "safe_projection_required": true,
+    "secret_like_projection_redacted": true,
+    "write_idempotency_required": true,
+    "write_validation_required": true,
+    "focused_server_tests": [
+      "TestAssetLibraryUsesPrincipalTenantProjectAndSafeProjection",
+      "TestBrandKitsUsesPrincipalTenantProjectAndSafeProjection",
+      "TestProjectDefaultBrandKitUsesPrincipalTenantAndPathProject",
+      "TestCreateAssetLibraryEntryUsesPrincipalTenantAndIdempotency",
+      "TestUpdateAssetLibraryEntryRequiresIdempotencyBeforeStorage",
+      "TestCreateBrandKitRejectsSecretLikeGuidelinesBeforeStorage",
+      "TestSetProjectDefaultBrandKitUsesPrincipalTenantAndPathProject"
+    ]
+  },
+  "frontend_picker_contract": {
+    "source_files": [
+      "web/lib/contracts.ts",
+      "web/lib/asset-library-client.ts",
+      "web/lib/api-client.ts",
+      "web/components/workspace-app.tsx",
+      "web/validation/user-routes-smoke.json"
+    ],
+    "state_contract": "AssetLibraryState",
+    "client_contract": "AssetLibraryClient",
+    "operations": [
+      "listAssetLibrary",
+      "createAssetLibraryEntry",
+      "updateAssetLibraryEntry",
+      "listBrandKits",
+      "createBrandKit",
+      "updateBrandKit",
+      "getProjectDefaultBrandKit",
+      "setProjectDefaultBrandKit"
+    ],
+    "ui_marker": "stage1.asset-library-brandkit-user-picker",
+    "refresh_control": "Refresh Assets",
+    "safe_action_label": "asset-library-refresh",
+    "package_behavior": "local_reference_package_item",
+    "write_api_claimed": true,
+    "required_data_attributes": [
+      "data-asset-library-brandkit-ui",
+      "data-asset-library-sync-status",
+      "data-asset-library-operation-count",
+      "data-asset-library-operations",
+      "data-asset-library-operation-contracts",
+      "data-asset-library-item-count",
+      "data-asset-library-reusable-count",
+      "data-asset-library-packaged-count",
+      "data-brand-kit-count",
+      "data-brand-kit-default-id",
+      "data-brand-kit-default-palette-count",
+      "data-asset-library-create-contract",
+      "data-asset-library-favorite-contract",
+      "data-asset-library-archive-contract",
+      "data-brand-kit-create-contract",
+      "data-brand-kit-write-api",
+      "data-brand-kit-default-contract"
+    ],
+    "focused_web_tests": [
+      "refreshes asset library and Brand Kit picker data through the read API",
+      "writes asset library and Brand Kit changes through idempotent API calls",
+      "renders asset library and Brand Kit picker contract on the workspace"
+    ]
+  },
+  "non_launch_status": {
+    "local_contract": "pass",
+    "local_read_api_runtime": "pass",
+    "local_write_api_runtime": "pass",
+    "local_frontend_picker": "pass",
+    "frontend_ui": "local_picker_and_write_contract",
+    "write_api_runtime": "local_pass",
+    "staging_runtime_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false
+  }
+}

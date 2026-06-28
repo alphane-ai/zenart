@@ -1,0 +1,121 @@
+{
+  "schema_version": "stage1.external_resource_readiness.contract.v1",
+  "fixture_id": "stage1_external_resource_readiness_local_contract",
+  "kind": "external_resource_readiness_contract",
+  "blueprint_items": ["R-3", "R-5", "OP-2", "OP-3", "OP-4", "OP-5", "OP-7", "VF-6", "VF-7", "VF-8"],
+  "release_gate_status": "contract_ready_external_resources_open",
+  "required_environment": "release",
+  "canonical_preflight_path": "ops/evidence/release/staging/stage1-external-resource-readiness.preflight.json",
+  "source_aggregates": [
+    {
+      "id": "staging_runtime",
+      "path": "ops/evidence/staging/stage1-runtime.json",
+      "required_schema_version": "stage1.staging_runtime.v1",
+      "required_kind": "stage1_staging_runtime",
+      "required_environment": "staging"
+    },
+    {
+      "id": "production_launch",
+      "path": "ops/evidence/production/stage1-production-launch.json",
+      "required_schema_version": "stage1.production_launch.v1",
+      "required_kind": "stage1_production_launch",
+      "required_environment": "production"
+    },
+    {
+      "id": "r2_bucket_readiness",
+      "path": "ops/evidence/release/staging/stage1-r2-bucket-readiness.preflight.json",
+      "required_schema_version": "stage1.r2_bucket_readiness.preflight.v1",
+      "required_kind": "stage1_r2_bucket_readiness_preflight",
+      "required_environment": "release"
+    }
+  ],
+  "required_resource_ids": [
+    "llm_zai_openai_compatible",
+    "r2_zenari_bucket",
+    "staging_public_urls",
+    "staging_admin_access",
+    "staging_quota_replay_db",
+    "ci_exact_artifacts",
+    "production_launch_inputs"
+  ],
+  "required_resource_fields": [
+    "resource_id",
+    "lane",
+    "status",
+    "current_blocker",
+    "required_resource",
+    "provided_signal",
+    "validation_signal",
+    "gate_dependency",
+    "evidence_refs",
+    "validator",
+    "next_action",
+    "operator_ask"
+  ],
+  "required_operator_handoff_fields": [
+    "status",
+    "current_loop_breaker",
+    "ready_resource_ids",
+    "missing_resource_ids",
+    "blocked_resource_ids",
+    "missing_variables",
+    "resource_classes",
+    "production_source_probe_requirements",
+    "commands_after_inputs",
+    "resource_status",
+    "non_clearing_preflight",
+    "input_packet_ref",
+    "operator_brief_ref",
+    "missing_input_checklist_ref",
+    "source_probe_runbook_ref"
+  ],
+  "preflight_policy": {
+    "generator_command": "python3 scripts/generate_stage1_external_resource_readiness.py",
+    "validator_command": "python3 scripts/validate_stage1_external_resource_readiness.py --allow-preflight",
+    "r2_bucket_readiness_validator_command": "python3 scripts/validate_stage1_r2_bucket_readiness.py --allow-preflight",
+    "accepted_schema_version": "stage1.external_resource_readiness.preflight.v1",
+    "accepted_kind": "stage1_external_resource_readiness_preflight",
+    "accepted_status": "blocked",
+    "canonical_pass_path": false,
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "can_close_do_not_launch": false,
+    "requires_strict_ci_staging_production_evidence_for_launch": true,
+    "strict_validator_still_rejects_preflight": true
+  },
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false
+  },
+  "required_files": [
+    "admin/app/release/page.tsx",
+    "fixtures/stage1/r2_bucket_readiness/local_contract.json",
+    "fixtures/stage1/external_resource_readiness/local_contract.json",
+    "fixtures/stage1/release_readiness/local_contract.json",
+    "scripts/stage1_r2_bucket_readiness.py",
+    "scripts/validate_stage1_r2_bucket_readiness.py",
+    "scripts/generate_stage1_external_resource_readiness.py",
+    "scripts/validate_stage1_external_resource_readiness.py",
+    "scripts/generate_stage1_production_launch_operator_brief.py",
+    "scripts/validate_stage1_production_launch_operator_brief.py",
+    "scripts/generate_stage1_production_missing_input_checklist.py",
+    "scripts/validate_stage1_production_missing_input_checklist.py",
+    "scripts/generate_stage1_production_source_probe_runbook.py",
+    "scripts/validate_stage1_production_source_probe_runbook.py",
+    "scripts/validate_stage1_release_readiness_contract.py",
+    "scripts/repo_validate.sh"
+  ],
+  "non_launch_status": {
+    "local_contract": "pass",
+    "resource_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "can_close_do_not_launch": false
+  }
+}

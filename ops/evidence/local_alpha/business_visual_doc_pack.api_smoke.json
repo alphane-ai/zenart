@@ -9,7 +9,7 @@
     "25.20"
   ],
   "created_by_lane": "lane1",
-  "created_at": "2026-06-03T17:11:44.647Z",
+  "created_at": "2026-06-22T11:58:28.429Z",
   "environment": "local_alpha",
   "workflow_id": "business_visual_doc_pack",
   "fixture_id": "fx_business_visual_doc_golden",
@@ -41,13 +41,13 @@
     "getExport"
   ],
   "operation_contracts": [
-    "createChatSession:POST:/projects/{project_id}/chat/sessions:include:X-ZenArt-CSRF:true",
-    "createChatMessage:POST:/chat/sessions/{chat_session_id}/messages:include:X-ZenArt-CSRF:true",
-    "createCandidateSet:POST:/projects/{project_id}/candidate-sets:include:X-ZenArt-CSRF:true",
+    "createChatSession:POST:/projects/{project_id}/chat/sessions:include:X-Zenari-CSRF:true",
+    "createChatMessage:POST:/chat/sessions/{chat_session_id}/messages:include:X-Zenari-CSRF:true",
+    "createCandidateSet:POST:/projects/{project_id}/candidate-sets:include:X-Zenari-CSRF:true",
     "listCandidateAssets:GET:/candidate-sets/{candidate_set_id}/assets:include:not-required:false",
-    "selectDirection:PUT:/projects/{project_id}/selected-direction:include:X-ZenArt-CSRF:true",
-    "createPackage:POST:/projects/{project_id}/packages:include:X-ZenArt-CSRF:true",
-    "createExport:POST:/packages/{package_id}/exports:include:X-ZenArt-CSRF:true",
+    "selectDirection:PUT:/projects/{project_id}/selected-direction:include:X-Zenari-CSRF:true",
+    "createPackage:POST:/projects/{project_id}/packages:include:X-Zenari-CSRF:true",
+    "createExport:POST:/packages/{package_id}/exports:include:X-Zenari-CSRF:true",
     "getExport:GET:/exports/{export_id}:include:not-required:false"
   ],
   "operation_count": 8,

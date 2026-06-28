@@ -1,0 +1,63 @@
+{
+  "fixture_id": "four_variants",
+  "contract_version": 1,
+  "batch": {
+    "id": "batch_four",
+    "tenant_id": "tenant_1",
+    "user_id": "user_1",
+    "project_id": "project_1",
+    "workspace_id": "workspace_1",
+    "prompt_context": {
+      "text": "Create four visual directions for a launch campaign.",
+      "selected_object_ids": ["object_logo_1"],
+      "reference_asset_ids": ["asset_ref_1", "asset_ref_2"],
+      "brand_kit_id": "brand_kit_1",
+      "model_hints": ["image-fast-v1"],
+      "tool_hint": "image.generate"
+    },
+    "requested_count": 4,
+    "allowed_models": ["image-fast-v1"],
+    "quota_reservation_id": "quota_four",
+    "quota_estimated_units": 16,
+    "quota_committed_units": 16,
+    "quota_refunded_units": 0,
+    "trace_id": "trace_batch_four",
+    "status": "succeeded"
+  },
+  "children": [
+    {"id": "child_four_1", "batch_id": "batch_four", "tenant_id": "tenant_1", "status": "succeeded", "provider_id": "zenari-image-sandbox", "model_id": "image-fast-v1", "tool_type": "image.generate", "seed": "four-001", "retry_count": 0, "max_retries": 2, "quota_estimate_units": 4, "quota_committed_units": 4, "quota_refunded_units": 0, "asset_id": "asset_four_1", "canvas_object_id": "object_four_1", "trace_id": "trace_child_four_1", "visible_trace_ref": "trace_projection_child_four_1"},
+    {"id": "child_four_2", "batch_id": "batch_four", "tenant_id": "tenant_1", "status": "succeeded", "provider_id": "zenari-image-sandbox", "model_id": "image-fast-v1", "tool_type": "image.generate", "seed": "four-002", "retry_count": 0, "max_retries": 2, "quota_estimate_units": 4, "quota_committed_units": 4, "quota_refunded_units": 0, "asset_id": "asset_four_2", "canvas_object_id": "object_four_2", "trace_id": "trace_child_four_2", "visible_trace_ref": "trace_projection_child_four_2"},
+    {"id": "child_four_3", "batch_id": "batch_four", "tenant_id": "tenant_1", "status": "succeeded", "provider_id": "zenari-image-sandbox", "model_id": "image-fast-v1", "tool_type": "image.generate", "seed": "four-003", "retry_count": 0, "max_retries": 2, "quota_estimate_units": 4, "quota_committed_units": 4, "quota_refunded_units": 0, "asset_id": "asset_four_3", "canvas_object_id": "object_four_3", "trace_id": "trace_child_four_3", "visible_trace_ref": "trace_projection_child_four_3"},
+    {"id": "child_four_4", "batch_id": "batch_four", "tenant_id": "tenant_1", "status": "succeeded", "provider_id": "zenari-image-sandbox", "model_id": "image-fast-v1", "tool_type": "image.generate", "seed": "four-004", "retry_count": 0, "max_retries": 2, "quota_estimate_units": 4, "quota_committed_units": 4, "quota_refunded_units": 0, "asset_id": "asset_four_4", "canvas_object_id": "object_four_4", "trace_id": "trace_child_four_4", "visible_trace_ref": "trace_projection_child_four_4"}
+  ],
+  "progress": {"queued": 0, "running": 0, "succeeded": 4, "failed": 0, "cancelled": 0, "blocked": 0, "retryable": 0},
+  "scheduler": {
+    "fanout_owner": "backend_worker",
+    "claim_operation": "ClaimRunnableChildren",
+    "execution_operation": "ExecuteClaimedChild",
+    "usage_recording": "RecordProviderUsage",
+    "success_operation": "CompleteChildSuccess",
+    "failure_operation": "CompleteChildFailure",
+    "retry_operation": "MarkChildRetryScheduled",
+    "retry_policy": "provider_retryable_errors_requeue_without_quota_refund_until_max_retries",
+    "dead_letter_policy": "exhausted_or_non_retryable_failures_are_dead_lettered_and_refund_reserved_quota",
+    "result_sink_required": true,
+    "result_sink": "PostgresBatchResultSink",
+    "quota_policy": "reserve_estimate_commit_actual_usage_refund_remainder",
+    "claim_timeout_seconds": 900,
+    "claim_lease_policy": "expired_running_unaccounted_children_requeued_before_claim",
+    "drain_policy": "batch_runner_drain_stops_new_claims",
+    "provider_idempotency_key_policy": "batch_child_id_retry_attempt_stable_across_reclaim",
+    "worker_id": "worker_stage1_local_1",
+    "max_tenant_concurrency": 4,
+    "provider_max_concurrency": {"zenari-image-sandbox": 4},
+    "provider_model_concurrency": {"zenari-image-sandbox:image-fast-v1": 4},
+    "allowed_provider_model_tools": [
+      {"provider_id": "zenari-image-sandbox", "model_id": "image-fast-v1", "tool_type": "image.generate"}
+    ],
+    "claimed_children": ["child_four_1", "child_four_2", "child_four_3", "child_four_4"],
+    "claim_metadata": {"fanout_stage": "claimed_by_worker_scheduler", "claimed_by_worker_id": "worker_stage1_local_1", "claim_expires_at": "2026-06-21T12:15:00Z", "claim_attempt": "1"},
+    "expired_claim_release_metadata": {"fanout_stage": "claim_timeout_requeued", "claim_released_by": "batch_claim_timeout", "claim_previous_worker_id": "worker_stage1_local_0"}
+  },
+  "user_projection": {"visible_model_label": "image-fast-v1", "children": [{"id": "child_four_1", "status": "succeeded", "asset_id": "asset_four_1", "canvas_object_id": "object_four_1", "visible_trace_ref": "trace_projection_child_four_1"}, {"id": "child_four_2", "status": "succeeded", "asset_id": "asset_four_2", "canvas_object_id": "object_four_2", "visible_trace_ref": "trace_projection_child_four_2"}, {"id": "child_four_3", "status": "succeeded", "asset_id": "asset_four_3", "canvas_object_id": "object_four_3", "visible_trace_ref": "trace_projection_child_four_3"}, {"id": "child_four_4", "status": "succeeded", "asset_id": "asset_four_4", "canvas_object_id": "object_four_4", "visible_trace_ref": "trace_projection_child_four_4"}]}
+}

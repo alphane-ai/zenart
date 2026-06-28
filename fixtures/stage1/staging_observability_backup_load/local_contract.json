@@ -1,0 +1,83 @@
+{
+  "schema_version": "stage1.staging_observability_backup_load.contract.v1",
+  "fixture_id": "stage1_staging_observability_backup_load_exact_contract",
+  "kind": "staging_observability_backup_load_exact_evidence_contract",
+  "canonical_combined_evidence_path": "ops/evidence/staging/20260527T013207Z-staging-observability-backup-load-36222.json",
+  "strict_kind": "staging_observability_backup_load_preflight",
+  "release_gate_status": "contract_ready_exact_staging_observability_backup_load_evidence",
+  "required_environment": "staging",
+  "required_release_gate_check_id": "staging_observability_backup_load",
+  "required_do_not_launch_condition_id": "staging_observability_restore_load_missing",
+  "required_release_sha_pattern": "^[0-9a-f]{40}$",
+  "required_slots": [
+    "observability_evidence",
+    "backup_restore_evidence",
+    "load_evidence",
+    "post_deploy_smoke_evidence"
+  ],
+  "required_verified_entries": {
+    "observability_evidence": [
+      "request_id_propagation",
+      "structured_json_logs",
+      "opentelemetry_traces",
+      "backend_worker_crawler_metrics",
+      "dashboard_import",
+      "alert_routes"
+    ],
+    "backup_restore_evidence": [
+      "postgres_restore",
+      "object_restore"
+    ],
+    "load_evidence": [
+      "chat_task",
+      "worker_generation",
+      "zip_export",
+      "signed_download",
+      "crawler_throttle",
+      "quota_contention",
+      "workspace_rendering"
+    ],
+    "post_deploy_smoke_evidence": [
+      "backend_health",
+      "web",
+      "admin",
+      "auth_boundary",
+      "worker_task",
+      "export_package",
+      "signed_download",
+      "crawler_admin",
+      "quota_rate_limit",
+      "observability"
+    ]
+  },
+  "required_source_evidence": [
+    "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+    "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+    "ops/evidence/staging/20260527T2120Z-load.json",
+    "ops/evidence/staging/20260527T2125Z-post-deploy-smoke.json"
+  ],
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false
+  },
+  "strict_evidence_policy": {
+    "release_sha_full_40_hex": true,
+    "combined_preflight_status_passed": true,
+    "all_slots_verified": true,
+    "private_beta_gate_fixture_updated": true,
+    "gate_impact_can_clear_required": true,
+    "source_evidence_under_staging_required": true,
+    "allow_blocked_status": false,
+    "allow_local_devport_debug": false,
+    "allow_local_devport_evidence": false,
+    "allow_dry_run": false,
+    "allow_preserved_do_not_launch_conditions": false,
+    "allow_raw_or_secret_payloads": false
+  }
+}

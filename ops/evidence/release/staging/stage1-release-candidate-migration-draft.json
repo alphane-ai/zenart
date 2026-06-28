@@ -1,0 +1,152 @@
+{
+  "blocking_reasons": [
+    "strict_staging_migration_run_evidence_missing",
+    "deployed_database_migration_evidence_missing",
+    "rollback_or_forward_repair_evidence_missing"
+  ],
+  "can_clear_stage1_production_launch_gate": false,
+  "can_clear_stage1_staging_runtime_gate": false,
+  "environment": "staging_metadata_draft",
+  "expand_contract_compatibility": "local_contract_only",
+  "kind": "migration",
+  "migration_count": 22,
+  "migration_files": [
+    {
+      "exists": true,
+      "filename": "0001_lane1_core.sql",
+      "first_line": "CREATE TABLE IF NOT EXISTS tenants (",
+      "path": "backend/migrations/0001_lane1_core.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0002_stage0_rev2_domains.sql",
+      "first_line": "-- Zenari Stage 0 Rev2 domain baseline.",
+      "path": "backend/migrations/0002_stage0_rev2_domains.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0003_export_object_metadata_cleanup.sql",
+      "first_line": "-- Stage 0 Rev2 export object metadata and retention cleanup contract.",
+      "path": "backend/migrations/0003_export_object_metadata_cleanup.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0004_server_side_analytics_events.sql",
+      "first_line": "-- Stage 0 Rev2 server-side analytics capture.",
+      "path": "backend/migrations/0004_server_side_analytics_events.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0005_tenant_isolation_constraints.sql",
+      "first_line": "-- Stage 0 Rev2 tenant isolation guard rails.",
+      "path": "backend/migrations/0005_tenant_isolation_constraints.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0006_support_ticket_evidence_links.sql",
+      "first_line": "-- Add support ticket evidence links required by Stage 0 Rev2 support flows.",
+      "path": "backend/migrations/0006_support_ticket_evidence_links.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0007_support_ticket_required_evidence.sql",
+      "first_line": "-- Enforce the Stage 0 Rev2 support evidence contract for new tickets.",
+      "path": "backend/migrations/0007_support_ticket_required_evidence.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0008_immutable_audit_logs.sql",
+      "first_line": "-- Stage 0 Rev2 immutable audit log enforcement.",
+      "path": "backend/migrations/0008_immutable_audit_logs.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0009_server_side_workflow_analytics_triggers.sql",
+      "first_line": "-- Stage 0 Rev2 server-side workflow analytics triggers.",
+      "path": "backend/migrations/0009_server_side_workflow_analytics_triggers.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0010_export_status_analytics_triggers.sql",
+      "first_line": "-- Stage 0 Rev2 export failure analytics capture.",
+      "path": "backend/migrations/0010_export_status_analytics_triggers.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0011_stage1_provider_batch_contracts.sql",
+      "first_line": "-- zenari.ai Stage 1 provider registry and batch generation contracts.",
+      "path": "backend/migrations/0011_stage1_provider_batch_contracts.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0012_stage1_stripe_billing_contracts.sql",
+      "first_line": "-- zenari.ai Stage 1 Stripe checkout and webhook idempotency contracts.",
+      "path": "backend/migrations/0012_stage1_stripe_billing_contracts.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0013_stage1_admin_billing_ops.sql",
+      "first_line": "-- zenari.ai Stage 1 admin billing operations contracts.",
+      "path": "backend/migrations/0013_stage1_admin_billing_ops.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0014_stage1_team_seat_billing.sql",
+      "first_line": "-- zenari.ai Stage 1 team and seat billing contracts.",
+      "path": "backend/migrations/0014_stage1_team_seat_billing.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0015_stage1_default_paid_plan.sql",
+      "first_line": "-- zenari.ai Stage 1 default paid checkout plan.",
+      "path": "backend/migrations/0015_stage1_default_paid_plan.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0016_stage1_safety_review_ops.sql",
+      "first_line": "CREATE TABLE IF NOT EXISTS safety_review_decisions (",
+      "path": "backend/migrations/0016_stage1_safety_review_ops.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0017_stage1_export_override_ops.sql",
+      "first_line": "CREATE TABLE IF NOT EXISTS export_override_decisions (",
+      "path": "backend/migrations/0017_stage1_export_override_ops.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0018_stage1_support_ticket_links.sql",
+      "first_line": "-- zenari.ai Stage 1 support ticket evidence links.",
+      "path": "backend/migrations/0018_stage1_support_ticket_links.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0019_stage1_asset_library_brand_kits.sql",
+      "first_line": "-- zenari.ai Stage 1 asset library and Brand Kit contracts.",
+      "path": "backend/migrations/0019_stage1_asset_library_brand_kits.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0020_stage1_local_runtime_drift_repair.sql",
+      "first_line": "-- zenari.ai Stage 1 local runtime drift repair.",
+      "path": "backend/migrations/0020_stage1_local_runtime_drift_repair.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0021_stage1_provider_strategy_metadata_repair.sql",
+      "first_line": "-- zenari.ai Stage 1 provider strategy metadata repair.",
+      "path": "backend/migrations/0021_stage1_provider_strategy_metadata_repair.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0022_stage1_provider_usage_batch_task_refs.sql",
+      "first_line": "-- zenari.ai Stage 1 provider usage task-reference repair.",
+      "path": "backend/migrations/0022_stage1_provider_usage_batch_task_refs.sql"
+    }
+  ],
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "schema_version": "stage1.release_candidate_migration_draft.v1",
+  "status": "blocked",
+  "strict_usable": false,
+  "worker_schema_compatibility": "local_contract_only"
+}

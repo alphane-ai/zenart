@@ -1,233 +1,33 @@
 {
-  "schema_version": "stage0.rev2",
-  "evidence_id": "production_activation_review_audit_20260527T1430Z",
+  "allow_local_devport_evidence": false,
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "source_probe_missing: ops/evidence/production/production-governance-release-source.json"
+  ],
+  "canonical_pass_path": false,
+  "check_level_only": false,
+  "cookie_persisted": false,
+  "dry_run": false,
   "environment": "production",
-  "status": "pass_with_blockers_preserved",
-  "validated_at": "2026-05-27T14:30:00Z",
-  "validated_by_role": "admin_superadmin",
-  "release_gate_check_id": "production_activation_review_audit",
-  "do_not_launch_condition_ids": [
-    "activation_eval_review_audit_runtime_missing",
-    "admin_high_risk_review_runtime_missing"
-  ],
-  "summary": "Production activation review and audit probes validate RBAC, reviewer rationale, second-review state, immutable audit refs, temporary override expiry, and mutation outcome for release, crawler, prompt, provider, quota, safety, and export override gates.",
-  "runtime_request_ids": [
-    "production-activation-review-audit-20260527T1430Z-skill-release",
-    "production-activation-review-audit-20260527T1430Z-crawler-activation",
-    "production-activation-review-audit-20260527T1430Z-prompt-activation",
-    "production-activation-review-audit-20260527T1430Z-provider-routing",
-    "production-activation-review-audit-20260527T1430Z-provider-routing-expired",
-    "production-activation-review-audit-20260527T1430Z-quota-override",
-    "production-activation-review-audit-20260527T1430Z-safety-policy",
-    "production-activation-review-audit-20260527T1430Z-export-override",
-    "production-activation-review-audit-20260527T1430Z-gate-preservation"
-  ],
-  "admin_rbac_evidence_ids": [
-    "rbac-release-001",
-    "rbac-crawler-001",
-    "rbac-prompt-001",
-    "rbac-provider-001",
-    "rbac-provider-002",
-    "rbac-quota-001",
-    "rbac-safety-001",
-    "rbac-export-001"
-  ],
-  "admin_review_decision_ids": [
-    "rv-100",
-    "rv-101",
-    "rv-102"
-  ],
-  "audit_refs": [
-    "au-001",
-    "au-004",
-    "au-005",
-    "au-006",
-    "au-007",
-    "au-008",
-    "au-012"
-  ],
-  "coverage": [
-    {
-      "area": "skill_release_gate",
-      "status": "pass",
-      "runtime_probe": "Production release-gate replay queued rbac-release-001 as queued_second_review, kept skill-brand-kit@2.5.0 at 0% public traffic, and preserved rollback target skill-brand-kit@2.4.1 until reviewer and second-review evidence close.",
-      "deployment_evidence": "The production activation evidence file records the skill release runtime request, admin review rv-100, immutable audit au-005, release evidence eg-001, and blocked canary mutation outcome before any production skill traffic can change.",
-      "rbac_audit_evidence": "rbac-release-001 is attempted by admin_reviewer but still requires second-review completion, so runtime holds the change for second review and cites au-005, rv-100, sv-248, and eg-001.",
-      "linked_admin_artifacts": [
-        "admin/app/skills/releases/page.tsx",
-        "admin/app/audit/page.tsx",
-        "admin/lib/rbac-runtime.ts"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
-        "rbac-release-001",
-        "rv-100",
-        "sv-248",
-        "eg-001",
-        "au-005"
-      ]
-    },
-    {
-      "area": "crawler_activation_gate",
-      "status": "pass",
-      "runtime_probe": "Production crawler activation replay denied rbac-crawler-001, left cf-118 blocked, and prevented crawler-derived prompt or skill activation while takedown cg-501 and derivative deletion evidence remain unresolved.",
-      "deployment_evidence": "The production evidence file records the crawler activation runtime request, source takedown workflow cg-501, IP complaint ip-7001, and immutable audit au-012 with no mutation applied to the source activation state.",
-      "rbac_audit_evidence": "rbac-crawler-001 requires admin_reviewer and second review, but the attempted role is admin_operator, so crawler_activation denies mutation and preserves takedown review evidence.",
-      "linked_admin_artifacts": [
-        "admin/app/crawler/page.tsx",
-        "admin/app/audit/page.tsx",
-        "admin/lib/rbac-runtime.ts"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
-        "rbac-crawler-001",
-        "cg-501",
-        "cf-118",
-        "ip-7001",
-        "au-012"
-      ]
-    },
-    {
-      "area": "prompt_activation_gate",
-      "status": "pass",
-      "runtime_probe": "Production prompt activation replay denied rbac-prompt-001 because support_operator cannot activate prompt fragment pf-044 from support-attached feedback without reviewer-owned eval, QA, and audit evidence.",
-      "deployment_evidence": "The production evidence file records the prompt activation runtime request, feedback exclusion refs, and audit au-008 while keeping pf-044 in review and leaving active prompt routing unchanged.",
-      "rbac_audit_evidence": "rbac-prompt-001 has insufficient role evidence and blocked_no_mutation outcome, so prompt_activation preserves the existing prompt route and excludes fb-222 from learning weights.",
-      "linked_admin_artifacts": [
-        "admin/app/prompt-fragments/page.tsx",
-        "admin/app/audit/page.tsx",
-        "admin/lib/rbac-runtime.ts"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
-        "rbac-prompt-001",
-        "pf-044",
-        "fb-222",
-        "au-008"
-      ]
-    },
-    {
-      "area": "provider_routing_gate",
-      "status": "pass",
-      "runtime_probe": "Production provider router replay allowed only rbac-provider-001 non-urgent retry-weight reduction with active expiry, denied expired rbac-provider-002 as denied_expired_override, kept no silent fallback enabled, and preserved the degraded provider launch blocker.",
-      "deployment_evidence": "The production evidence file records active and expired provider routing runtime requests, admin review rv-101, provider health ph-1, release blocker eg-003, and immutable audit au-007 with explicit temporary override expirations.",
-      "rbac_audit_evidence": "rbac-provider-001 has sufficient admin_operator role and applied mutation with expiry, while rbac-provider-002 proves stale temporary provider overrides are denied after expiry; releaseGateImpact keeps provider production launch blocked until health and alert evidence pass.",
-      "linked_admin_artifacts": [
-        "admin/app/providers/page.tsx",
-        "admin/app/audit/page.tsx",
-        "admin/lib/rbac-runtime.ts"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
-        "rbac-provider-001",
-        "rbac-provider-002",
-        "rv-101",
-        "ph-1",
-        "eg-003",
-        "au-007"
-      ]
-    },
-    {
-      "area": "quota_override_gate",
-      "status": "pass",
-      "runtime_probe": "Production quota override replay denied rbac-quota-001 because support_operator cannot directly mutate usr-301 quota balance from support context without admin_operator transaction evidence.",
-      "deployment_evidence": "The production evidence file records the quota mutation runtime request, support ticket sup-2201, quota transaction qt-904, export ex-887, and audit au-004 with no direct balance mutation from support.",
-      "rbac_audit_evidence": "rbac-quota-001 fails required-role enforcement, keeps the user-visible ticket update only, and requires immutable audit au-004 before any credit or debit posts.",
-      "linked_admin_artifacts": [
-        "admin/app/quota/page.tsx",
-        "admin/app/support/page.tsx",
-        "admin/lib/rbac-runtime.ts"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
-        "rbac-quota-001",
-        "sup-2201",
-        "qt-904",
-        "ex-887",
-        "au-004"
-      ]
-    },
-    {
-      "area": "safety_policy_gate",
-      "status": "pass",
-      "runtime_probe": "Production safety policy replay queued rbac-safety-001 for superadmin and second review, kept forbidden-claims:v3 blocking at export, and blocked production launch activation for the policy relaxation.",
-      "deployment_evidence": "The production evidence file records the safety policy runtime request, risky export rx-41, release evidence eg-002, skill sv-098, and immutable audit au-006 without relaxing the blocking rule.",
-      "rbac_audit_evidence": "rbac-safety-001 requires admin_superadmin while attempted role is admin_reviewer and secondReviewStatus is blocked, so runtime returns queued_second_review and preserves the safety gate.",
-      "linked_admin_artifacts": [
-        "admin/app/safety/page.tsx",
-        "admin/app/audit/page.tsx",
-        "admin/lib/rbac-runtime.ts"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
-        "rbac-safety-001",
-        "rx-41",
-        "sv-098",
-        "eg-002",
-        "au-006"
-      ]
-    },
-    {
-      "area": "export_override_gate",
-      "status": "pass",
-      "runtime_probe": "Production export release replay denied rbac-export-001 even with admin_reviewer role because ex-887 has non-override-eligible forbidden-claim QA evidence at final export enforcement.",
-      "deployment_evidence": "The production evidence file records the export release runtime request, review rv-102, risky export rx-41, trace tr-1004, and audit au-001 while keeping the export unavailable.",
-      "rbac_audit_evidence": "rbac-export-001 is policy denied with blocked_no_mutation outcome, so export_release preserves the block and only allows audited quota credit or safe regeneration paths.",
-      "linked_admin_artifacts": [
-        "admin/app/safety/page.tsx",
-        "admin/app/audit/page.tsx",
-        "admin/lib/rbac-runtime.ts"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
-        "rbac-export-001",
-        "rv-102",
-        "rx-41",
-        "tr-1004",
-        "au-001"
-      ]
-    },
-    {
-      "area": "gate_blocker_preservation",
-      "status": "pass",
-      "runtime_probe": "Production release-gate replay cleared production_activation_review_audit while preserving backup rollback plus upstream CI and staging blockers.",
-      "deployment_evidence": "The production gate fixture cites this production evidence path on the activation review audit check, clears only activation and high-risk admin review do-not-launch conditions, and preserves unrelated production blockers.",
-      "rbac_audit_evidence": "Gate preservation links all eight admin RBAC evidence records, admin review decisions rv-100 through rv-102, and immutable audits au-001, au-004, au-005, au-006, au-007, au-008, and au-012 without implying production launch readiness.",
-      "linked_admin_artifacts": [
-        "admin/app/audit/page.tsx",
-        "admin/lib/rbac-runtime.ts",
-        "admin/tests/admin-governance.test.mjs"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
-        "rbac-release-001",
-        "rbac-crawler-001",
-        "rbac-prompt-001",
-        "rbac-provider-001",
-        "rbac-provider-002",
-        "rbac-quota-001",
-        "rbac-safety-001",
-        "rbac-export-001",
-        "rv-100",
-        "rv-101",
-        "rv-102",
-        "au-001",
-        "au-004",
-        "au-005",
-        "au-006",
-        "au-007",
-        "au-008",
-        "au-012"
-      ]
-    }
-  ],
   "gate_impact": {
-    "checklist_item": "Production activation review/audit runtime/deployment evidence \u901a\u8fc7\u3002",
-    "can_clear_check_level_item": true,
-    "aggregate_production_gate_status": "blocked_by_other_production_runtime_items",
+    "can_clear_activation_review_audit_component": false,
+    "can_clear_aggregate_production_gate": false,
+    "preserved_release_gate_check_id": "production_activation_review_audit",
     "remaining_blockers": [
-      "production_paid_billing_lifecycle",
-      "production_backup_rollback_incident"
+      "source_probe_missing: ops/evidence/production/production-governance-release-source.json"
     ]
-  }
+  },
+  "generated_at": "2026-06-26T01:44:00+00:00",
+  "kind": "production_activation_review_audit",
+  "local_devport_debug": false,
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_activation_review_audit",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "schema_version": "stage1.production_activation_review_audit.blocked.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "blocked"
 }

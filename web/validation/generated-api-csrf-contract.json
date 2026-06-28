@@ -91,14 +91,26 @@
       "updateProject:PATCH:include:same-site-origin-check:csrf-probe-updateProject",
       "createChatSession:POST:include:same-site-origin-check:csrf-probe-createChatSession",
       "createChatMessage:POST:include:same-site-origin-check:csrf-probe-createChatMessage",
+      "createBatchGeneration:POST:include:same-site-origin-check:csrf-probe-createBatchGeneration",
+      "cancelBatchGeneration:POST:include:same-site-origin-check:csrf-probe-cancelBatchGeneration",
+      "retryBatchGenerationChild:POST:include:same-site-origin-check:csrf-probe-retryBatchGenerationChild",
       "createCandidateSet:POST:include:same-site-origin-check:csrf-probe-createCandidateSet",
       "selectDirection:PUT:include:same-site-origin-check:csrf-probe-selectDirection",
       "createCanvasNode:POST:include:same-site-origin-check:csrf-probe-createCanvasNode",
       "createCanvasVersion:POST:include:same-site-origin-check:csrf-probe-createCanvasVersion",
       "createUpload:POST:include:same-site-origin-check:csrf-probe-createUpload",
+      "createAssetLibraryEntry:POST:include:same-site-origin-check:csrf-probe-createAssetLibraryEntry",
+      "updateAssetLibraryEntry:PATCH:include:same-site-origin-check:csrf-probe-updateAssetLibraryEntry",
+      "createBrandKit:POST:include:same-site-origin-check:csrf-probe-createBrandKit",
+      "updateBrandKit:PATCH:include:same-site-origin-check:csrf-probe-updateBrandKit",
+      "setProjectDefaultBrandKit:PUT:include:same-site-origin-check:csrf-probe-setProjectDefaultBrandKit",
       "createPackage:POST:include:same-site-origin-check:csrf-probe-createPackage",
       "createExport:POST:include:same-site-origin-check:csrf-probe-createExport",
       "createShareLink:POST:include:same-site-origin-check:csrf-probe-createShareLink",
+      "createCheckoutSession:POST:include:same-site-origin-check:csrf-probe-createCheckoutSession",
+      "createBillingPortalSession:POST:include:same-site-origin-check:csrf-probe-createBillingPortalSession",
+      "cancelSubscription:POST:include:same-site-origin-check:csrf-probe-cancelSubscription",
+      "acceptTeamInvite:POST:include:same-site-origin-check:csrf-probe-acceptTeamInvite",
       "createSupportTicket:POST:include:same-site-origin-check:csrf-probe-createSupportTicket"
     ],
     "expectedSafeRequestContracts": [
@@ -109,16 +121,25 @@
       "getWorkspace:GET:include:not-required",
       "listChatMessages:GET:include:not-required",
       "getTask:GET:include:not-required",
+      "getBatchGeneration:GET:include:not-required",
+      "listBatchGenerationChildren:GET:include:not-required",
+      "getBatchGenerationProgress:GET:include:not-required",
       "listCandidateSets:GET:include:not-required",
       "listCandidateAssets:GET:include:not-required",
       "listCanvasNodes:GET:include:not-required",
       "listCanvasFrames:GET:include:not-required",
       "listCanvasVersions:GET:include:not-required",
       "listAssets:GET:include:not-required",
+      "listAssetLibrary:GET:include:not-required",
+      "listBrandKits:GET:include:not-required",
+      "getProjectDefaultBrandKit:GET:include:not-required",
       "listPackages:GET:include:not-required",
       "getExport:GET:include:not-required",
       "getQuota:GET:include:not-required",
-      "getSubscription:GET:include:not-required"
+      "getSubscription:GET:include:not-required",
+      "listBillingInvoices:GET:include:not-required",
+      "getTeamSeatUsage:GET:include:not-required",
+      "checkTeamSeatEntitlement:GET:include:not-required"
     ],
     "expectedUnsafePathContracts": [
       "deleteSession:/session:/session",
@@ -127,14 +148,26 @@
       "updateProject:/projects/{project_id}:/projects/project-001",
       "createChatSession:/projects/{project_id}/chat/sessions:/projects/project-001/chat/sessions",
       "createChatMessage:/chat/sessions/{chat_session_id}/messages:/chat/sessions/chat-001/messages",
+      "createBatchGeneration:/projects/{project_id}/batch-generations:/projects/project-001/batch-generations",
+      "cancelBatchGeneration:/batch-generations/{batch_id}/cancel:/batch-generations/batch-001/cancel",
+      "retryBatchGenerationChild:/batch-generation-children/{child_id}/retry:/batch-generation-children/child-001/retry",
       "createCandidateSet:/projects/{project_id}/candidate-sets:/projects/project-001/candidate-sets",
       "selectDirection:/projects/{project_id}/selected-direction:/projects/project-001/selected-direction",
       "createCanvasNode:/workspaces/{workspace_id}/canvas/nodes:/workspaces/workspace-001/canvas/nodes",
       "createCanvasVersion:/workspaces/{workspace_id}/canvas/versions:/workspaces/workspace-001/canvas/versions",
       "createUpload:/uploads:/uploads",
+      "createAssetLibraryEntry:/assets/library:/assets/library",
+      "updateAssetLibraryEntry:/assets/library/{entry_id}:/assets/library/entry-001",
+      "createBrandKit:/brand-kits:/brand-kits",
+      "updateBrandKit:/brand-kits/{brand_kit_id}:/brand-kits/brand-kit-001",
+      "setProjectDefaultBrandKit:/projects/{project_id}/brand-kit-default:/projects/project-001/brand-kit-default",
       "createPackage:/projects/{project_id}/packages:/projects/project-001/packages",
       "createExport:/packages/{package_id}/exports:/packages/pkg-001/exports",
       "createShareLink:/exports/{export_id}/share-links:/exports/export-001/share-links",
+      "createCheckoutSession:/billing/checkout:/billing/checkout",
+      "createBillingPortalSession:/billing/portal:/billing/portal",
+      "cancelSubscription:/billing/subscription/cancel:/billing/subscription/cancel",
+      "acceptTeamInvite:/teams/{team_id}/invites/{invite_id}/accept:/teams/team-001/invites/invite-001/accept",
       "createSupportTicket:/support/tickets:/support/tickets"
     ],
     "expectedSafePathContracts": [
@@ -145,20 +178,29 @@
       "getWorkspace:/projects/{project_id}/workspace:/projects/project-001/workspace",
       "listChatMessages:/chat/sessions/{chat_session_id}/messages:/chat/sessions/chat-001/messages",
       "getTask:/tasks/{task_id}:/tasks/task-001",
+      "getBatchGeneration:/batch-generations/{batch_id}:/batch-generations/batch-001",
+      "listBatchGenerationChildren:/batch-generations/{batch_id}/children:/batch-generations/batch-001/children",
+      "getBatchGenerationProgress:/batch-generations/{batch_id}/progress:/batch-generations/batch-001/progress",
       "listCandidateSets:/projects/{project_id}/candidate-sets:/projects/project-001/candidate-sets",
       "listCandidateAssets:/candidate-sets/{candidate_set_id}/assets:/candidate-sets/candidate-set-001/assets",
       "listCanvasNodes:/workspaces/{workspace_id}/canvas/nodes:/workspaces/workspace-001/canvas/nodes",
       "listCanvasFrames:/workspaces/{workspace_id}/canvas/frames:/workspaces/workspace-001/canvas/frames",
       "listCanvasVersions:/workspaces/{workspace_id}/canvas/versions:/workspaces/workspace-001/canvas/versions",
       "listAssets:/assets:/assets",
+      "listAssetLibrary:/assets/library:/assets/library",
+      "listBrandKits:/brand-kits:/brand-kits",
+      "getProjectDefaultBrandKit:/projects/{project_id}/brand-kit-default:/projects/project-001/brand-kit-default",
       "listPackages:/projects/{project_id}/packages:/projects/project-001/packages",
       "getExport:/exports/{export_id}:/exports/export-001",
       "getQuota:/quota:/quota",
-      "getSubscription:/billing/subscription:/billing/subscription"
+      "getSubscription:/billing/subscription:/billing/subscription",
+      "listBillingInvoices:/billing/invoices:/billing/invoices",
+      "getTeamSeatUsage:/teams/{team_id}/seat-usage:/teams/team-001/seat-usage",
+      "checkTeamSeatEntitlement:/teams/{team_id}/seat-entitlement:/teams/team-001/seat-entitlement"
     ]
   },
   "credentialMode": "include",
-  "csrfHeaderName": "X-ZenArt-CSRF",
+  "csrfHeaderName": "X-Zenari-CSRF",
   "csrfHeaderValue": "same-site-origin-check",
   "sameSiteRequirement": "lax-or-strict",
   "originPolicy": "same-site-only",
@@ -169,15 +211,15 @@
     "statusAttribute": "data-session-backend-runtime-pairing-status",
     "expectedStatus": "pass",
     "digestAttribute": "data-session-backend-runtime-pairing-digest",
-    "expectedDigest": "secure-cookie-same-site-csrf-runtime||__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly||POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict||deleteSession:DELETE:/session:include:X-ZenArt-CSRF:same-site-origin-check:false|updateAccount:PATCH:/account:include:X-ZenArt-CSRF:same-site-origin-check:true|createProject:POST:/projects:include:X-ZenArt-CSRF:same-site-origin-check:true|updateProject:PATCH:/projects/{project_id}:include:X-ZenArt-CSRF:same-site-origin-check:true|createChatSession:POST:/projects/{project_id}/chat/sessions:include:X-ZenArt-CSRF:same-site-origin-check:true|createChatMessage:POST:/chat/sessions/{chat_session_id}/messages:include:X-ZenArt-CSRF:same-site-origin-check:true|createCandidateSet:POST:/projects/{project_id}/candidate-sets:include:X-ZenArt-CSRF:same-site-origin-check:true|selectDirection:PUT:/projects/{project_id}/selected-direction:include:X-ZenArt-CSRF:same-site-origin-check:true|createCanvasNode:POST:/workspaces/{workspace_id}/canvas/nodes:include:X-ZenArt-CSRF:same-site-origin-check:true|createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-ZenArt-CSRF:same-site-origin-check:true|createUpload:POST:/uploads:include:X-ZenArt-CSRF:same-site-origin-check:true|createPackage:POST:/projects/{project_id}/packages:include:X-ZenArt-CSRF:same-site-origin-check:true|createExport:POST:/packages/{package_id}/exports:include:X-ZenArt-CSRF:same-site-origin-check:true|createShareLink:POST:/exports/{export_id}/share-links:include:X-ZenArt-CSRF:same-site-origin-check:true|createSupportTicket:POST:/support/tickets:include:X-ZenArt-CSRF:same-site-origin-check:true||missing=none||cookie-failures=none||csrf-failures=none",
+    "expectedDigest": "secure-cookie-same-site-csrf-runtime||__Host-zenari_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly||POST,PUT,PATCH,DELETE:X-Zenari-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict||deleteSession:DELETE:/session:include:X-Zenari-CSRF:same-site-origin-check:false|updateAccount:PATCH:/account:include:X-Zenari-CSRF:same-site-origin-check:true|createProject:POST:/projects:include:X-Zenari-CSRF:same-site-origin-check:true|updateProject:PATCH:/projects/{project_id}:include:X-Zenari-CSRF:same-site-origin-check:true|createChatSession:POST:/projects/{project_id}/chat/sessions:include:X-Zenari-CSRF:same-site-origin-check:true|createChatMessage:POST:/chat/sessions/{chat_session_id}/messages:include:X-Zenari-CSRF:same-site-origin-check:true|createBatchGeneration:POST:/projects/{project_id}/batch-generations:include:X-Zenari-CSRF:same-site-origin-check:true|cancelBatchGeneration:POST:/batch-generations/{batch_id}/cancel:include:X-Zenari-CSRF:same-site-origin-check:true|retryBatchGenerationChild:POST:/batch-generation-children/{child_id}/retry:include:X-Zenari-CSRF:same-site-origin-check:true|createCandidateSet:POST:/projects/{project_id}/candidate-sets:include:X-Zenari-CSRF:same-site-origin-check:true|selectDirection:PUT:/projects/{project_id}/selected-direction:include:X-Zenari-CSRF:same-site-origin-check:true|createCanvasNode:POST:/workspaces/{workspace_id}/canvas/nodes:include:X-Zenari-CSRF:same-site-origin-check:true|createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-Zenari-CSRF:same-site-origin-check:true|createUpload:POST:/uploads:include:X-Zenari-CSRF:same-site-origin-check:true|createAssetLibraryEntry:POST:/assets/library:include:X-Zenari-CSRF:same-site-origin-check:true|updateAssetLibraryEntry:PATCH:/assets/library/{entry_id}:include:X-Zenari-CSRF:same-site-origin-check:true|createBrandKit:POST:/brand-kits:include:X-Zenari-CSRF:same-site-origin-check:true|updateBrandKit:PATCH:/brand-kits/{brand_kit_id}:include:X-Zenari-CSRF:same-site-origin-check:true|setProjectDefaultBrandKit:PUT:/projects/{project_id}/brand-kit-default:include:X-Zenari-CSRF:same-site-origin-check:true|createPackage:POST:/projects/{project_id}/packages:include:X-Zenari-CSRF:same-site-origin-check:true|createExport:POST:/packages/{package_id}/exports:include:X-Zenari-CSRF:same-site-origin-check:true|createShareLink:POST:/exports/{export_id}/share-links:include:X-Zenari-CSRF:same-site-origin-check:true|createCheckoutSession:POST:/billing/checkout:include:X-Zenari-CSRF:same-site-origin-check:true|createBillingPortalSession:POST:/billing/portal:include:X-Zenari-CSRF:same-site-origin-check:true|cancelSubscription:POST:/billing/subscription/cancel:include:X-Zenari-CSRF:same-site-origin-check:true|acceptTeamInvite:POST:/teams/{team_id}/invites/{invite_id}/accept:include:X-Zenari-CSRF:same-site-origin-check:true|createSupportTicket:POST:/support/tickets:include:X-Zenari-CSRF:same-site-origin-check:true||missing=none||cookie-failures=none||csrf-failures=none",
     "contractAttribute": "data-session-backend-runtime-pairing",
     "expectedContract": "secure-cookie-same-site-csrf-runtime",
     "setCookieContractAttribute": "data-session-backend-set-cookie-contract",
-    "expectedSetCookieContract": "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly",
+    "expectedSetCookieContract": "__Host-zenari_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly",
     "csrfValidationContractAttribute": "data-session-backend-csrf-validation-contract",
-    "expectedCsrfValidationContract": "POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict",
+    "expectedCsrfValidationContract": "POST,PUT,PATCH,DELETE:X-Zenari-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict",
     "unsafeRequestContractCountAttribute": "data-session-backend-unsafe-request-contract-count",
-    "expectedUnsafeRequestContractCount": "15",
+    "expectedUnsafeRequestContractCount": "27",
     "missingUnsafeOperationCountAttribute": "data-session-backend-missing-unsafe-operation-count",
     "expectedMissingUnsafeOperationCount": "0",
     "cookieFailureCountAttribute": "data-session-backend-cookie-failure-count",
@@ -258,14 +300,17 @@
     "unitTest": "web/lib/request-security.test.ts",
     "generatedClientUnitTest": "web/lib/generated/zenart-api.test.ts",
     "status": "pass",
-    "canonicalHeaderName": "X-ZenArt-CSRF",
+    "canonicalHeaderName": "X-Zenari-CSRF",
     "canonicalHeaderValue": "same-site-origin-check",
     "callerAliasStripped": true,
     "safeRequestAliasesStripped": true,
     "unsafeRequestCanonicalHeaderCount": 1,
     "safeRequestCanonicalHeaderCount": 0,
     "failureCount": 0,
-    "rejectedCallerAliases": ["X-ZenArt-CSRF", "x-zenart-csrf"],
+    "rejectedCallerAliases": [
+      "X-Zenari-CSRF",
+      "x-zenari-csrf"
+    ],
     "assertion": "Generated client strips caller-supplied CSRF header aliases before applying one canonical same-site CSRF header, and read-only requests keep all CSRF aliases stripped."
   },
   "pathParamGuard": {
@@ -326,10 +371,15 @@
     ],
     "assertion": "Generated client rejects missing, slash, backslash, dot-segment, and absolute-URL path parameters before same-site credentialed requests can be made, while safe values are URL encoded inside the route template."
   },
-  "protectedMethods": ["POST", "PUT", "PATCH", "DELETE"],
+  "protectedMethods": [
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE"
+  ],
   "status": "pass",
-  "unsafeOperationCount": 15,
-  "safeOperationCount": 17,
+  "unsafeOperationCount": 27,
+  "safeOperationCount": 26,
   "missingUnsafeOperationCount": 0,
   "failureCount": 0,
   "unsafeOperations": [
@@ -339,14 +389,26 @@
     "updateProject",
     "createChatSession",
     "createChatMessage",
+    "createBatchGeneration",
+    "cancelBatchGeneration",
+    "retryBatchGenerationChild",
     "createCandidateSet",
     "selectDirection",
     "createCanvasNode",
     "createCanvasVersion",
     "createUpload",
+    "createAssetLibraryEntry",
+    "updateAssetLibraryEntry",
+    "createBrandKit",
+    "updateBrandKit",
+    "setProjectDefaultBrandKit",
     "createPackage",
     "createExport",
     "createShareLink",
+    "createCheckoutSession",
+    "createBillingPortalSession",
+    "cancelSubscription",
+    "acceptTeamInvite",
     "createSupportTicket"
   ],
   "safeOperations": [
@@ -357,62 +419,516 @@
     "getWorkspace",
     "listChatMessages",
     "getTask",
+    "getBatchGeneration",
+    "listBatchGenerationChildren",
+    "getBatchGenerationProgress",
     "listCandidateSets",
     "listCandidateAssets",
     "listCanvasNodes",
     "listCanvasFrames",
     "listCanvasVersions",
     "listAssets",
+    "listAssetLibrary",
+    "listBrandKits",
+    "getProjectDefaultBrandKit",
     "listPackages",
     "getExport",
     "getQuota",
-    "getSubscription"
+    "getSubscription",
+    "listBillingInvoices",
+    "getTeamSeatUsage",
+    "checkTeamSeatEntitlement"
   ],
   "unsafeRequestContracts": [
-    { "operationId": "deleteSession", "method": "DELETE", "path": "/session", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": false },
-    { "operationId": "updateAccount", "method": "PATCH", "path": "/account", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
-    { "operationId": "createProject", "method": "POST", "path": "/projects", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
-    { "operationId": "updateProject", "method": "PATCH", "path": "/projects/{project_id}", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
-    { "operationId": "createChatSession", "method": "POST", "path": "/projects/{project_id}/chat/sessions", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
-    { "operationId": "createChatMessage", "method": "POST", "path": "/chat/sessions/{chat_session_id}/messages", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
-    { "operationId": "createCandidateSet", "method": "POST", "path": "/projects/{project_id}/candidate-sets", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
-    { "operationId": "selectDirection", "method": "PUT", "path": "/projects/{project_id}/selected-direction", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
-    { "operationId": "createCanvasNode", "method": "POST", "path": "/workspaces/{workspace_id}/canvas/nodes", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
-    { "operationId": "createCanvasVersion", "method": "POST", "path": "/workspaces/{workspace_id}/canvas/versions", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
-    { "operationId": "createUpload", "method": "POST", "path": "/uploads", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
-    { "operationId": "createPackage", "method": "POST", "path": "/projects/{project_id}/packages", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
-    { "operationId": "createExport", "method": "POST", "path": "/packages/{package_id}/exports", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
-    { "operationId": "createShareLink", "method": "POST", "path": "/exports/{export_id}/share-links", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true },
-    { "operationId": "createSupportTicket", "method": "POST", "path": "/support/tickets", "credentials": "include", "csrfHeaderName": "X-ZenArt-CSRF", "csrfHeaderValue": "same-site-origin-check", "idempotencyHeaderRequired": true }
+    {
+      "operationId": "deleteSession",
+      "method": "DELETE",
+      "path": "/session",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "updateAccount",
+      "method": "PATCH",
+      "path": "/account",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createProject",
+      "method": "POST",
+      "path": "/projects",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "updateProject",
+      "method": "PATCH",
+      "path": "/projects/{project_id}",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createChatSession",
+      "method": "POST",
+      "path": "/projects/{project_id}/chat/sessions",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createChatMessage",
+      "method": "POST",
+      "path": "/chat/sessions/{chat_session_id}/messages",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createBatchGeneration",
+      "method": "POST",
+      "path": "/projects/{project_id}/batch-generations",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "cancelBatchGeneration",
+      "method": "POST",
+      "path": "/batch-generations/{batch_id}/cancel",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "retryBatchGenerationChild",
+      "method": "POST",
+      "path": "/batch-generation-children/{child_id}/retry",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createCandidateSet",
+      "method": "POST",
+      "path": "/projects/{project_id}/candidate-sets",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "selectDirection",
+      "method": "PUT",
+      "path": "/projects/{project_id}/selected-direction",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createCanvasNode",
+      "method": "POST",
+      "path": "/workspaces/{workspace_id}/canvas/nodes",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createCanvasVersion",
+      "method": "POST",
+      "path": "/workspaces/{workspace_id}/canvas/versions",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createUpload",
+      "method": "POST",
+      "path": "/uploads",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createAssetLibraryEntry",
+      "method": "POST",
+      "path": "/assets/library",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "updateAssetLibraryEntry",
+      "method": "PATCH",
+      "path": "/assets/library/{entry_id}",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createBrandKit",
+      "method": "POST",
+      "path": "/brand-kits",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "updateBrandKit",
+      "method": "PATCH",
+      "path": "/brand-kits/{brand_kit_id}",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "setProjectDefaultBrandKit",
+      "method": "PUT",
+      "path": "/projects/{project_id}/brand-kit-default",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createPackage",
+      "method": "POST",
+      "path": "/projects/{project_id}/packages",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createExport",
+      "method": "POST",
+      "path": "/packages/{package_id}/exports",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createShareLink",
+      "method": "POST",
+      "path": "/exports/{export_id}/share-links",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createCheckoutSession",
+      "method": "POST",
+      "path": "/billing/checkout",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createBillingPortalSession",
+      "method": "POST",
+      "path": "/billing/portal",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "cancelSubscription",
+      "method": "POST",
+      "path": "/billing/subscription/cancel",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "acceptTeamInvite",
+      "method": "POST",
+      "path": "/teams/{team_id}/invites/{invite_id}/accept",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    },
+    {
+      "operationId": "createSupportTicket",
+      "method": "POST",
+      "path": "/support/tickets",
+      "credentials": "include",
+      "csrfHeaderName": "X-Zenari-CSRF",
+      "csrfHeaderValue": "same-site-origin-check",
+      "idempotencyHeaderRequired": true
+    }
   ],
   "safeRequestContracts": [
-    { "operationId": "getSession", "method": "GET", "path": "/session", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "getAccount", "method": "GET", "path": "/account", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "listProjects", "method": "GET", "path": "/projects", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "getProject", "method": "GET", "path": "/projects/{project_id}", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "getWorkspace", "method": "GET", "path": "/projects/{project_id}/workspace", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "listChatMessages", "method": "GET", "path": "/chat/sessions/{chat_session_id}/messages", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "getTask", "method": "GET", "path": "/tasks/{task_id}", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "listCandidateSets", "method": "GET", "path": "/projects/{project_id}/candidate-sets", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "listCandidateAssets", "method": "GET", "path": "/candidate-sets/{candidate_set_id}/assets", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "listCanvasNodes", "method": "GET", "path": "/workspaces/{workspace_id}/canvas/nodes", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "listCanvasFrames", "method": "GET", "path": "/workspaces/{workspace_id}/canvas/frames", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "listCanvasVersions", "method": "GET", "path": "/workspaces/{workspace_id}/canvas/versions", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "listAssets", "method": "GET", "path": "/assets", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "listPackages", "method": "GET", "path": "/projects/{project_id}/packages", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "getExport", "method": "GET", "path": "/exports/{export_id}", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "getQuota", "method": "GET", "path": "/quota", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false },
-    { "operationId": "getSubscription", "method": "GET", "path": "/billing/subscription", "credentials": "include", "csrfHeaderName": "not-required", "csrfHeaderValue": "not-required", "idempotencyHeaderRequired": false }
+    {
+      "operationId": "getSession",
+      "method": "GET",
+      "path": "/session",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "getAccount",
+      "method": "GET",
+      "path": "/account",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "listProjects",
+      "method": "GET",
+      "path": "/projects",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "getProject",
+      "method": "GET",
+      "path": "/projects/{project_id}",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "getWorkspace",
+      "method": "GET",
+      "path": "/projects/{project_id}/workspace",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "listChatMessages",
+      "method": "GET",
+      "path": "/chat/sessions/{chat_session_id}/messages",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "getTask",
+      "method": "GET",
+      "path": "/tasks/{task_id}",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "getBatchGeneration",
+      "method": "GET",
+      "path": "/batch-generations/{batch_id}",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "listBatchGenerationChildren",
+      "method": "GET",
+      "path": "/batch-generations/{batch_id}/children",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "getBatchGenerationProgress",
+      "method": "GET",
+      "path": "/batch-generations/{batch_id}/progress",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "listCandidateSets",
+      "method": "GET",
+      "path": "/projects/{project_id}/candidate-sets",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "listCandidateAssets",
+      "method": "GET",
+      "path": "/candidate-sets/{candidate_set_id}/assets",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "listCanvasNodes",
+      "method": "GET",
+      "path": "/workspaces/{workspace_id}/canvas/nodes",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "listCanvasFrames",
+      "method": "GET",
+      "path": "/workspaces/{workspace_id}/canvas/frames",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "listCanvasVersions",
+      "method": "GET",
+      "path": "/workspaces/{workspace_id}/canvas/versions",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "listAssets",
+      "method": "GET",
+      "path": "/assets",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "listAssetLibrary",
+      "method": "GET",
+      "path": "/assets/library",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "listBrandKits",
+      "method": "GET",
+      "path": "/brand-kits",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "getProjectDefaultBrandKit",
+      "method": "GET",
+      "path": "/projects/{project_id}/brand-kit-default",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "listPackages",
+      "method": "GET",
+      "path": "/projects/{project_id}/packages",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "getExport",
+      "method": "GET",
+      "path": "/exports/{export_id}",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "getQuota",
+      "method": "GET",
+      "path": "/quota",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "getSubscription",
+      "method": "GET",
+      "path": "/billing/subscription",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "listBillingInvoices",
+      "method": "GET",
+      "path": "/billing/invoices",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "getTeamSeatUsage",
+      "method": "GET",
+      "path": "/teams/{team_id}/seat-usage",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    },
+    {
+      "operationId": "checkTeamSeatEntitlement",
+      "method": "GET",
+      "path": "/teams/{team_id}/seat-entitlement",
+      "credentials": "include",
+      "csrfHeaderName": "not-required",
+      "csrfHeaderValue": "not-required",
+      "idempotencyHeaderRequired": false
+    }
   ],
   "assertions": [
     "Generated web API client uses same-site credentials on every request.",
-    "Generated web API client adds X-ZenArt-CSRF only for POST, PUT, PATCH, and DELETE operations.",
+    "Generated web API client adds X-Zenari-CSRF only for POST, PUT, PATCH, and DELETE operations.",
     "Generated web API client rejects cross-origin base URLs before credentialed requests.",
     "Generated web API client rejects absolute base URLs when no browser origin is available to prove same-site scope.",
     "Generated web API client allows absolute base URLs only when they match the browser origin.",
     "Generated web API client rejects credential-bearing absolute base URLs before same-site credentialed requests.",
     "Generated web API client rejects query or fragment-bearing absolute base URLs before same-site credentialed requests.",
-    "Generated web API client strips caller-supplied CSRF header aliases before applying one canonical X-ZenArt-CSRF header.",
+    "Generated web API client strips caller-supplied CSRF header aliases before applying one canonical X-Zenari-CSRF header.",
     "Generated web API client strips caller-supplied CSRF header aliases from safe requests.",
     "Generated web API client exposes per-operation safe request contracts proving GET operations stay credentialed and CSRF-free.",
     "Generated web API client exposes method coverage proving POST, PUT, PATCH, and DELETE are CSRF-protected while generated safe methods stay credentialed and CSRF-free.",
@@ -420,19 +936,44 @@
     "Account route exposes secure __Host cookie and same-site CSRF UX evidence.",
     "Account route proves every generated unsafe operation is represented by the authenticated same-site UX guard.",
     "Account route exposes a session-state UX matrix proving authenticated actions are enabled, expired sessions allow only Refresh Session, and signed-out sessions block all guarded controls.",
-    "Account route browser smoke invokes the generated client against same-origin /api/probe responses and proves every unsafe request sends include credentials and X-ZenArt-CSRF, every idempotent unsafe request sends Idempotency-Key, every generated route template resolves to the expected same-origin probe path, and every safe generated request stays credentialed without CSRF headers."
+    "Account route browser smoke invokes the generated client against same-origin /api/probe responses and proves every unsafe request sends include credentials and X-Zenari-CSRF, every idempotent unsafe request sends Idempotency-Key, every generated route template resolves to the expected same-origin probe path, and every safe generated request stays credentialed without CSRF headers."
   ],
   "methodCoverage": {
     "schemaVersion": "stage0.rev2.generated-api-csrf-method-coverage",
     "source": "web/lib/request-security.ts",
     "unitTest": "web/lib/request-security.test.ts",
     "status": "pass",
-    "protectedMethods": ["POST", "PUT", "PATCH", "DELETE"],
-    "safeMethods": ["GET", "HEAD", "OPTIONS"],
-    "coveredUnsafeMethods": ["DELETE", "PATCH", "POST", "PUT"],
-    "coveredSafeMethods": ["GET"],
-    "unsafeMethodCoverage": ["POST:covered", "PUT:covered", "PATCH:covered", "DELETE:covered"],
-    "safeMethodCoverage": ["GET:covered", "HEAD:not-generated", "OPTIONS:not-generated"],
+    "protectedMethods": [
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE"
+    ],
+    "safeMethods": [
+      "GET",
+      "HEAD",
+      "OPTIONS"
+    ],
+    "coveredUnsafeMethods": [
+      "DELETE",
+      "PATCH",
+      "POST",
+      "PUT"
+    ],
+    "coveredSafeMethods": [
+      "GET"
+    ],
+    "unsafeMethodCoverage": [
+      "POST:covered",
+      "PUT:covered",
+      "PATCH:covered",
+      "DELETE:covered"
+    ],
+    "safeMethodCoverage": [
+      "GET:covered",
+      "HEAD:not-generated",
+      "OPTIONS:not-generated"
+    ],
     "failureCount": 0,
     "assertion": "Generated client method coverage fails if any protected method has no generated unsafe operation or if generated safe requests drift outside GET, HEAD, and OPTIONS."
   }

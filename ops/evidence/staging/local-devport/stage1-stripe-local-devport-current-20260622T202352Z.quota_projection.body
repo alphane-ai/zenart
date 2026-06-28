@@ -1,0 +1,17 @@
+{
+  "id": "billing_admin_392876ebc5adbe3d9f220132",
+  "tenant_id": "tenant_local",
+  "actor_id": "admin_operator_1",
+  "target_user_id": "user_local_user",
+  "operation": "manual_credit",
+  "idempotency_key": "stage1-stripe-local-devport-current-20260622T202352Z-quota_projection",
+  "status": "succeeded",
+  "units": 25,
+  "bucket_id": "quota_local_user_monthly",
+  "rationale": "Stage 1 Stripe test refund credit quota reconciliation",
+  "metadata": {
+    "stripe_test_subscription_id": "[REDACTED]"
+  },
+  "created_at": "2026-06-22T20:24:05.975784Z",
+  "updated_at": "2026-06-22T20:24:05.975784Z"
+}

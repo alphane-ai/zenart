@@ -1,0 +1,168 @@
+Trivy version:
+Version: 0.71.2
+Vulnerability DB:
+  Version: 2
+  UpdatedAt: 2026-06-24 07:45:22.448525276 +0000 UTC
+  NextUpdate: 2026-06-25 07:45:22.448524885 +0000 UTC
+  DownloadedAt: 2026-06-24 11:09:34.919729 +0000 UTC
+
+Trivy DB metadata: Version: 2; UpdatedAt: 2026-06-24 07:45:22.448525276 +0000 UTC; DownloadedAt: 2026-06-24 11:09:34.919729 +0000 UTC
+2026-06-26T11:15:15+08:00	INFO	[vuln] Vulnerability scanning is enabled
+2026-06-26T11:15:15+08:00	INFO	Detected OS	family="debian" version="12.14"
+2026-06-26T11:15:15+08:00	INFO	[debian] Detecting vulnerabilities...	os_version="12" pkg_num=4
+2026-06-26T11:15:15+08:00	INFO	Number of language-specific files	num=4
+2026-06-26T11:15:15+08:00	INFO	[gobinary] Detecting vulnerabilities...
+
+Report Summary
+
+┌──────────────────────────────────────────────────────────┬──────────┬─────────────────┐
+│                          Target                          │   Type   │ Vulnerabilities │
+├──────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ zenari-stage0-backend:local-security-scan (debian 12.14) │  debian  │        0        │
+├──────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/crawler                                              │ gobinary │        0        │
+├──────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/migrate                                              │ gobinary │        0        │
+├──────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/server                                               │ gobinary │        0        │
+├──────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/worker                                               │ gobinary │        0        │
+└──────────────────────────────────────────────────────────┴──────────┴─────────────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
+2026-06-26T11:15:15+08:00	INFO	[vuln] Vulnerability scanning is enabled
+2026-06-26T11:15:15+08:00	INFO	Detected OS	family="alpine" version="3.24.0"
+2026-06-26T11:15:15+08:00	WARN	This OS version is not on the EOL list	family="alpine" version="3.24"
+2026-06-26T11:15:15+08:00	INFO	[alpine] Detecting vulnerabilities...	os_version="3.24" repository="3.24" pkg_num=18
+2026-06-26T11:15:15+08:00	INFO	Number of language-specific files	num=1
+2026-06-26T11:15:15+08:00	INFO	[node-pkg] Detecting vulnerabilities...
+
+Report Summary
+
+┌───────────────────────────────────────────────────────────────────────────┬──────────┬─────────────────┐
+│                                  Target                                   │   Type   │ Vulnerabilities │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ zenari-stage0-web:local-security-scan (alpine 3.24.0)                     │  alpine  │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/colour/package.json                                 │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-darwin-arm64/package.json                     │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-libvips-darwin-arm64/package.json             │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-libvips-linux-arm64/package.json              │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-libvips-linuxmusl-arm64/package.json          │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-linux-arm64/package.json                      │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-linuxmusl-arm64/package.json                  │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@next/env/package.json                                   │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@swc/helpers/package.json                                │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/client-only/package.json                                 │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/detect-libc/package.json                                 │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/@edge-runtime/cookies/package.json    │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/@edge-runtime/ponyfill/package.json   │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/@edge-runtime/primitives/package.json │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/react-is/package.json                 │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/regenerator-runtime/package.json      │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/package.json                                        │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/react-dom/package.json                                   │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/react/package.json                                       │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/sharp/node_modules/semver/package.json                   │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/sharp/package.json                                       │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/styled-jsx/package.json                                  │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/package.json                                                          │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ opt/yarn-v1.22.22/package.json                                            │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/corepack/package.json                          │ node-pkg │        0        │
+└───────────────────────────────────────────────────────────────────────────┴──────────┴─────────────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
+2026-06-26T11:15:15+08:00	INFO	[vuln] Vulnerability scanning is enabled
+2026-06-26T11:15:15+08:00	INFO	Detected OS	family="alpine" version="3.24.0"
+2026-06-26T11:15:15+08:00	WARN	This OS version is not on the EOL list	family="alpine" version="3.24"
+2026-06-26T11:15:15+08:00	INFO	[alpine] Detecting vulnerabilities...	os_version="3.24" repository="3.24" pkg_num=18
+2026-06-26T11:15:15+08:00	INFO	Number of language-specific files	num=1
+2026-06-26T11:15:15+08:00	INFO	[node-pkg] Detecting vulnerabilities...
+
+Report Summary
+
+┌───────────────────────────────────────────────────────────────────────────┬──────────┬─────────────────┐
+│                                  Target                                   │   Type   │ Vulnerabilities │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ zenari-stage0-admin:local-security-scan (alpine 3.24.0)                   │  alpine  │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/colour/package.json                                 │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-libvips-linux-arm64/package.json              │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-libvips-linuxmusl-arm64/package.json          │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-linux-arm64/package.json                      │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-linuxmusl-arm64/package.json                  │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@next/env/package.json                                   │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@swc/helpers/package.json                                │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/client-only/package.json                                 │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/detect-libc/package.json                                 │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/@edge-runtime/cookies/package.json    │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/@edge-runtime/ponyfill/package.json   │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/@edge-runtime/primitives/package.json │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/react-is/package.json                 │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/regenerator-runtime/package.json      │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/package.json                                        │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/react-dom/package.json                                   │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/react/package.json                                       │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/scheduler/package.json                                   │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/semver/package.json                                      │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/sharp/package.json                                       │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/styled-jsx/package.json                                  │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/package.json                                                          │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ opt/yarn-v1.22.22/package.json                                            │ node-pkg │        0        │
+├───────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/corepack/package.json                          │ node-pkg │        0        │
+└───────────────────────────────────────────────────────────────────────────┴──────────┴─────────────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+

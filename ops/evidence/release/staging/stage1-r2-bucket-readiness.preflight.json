@@ -1,0 +1,148 @@
+{
+  "access_key_persisted": false,
+  "authorization_header_persisted": false,
+  "blockers": [],
+  "can_clear_object_retention_cleanup": false,
+  "can_clear_stage1_staging_runtime_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "config_summary": {
+    "access_key_present": true,
+    "bucket_zenari": true,
+    "cloudflare_account_id_present_or_derivable": true,
+    "cloudflare_api_token_present": false,
+    "endpoint_host_suffix": "r2.cloudflarestorage.com",
+    "endpoint_https": true,
+    "endpoint_present": true,
+    "endpoint_public": true,
+    "force_path_style": true,
+    "provider_s3_compatible": true,
+    "region_auto": true,
+    "region_present": true,
+    "secret_key_present": true
+  },
+  "environment": "release",
+  "expected_bucket": "zenari",
+  "generated_at": "2026-06-28T14:16:10+00:00",
+  "kind": "stage1_r2_bucket_readiness_preflight",
+  "operator_ask": "No R2 bucket credential input needed; run strict staging object retention probes with deployed admin access.",
+  "probes": [
+    {
+      "authorization_header_persisted": false,
+      "check_id": "cloudflare_token_verify",
+      "raw_response_body_persisted": false,
+      "reason": "no Cloudflare API token configured",
+      "secret_material_persisted": false,
+      "status": "missing"
+    },
+    {
+      "authorization_header_persisted": false,
+      "check_id": "cloudflare_create_bucket",
+      "raw_response_body_persisted": false,
+      "reason": "--create-bucket was not requested",
+      "secret_material_persisted": false,
+      "status": "skipped"
+    },
+    {
+      "authorization_header_persisted": false,
+      "check_id": "s3_head_bucket",
+      "detail": {
+        "provider_request_id_present": true
+      },
+      "http_status": 200,
+      "raw_response_body_persisted": false,
+      "reason": "bucket head succeeded",
+      "secret_material_persisted": false,
+      "status": "pass"
+    },
+    {
+      "authorization_header_persisted": false,
+      "check_id": "s3_put_object",
+      "detail": {
+        "provider_request_id_present": true
+      },
+      "http_status": 200,
+      "raw_response_body_persisted": false,
+      "reason": "test object put succeeded",
+      "secret_material_persisted": false,
+      "status": "pass"
+    },
+    {
+      "authorization_header_persisted": false,
+      "check_id": "s3_get_object",
+      "detail": {
+        "provider_request_id_present": true
+      },
+      "http_status": 200,
+      "raw_response_body_persisted": false,
+      "reason": "test object get succeeded",
+      "secret_material_persisted": false,
+      "status": "pass"
+    },
+    {
+      "authorization_header_persisted": false,
+      "check_id": "s3_list_prefix",
+      "detail": {
+        "provider_request_id_present": true
+      },
+      "http_status": 200,
+      "raw_response_body_persisted": false,
+      "reason": "test prefix list succeeded",
+      "secret_material_persisted": false,
+      "status": "pass"
+    },
+    {
+      "authorization_header_persisted": false,
+      "check_id": "s3_delete_object",
+      "detail": {
+        "provider_request_id_present": true
+      },
+      "http_status": 204,
+      "raw_response_body_persisted": false,
+      "reason": "test object delete succeeded",
+      "secret_material_persisted": false,
+      "status": "pass"
+    },
+    {
+      "authorization_header_persisted": false,
+      "check_id": "s3_confirm_deleted",
+      "detail": {
+        "provider_request_id_present": true
+      },
+      "http_status": 404,
+      "raw_response_body_persisted": false,
+      "reason": "deleted test object is no longer readable",
+      "secret_material_persisted": false,
+      "status": "pass"
+    }
+  ],
+  "raw_endpoint_persisted": false,
+  "raw_response_body_persisted": false,
+  "readiness": {
+    "bucket_created_by_this_run": false,
+    "bucket_existing_verified": true,
+    "delete_ready": true,
+    "list_ready": true,
+    "object_roundtrip_ready": true,
+    "r2_bucket_access_ready": true,
+    "test_key_sha256": "b22d37ba3d867231e1af95afab6aa85e0ae95de761eac5654c115d23972decc5"
+  },
+  "release_gate_decision": "no_go",
+  "safe_projection_policy": {
+    "access_key_persisted": false,
+    "authorization_header_persisted": false,
+    "raw_endpoint_persisted": false,
+    "raw_response_body_persisted": false,
+    "secret_key_persisted": false,
+    "secret_material_persisted": false
+  },
+  "schema_version": "stage1.r2_bucket_readiness.preflight.v1",
+  "secret_key_persisted": false,
+  "secret_material_persisted": false,
+  "status": "ready",
+  "strict_followup_required": [
+    "WRITE_CANONICAL_STAGE1_OBJECT_RETENTION_EVIDENCE=1 scripts/staging_object_storage_retention_cleanup_smoke.sh",
+    "python3 scripts/validate_stage1_staging_object_retention_evidence.py",
+    "python3 scripts/validate_stage1_staging_runtime.py"
+  ]
+}

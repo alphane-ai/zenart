@@ -1,0 +1,80 @@
+{
+  "id": "batch_466d3485d43b396218c1b611",
+  "tenant_id": "tenant_local",
+  "user_id": "local_stage1.provider.user_zenari.ai",
+  "project_id": "project_local_ecommerce_growth",
+  "workspace_id": "ws_stage1_smoke",
+  "prompt_context": {
+    "text": "Zenari provider sandbox smoke: generate a simple launch poster concept.",
+    "model_hints": [
+      "glm-5.2"
+    ],
+    "tool_hint": "image.generate"
+  },
+  "requested_count": 1,
+  "allowed_models": [
+    "glm-5.2"
+  ],
+  "quota_reservation_id": "quota_reservation_3a5fca5f922fbfb10eddee16",
+  "quota_estimated_units": 4,
+  "quota_committed_units": 4,
+  "quota_refunded_units": 0,
+  "trace_id": "trace_batch_2c283dd9155ee4688037c340",
+  "status": "succeeded",
+  "children": [
+    {
+      "id": "child_ed9e2dd7db3f12dbd675febb",
+      "batch_id": "batch_466d3485d43b396218c1b611",
+      "tenant_id": "tenant_local",
+      "status": "succeeded",
+      "provider_id": "zenari-image-sandbox",
+      "model_id": "glm-5.2",
+      "tool_type": "image.generate",
+      "seed": "batch_466d3485d43b396218c1b611_01",
+      "retry_count": 0,
+      "max_retries": 2,
+      "quota_estimate_units": 4,
+      "quota_committed_units": 4,
+      "quota_refunded_units": 0,
+      "asset_id": "asset_ea39b22b76408f0b18a363d55d8e15fc",
+      "canvas_object_id": "canvas_node_ea39b22b76408f0b18a363d55d8e15fc",
+      "trace_id": "trace_child_1d39dfffeb39f95e349348e7",
+      "visible_trace_ref": "trace_projection_3b2293e36d00f5260720ebf3",
+      "metadata": {
+        "asset_persisted": "true",
+        "canvas_persisted": "true",
+        "claim_attempt": "1",
+        "claim_expires_at": "2026-06-27T16:43:47Z",
+        "claimed_by_worker_id": "stage0-local-worker",
+        "fanout_index": "0",
+        "fanout_stage": "provider_execution_succeeded",
+        "lineage_persisted": "true",
+        "object_key": "tenants/tenant_local/batch-results/batch_466d3485d43b396218c1b611/child_ed9e2dd7db3f12dbd675febb/result-manifest.json",
+        "object_ref_persisted": "true",
+        "provider_output_sig": "6ae039a715d840473bfad9e4f4f33de2b01f3cde0bf3052c26e3a245659f4128",
+        "provider_response_id": "openai_compatible:20260628002849f1f1666ab97f45a1",
+        "provider_response_status": "succeeded",
+        "request_hash": "742baa17f8b0bf29ed6d9b1f002082c479cf53af2acec3164e54faebb450a5fd",
+        "result_sink": "postgres_asset_canvas_object_store",
+        "routing_selection_reason": "strategy_group_unavailable_static_default",
+        "source": "api",
+        "thumbnail_key": "tenants/tenant_local/thumbnails/batch_466d3485d43b396218c1b611/child_ed9e2dd7db3f12dbd675febb/thumbnail-manifest.json",
+        "thumbnail_persisted": "true",
+        "trace_projection": "object_store_manifest",
+        "usage_commit_units": "4",
+        "usage_refund_units": "0",
+        "usage_units": "418"
+      },
+      "created_at": "2026-06-27T16:28:46.463607Z",
+      "updated_at": "2026-06-27T16:29:32.336637Z"
+    }
+  ],
+  "metadata": {
+    "fanout_stage": "queued_children_created_by_api",
+    "idempotency_fingerprint": "d8ec5a08a93508fc2af6ece7196c4bf3e406a35f58f1389b01fe83322e9ca6e3",
+    "scheduler_note": "worker_policy_fanout_pending",
+    "source": "api"
+  },
+  "created_at": "2026-06-27T16:28:46.463607Z",
+  "updated_at": "2026-06-27T16:29:32.336637Z"
+}

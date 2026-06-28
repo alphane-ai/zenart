@@ -1,0 +1,92 @@
+{
+  "checks": {
+    "admin_running": true,
+    "backend_running": true,
+    "crawler_running": true,
+    "crawler_uses_backend_image": true,
+    "manager_not_running": true,
+    "web_running": true,
+    "worker_running": true,
+    "worker_uses_backend_image": true
+  },
+  "environment": "staging",
+  "evidence_refs": [
+    "docker-compose.yml",
+    "scripts/azure_staging_deploy.sh"
+  ],
+  "gate_impact": {
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_ci_gate_check": false
+  },
+  "generated_at": "2026-06-24T10:40:10+00:00",
+  "kind": "release_image_boundary",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "release_unit_policy": {
+    "diagnostic_note": "Runtime boundary evidence only; does not replace CI exact image build evidence.",
+    "legacy_local_only": [
+      "manager"
+    ],
+    "release_images": [
+      "backend",
+      "web",
+      "admin"
+    ],
+    "runtime_entrypoints": [
+      "worker",
+      "crawler"
+    ]
+  },
+  "schema_version": "stage1.azure_release_image_boundary.v1",
+  "services": {
+    "admin": {
+      "command": "\"docker-entrypoint.s\u2026\"",
+      "image": "zenari-stage0-admin",
+      "name": "zenari-stage0-admin-1",
+      "state": "running"
+    },
+    "backend": {
+      "command": "\"/app/server\"",
+      "image": "zenari-backend:local",
+      "name": "zenari-stage0-backend-1",
+      "state": "running"
+    },
+    "crawler": {
+      "command": "\"/app/crawler\"",
+      "image": "zenari-backend:local",
+      "name": "zenari-stage0-crawler-1",
+      "state": "running"
+    },
+    "minio": {
+      "command": "\"/usr/bin/docker-ent\u2026\"",
+      "image": "minio/minio:RELEASE.2025-04-22T22-12-26Z",
+      "name": "zenari-stage0-minio-1",
+      "state": "running"
+    },
+    "postgres": {
+      "command": "\"docker-entrypoint.s\u2026\"",
+      "image": "postgres:16-alpine",
+      "name": "zenari-stage0-postgres-1",
+      "state": "running"
+    },
+    "redis": {
+      "command": "\"docker-entrypoint.s\u2026\"",
+      "image": "redis:7-alpine",
+      "name": "zenari-stage0-redis-1",
+      "state": "running"
+    },
+    "web": {
+      "command": "\"docker-entrypoint.s\u2026\"",
+      "image": "zenari-stage0-web",
+      "name": "zenari-stage0-web-1",
+      "state": "running"
+    },
+    "worker": {
+      "command": "\"/app/worker\"",
+      "image": "zenari-backend:local",
+      "name": "zenari-stage0-worker-1",
+      "state": "running"
+    }
+  },
+  "staging_host": "52.237.80.117",
+  "status": "passed"
+}

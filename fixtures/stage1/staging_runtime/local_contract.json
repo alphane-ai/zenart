@@ -1,0 +1,297 @@
+{
+  "schema_version": "stage1.staging_runtime.contract.v1",
+  "fixture_id": "stage1_staging_runtime_local_contract",
+  "kind": "staging_runtime_contract",
+  "canonical_evidence_path": "ops/evidence/staging/stage1-runtime.json",
+  "canonical_results_path": "ops/evidence/staging/stage1-runtime.ndjson",
+  "strict_schema_version": "stage1.staging_runtime.v1",
+  "release_gate_status": "contract_ready_staging_runtime_evidence_open",
+  "required_components": [
+    {
+      "component_id": "auth_rbac_tenant_audit",
+      "category": "auth",
+      "required_evidence_ref": "ops/evidence/staging/20260527T1515Z-auth-rbac-tenant-audit.json",
+      "required_validator": "scripts/validate_stage1_staging_auth_rbac_tenant_audit_evidence.py",
+      "required_status_values": ["pass", "passed"],
+      "required_proofs": [
+        "auth decision",
+        "RBAC allow and deny",
+        "tenant isolation",
+        "audit immutability"
+      ]
+    },
+    {
+      "component_id": "batch_runtime",
+      "category": "batch",
+      "required_evidence_ref": "ops/evidence/staging/stage1-provider-sandbox.json",
+      "required_validator": "scripts/validate_stage1_provider_sandbox_evidence.py",
+      "required_status_values": ["pass"],
+      "required_proofs": [
+        "create batch",
+        "progress polling",
+        "child state visibility",
+        "asset and canvas persistence"
+      ]
+    },
+    {
+      "component_id": "staging_quota_replay",
+      "category": "batch_quota",
+      "required_evidence_ref": "ops/evidence/staging/stage1-quota-replay.json",
+      "required_results_ref": "ops/evidence/staging/stage1-quota-replay.ndjson",
+      "blocked_evidence_ref": "ops/evidence/staging/stage1-quota-replay.blocked.json",
+      "blocked_results_ref": "ops/evidence/staging/stage1-quota-replay.blocked.ndjson",
+      "required_validator": "scripts/validate_stage1_staging_quota_replay_evidence.py",
+      "required_status_values": ["pass"],
+      "required_proofs": [
+        "deployed staging Postgres replay",
+        "retry scheduled",
+        "dead-letter refund",
+        "manual retry re-reserve",
+        "provider usage debit",
+        "provider usage credit",
+        "idempotent replay"
+      ]
+    },
+    {
+      "component_id": "provider_sandbox",
+      "category": "provider",
+      "required_evidence_ref": "ops/evidence/staging/stage1-provider-sandbox.json",
+      "required_results_ref": "ops/evidence/staging/stage1-provider-sandbox.ndjson",
+      "required_validator": "scripts/validate_stage1_provider_sandbox_evidence.py",
+      "required_status_values": ["pass"],
+      "required_proofs": [
+        "OpenAI-compatible models health probe",
+        "admin sandbox test-call",
+        "batch worker runtime",
+        "provider usage",
+        "no provider secret or raw prompt exposure"
+      ]
+    },
+    {
+      "component_id": "stripe_test_lifecycle",
+      "category": "billing",
+      "required_evidence_ref": "ops/evidence/staging/stripe-test-checkout-webhook.json",
+      "required_results_ref": "ops/evidence/staging/stripe-test-checkout-webhook.ndjson",
+      "required_validator": "scripts/validate_stage1_stripe_staging_evidence.py",
+      "required_status_values": ["pass"],
+      "required_proofs": [
+        "livemode=false",
+        "checkout",
+        "paid",
+        "past_due",
+        "cancel",
+        "refund or credit",
+        "webhook replay idempotency",
+        "invoice and receipt visibility"
+      ]
+    },
+    {
+      "component_id": "object_storage_retention_cleanup",
+      "category": "object_storage",
+      "required_evidence_ref": "ops/evidence/staging/object-storage-retention-cleanup.json",
+      "required_results_ref": "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+      "blocked_evidence_ref": "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
+      "blocked_results_ref": "ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson",
+      "required_validator": "scripts/validate_stage1_staging_object_retention_evidence.py",
+      "required_status_values": ["pass", "passed"],
+      "required_proofs": [
+        "retention policy",
+        "expired export cleanup",
+        "orphan cleanup",
+        "audit refs"
+      ]
+    },
+    {
+      "component_id": "safety_qa_eval",
+      "category": "safety",
+      "required_evidence_ref": "ops/evidence/staging/stage1-safety-qa-eval.json",
+      "required_results_ref": "ops/evidence/staging/stage1-safety-qa-eval.ndjson",
+      "required_validator": "scripts/validate_stage1_safety_qa_evidence.py",
+      "required_status_values": ["pass"],
+      "required_proofs": [
+        "batch blocked child refund",
+        "edit tool policy",
+        "asset import policy",
+        "export fail closed",
+        "admin review override",
+        "support ticket redaction"
+      ]
+    },
+    {
+      "component_id": "observability",
+      "category": "ops",
+      "required_evidence_ref": "ops/evidence/staging/20260527T1830Z-observability-runtime.json",
+      "required_validator": "scripts/validate_stage1_staging_observability_backup_load_evidence.py",
+      "required_status_values": ["pass", "passed"],
+      "required_proofs": [
+        "request id propagation",
+        "structured logs",
+        "OpenTelemetry traces",
+        "dashboards",
+        "alerts"
+      ]
+    },
+    {
+      "component_id": "backup_restore",
+      "category": "ops",
+      "required_evidence_ref": "ops/evidence/staging/20260527T2115Z-backup-restore.json",
+      "required_validator": "scripts/validate_stage1_staging_observability_backup_load_evidence.py",
+      "required_status_values": ["pass", "passed"],
+      "required_proofs": [
+        "Postgres restore",
+        "object restore",
+        "asset lineage",
+        "billing ledger",
+        "RPO/RTO"
+      ]
+    },
+    {
+      "component_id": "load",
+      "category": "ops",
+      "required_evidence_ref": "ops/evidence/staging/stage1-load.json",
+      "required_results_ref": "ops/evidence/staging/stage1-load.ndjson",
+      "blocked_evidence_ref": "ops/evidence/staging/stage1-load.blocked.json",
+      "blocked_results_ref": "ops/evidence/staging/stage1-load.blocked.ndjson",
+      "required_validator": "scripts/validate_stage1_load_evidence.py",
+      "required_status_values": ["pass"],
+      "required_proofs": [
+        "chat task load",
+        "worker generation load",
+        "zip export load",
+        "signed download load",
+        "crawler throttle load",
+        "quota contention load",
+        "workspace rendering load",
+        "p95 latency threshold",
+        "queue delay threshold",
+        "provider fallback threshold",
+        "billing webhook failure threshold"
+      ]
+    },
+    {
+      "component_id": "legal_support_external_user",
+      "category": "legal_support",
+      "required_evidence_refs": [
+        "ops/evidence/staging/legal-pages-external-user.json",
+        "ops/evidence/staging/support-contact-external-user.json"
+      ],
+      "required_validator": "scripts/validate_stage1_staging_legal_support_evidence.py",
+      "required_status_values": ["pass", "passed"],
+      "required_proofs": [
+        "external-user legal pages",
+        "support contact",
+        "billing policy",
+        "IP complaint",
+        "support ticket path"
+      ]
+    }
+  ],
+  "required_child_validators": [
+    {
+      "validator": "scripts/validate_stage1_staging_auth_rbac_tenant_audit_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_staging_auth_rbac_tenant_audit_evidence.py --contract-only",
+      "strict_command": "python3 scripts/validate_stage1_staging_auth_rbac_tenant_audit_evidence.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_provider_sandbox_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_provider_sandbox_evidence.py --contract-only",
+      "strict_command": "python3 scripts/validate_stage1_provider_sandbox_evidence.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_staging_quota_replay_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_staging_quota_replay_evidence.py --contract-only",
+      "strict_command": "python3 scripts/validate_stage1_staging_quota_replay_evidence.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_stripe_staging_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_stripe_staging_evidence.py --contract-only",
+      "strict_command": "python3 scripts/validate_stage1_stripe_staging_evidence.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_safety_qa_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_safety_qa_evidence.py --contract-only",
+      "strict_command": "python3 scripts/validate_stage1_safety_qa_evidence.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_staging_object_retention_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_staging_object_retention_evidence.py --contract-only",
+      "strict_command": "python3 scripts/validate_stage1_staging_object_retention_evidence.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_staging_observability_backup_load_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_staging_observability_backup_load_evidence.py --contract-only",
+      "strict_command": "python3 scripts/validate_stage1_staging_observability_backup_load_evidence.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_load_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_load_evidence.py --contract-only",
+      "strict_command": "python3 scripts/validate_stage1_load_evidence.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_staging_legal_support_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_staging_legal_support_evidence.py --contract-only",
+      "strict_command": "python3 scripts/validate_stage1_staging_legal_support_evidence.py"
+    }
+  ],
+  "required_stage0_smoke_scripts": [
+    "scripts/staging_observability_backup_load_smoke.sh",
+    "scripts/staging_object_storage_retention_cleanup_smoke.sh",
+    "scripts/staging_legal_support_visibility_smoke.sh"
+  ],
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false,
+    "database_url_persisted": false
+  },
+  "strict_evidence_policy": {
+    "environment": "staging",
+    "kind": "stage1_staging_runtime",
+    "status": "pass",
+    "allow_blocked_component": false,
+    "allow_local_alpha_component": false,
+    "allow_local_devport_debug": false,
+    "allow_local_devport_evidence": false,
+    "allow_dry_run": false,
+    "all_component_refs_under": "ops/evidence/staging/",
+    "component_status_field": "status",
+    "component_pass_status": "passed",
+    "component_evidence_must_exist": true,
+    "component_results_must_exist_when_declared": true,
+    "canonical_pass_path_required": true,
+    "gate_impact_can_clear_required": true,
+    "strict_child_validators_must_pass": true
+  },
+  "aggregate_preflight_policy": {
+    "validator_command": "python3 scripts/validate_stage1_staging_runtime.py --allow-preflight",
+    "generator_command": "python3 scripts/generate_stage1_staging_runtime_evidence.py",
+    "accepted_schema_version": "stage1.staging_runtime.v1",
+    "accepted_status": "blocked",
+    "accepted_release_gate_decision": "no_go",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "canonical_pass_path_required_for_strict": true,
+    "must_preserve_do_not_launch_condition": "stage1_staging_runtime_evidence_incomplete",
+    "must_surface_blocked_child_diagnostics": [
+      "ops/evidence/staging/stage1-quota-replay.blocked.json",
+      "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
+      "ops/evidence/staging/stage1-load.blocked.json"
+    ],
+    "strict_validator_still_rejects_preflight": true
+  },
+  "remaining_staging_evidence": [
+    "canonical provider sandbox evidence at ops/evidence/staging/stage1-provider-sandbox.json and .ndjson",
+    "canonical staging quota replay evidence at ops/evidence/staging/stage1-quota-replay.json and .ndjson",
+    "canonical Stripe checkout/webhook evidence at ops/evidence/staging/stripe-test-checkout-webhook.json and .ndjson",
+    "canonical object retention cleanup pass evidence at ops/evidence/staging/object-storage-retention-cleanup.json and .ndjson",
+    "canonical safety/QA/eval evidence at ops/evidence/staging/stage1-safety-qa-eval.json and .ndjson",
+    "canonical OP-7 Stage 1 load evidence at ops/evidence/staging/stage1-load.json and .ndjson",
+    "canonical aggregate Stage 1 runtime evidence at ops/evidence/staging/stage1-runtime.json and .ndjson",
+    "strict Stage 1 staging runtime validator pass without blocked, local, dry-run, secret, raw payload, or preserved do-not-launch material"
+  ]
+}

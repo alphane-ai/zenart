@@ -1,0 +1,57 @@
+{
+  "allow_local_devport_evidence": false,
+  "authorization_header_persisted": false,
+  "blockers": [
+    "staging_api_url not production-like: invalid_scheme,missing_host,reserved_or_local_host",
+    "staging_database_endpoint not production-like: invalid_scheme,missing_host,reserved_or_local_host,missing_database_credentials",
+    "missing STAGING_QUOTA_REPLAY_TENANT_ID or --tenant-id",
+    "missing STAGING_QUOTA_REPLAY_BATCH_ID or --batch-id"
+  ],
+  "canonical_pass_path": false,
+  "cookie_persisted": false,
+  "coverage": {
+    "dead_letter_refund": false,
+    "idempotent_replay": false,
+    "manual_retry_rereserve": false,
+    "provider_usage_credit": false,
+    "provider_usage_debit": false,
+    "retry_scheduled": false
+  },
+  "database_read_provenance": "not_read",
+  "database_url_persisted": false,
+  "do_not_launch_conditions": [
+    "staging_quota_replay_evidence_incomplete"
+  ],
+  "dry_run": false,
+  "environment": "staging",
+  "generated_at": "2026-06-27T13:17:41+00:00",
+  "kind": "stage1_staging_quota_replay",
+  "local_devport_debug": false,
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "result_row_count": 0,
+  "runtime_components": [
+    "BatchRunner.RunOnce",
+    "BatchChildExecutor.ExecuteClaimedChild",
+    "PostgresBatchQuotaLedger.ReserveBatchQuota",
+    "PostgresBatchQuotaLedger.CommitBatchQuota",
+    "PostgresBatchQuotaLedger.RefundBatchQuota",
+    "BatchRepository.RetryChild",
+    "QuotaRepository.ReconcileProviderUsage"
+  ],
+  "schema_version": "stage1.staging_quota_replay.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_tables": [
+    "batch_generation_requests",
+    "generation_child_tasks",
+    "quota_buckets",
+    "quota_transactions",
+    "provider_usage_logs"
+  ],
+  "staging_api_url": "",
+  "status": "blocked"
+}

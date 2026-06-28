@@ -1,0 +1,2 @@
+openai-compatible provider selftest failed
+openai-compatible provider selftest failed: chat completions endpoint returned http_status=429 error=provider_quota_unavailable provider_code=1113

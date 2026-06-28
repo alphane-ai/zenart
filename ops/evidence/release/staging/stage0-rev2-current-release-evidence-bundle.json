@@ -1,56 +1,18 @@
 {
-  "blocking_reason_count": 39,
-  "blocking_reasons": [
-    "staging_smoke_not_passed",
-    "post_deploy_smoke_contract_unverified",
-    "missing_release_evidence:backup_restore_evidence",
-    "missing_release_evidence:config_diff_evidence",
-    "missing_release_evidence:image_refs",
-    "missing_release_evidence:load_evidence",
-    "missing_release_evidence:migration_evidence",
-    "missing_release_evidence:observability_evidence",
-    "missing_release_evidence:release_notes_path",
-    "missing_release_evidence:release_sha",
-    "missing_release_evidence:rollback_evidence",
-    "missing_release_evidence:security_scan_evidence",
-    "unverified_release_evidence:backup_restore_evidence",
-    "unverified_release_evidence:config_diff_evidence",
-    "unverified_release_evidence:image_refs",
-    "unverified_release_evidence:load_evidence",
-    "unverified_release_evidence:migration_evidence",
-    "unverified_release_evidence:observability_evidence",
-    "unverified_release_evidence:release_notes_path",
-    "unverified_release_evidence:rollback_evidence",
-    "unverified_release_evidence:security_scan_evidence",
-    "gate_fixture_blocked:private_beta_staging:staging_object_storage_signed_downloads",
-    "gate_fixture_blocked:private_beta_staging:object_storage_signed_retention_runtime_missing",
-    "gate_fixture_blocked:production_launch:production_paid_billing_lifecycle",
-    "gate_fixture_blocked:production_launch:production_backup_rollback_incident",
-    "gate_fixture_blocked:production_launch:paid_billing_or_comp_only_mode_missing",
-    "gate_fixture_blocked:production_launch:backup_restore_rollback_smoke_missing",
-    "gate_fixture_blocked:production_launch:production_deploy_rollback_smoke_missing",
-    "gate_fixture_blocked:production_launch:ci_staging_gates_not_passed",
-    "canonical_object_storage_retention_cleanup_not_passed",
-    "ci_closure_artifact_missing:ci_installed_workflow",
-    "ci_closure_artifact_missing:ci_pr_main_run",
-    "ci_closure_artifact_missing:ci_playwright_smoke",
-    "ci_closure_artifact_missing:ci_docker_image_build",
-    "production_upstream_ci_gate_not_go",
-    "production_upstream_private_beta_staging_gate_not_go",
-    "production_backup_restore_split_not_passed",
-    "production_rollback_incident_post_deploy_split_not_passed",
-    "production_exact_backup_rollback_split_files_not_ready"
-  ],
+  "blocking_reason_count": 0,
+  "blocking_reasons": [],
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
   "canonical_legal_pages_external_user_probe": {
     "canonical": true,
     "environment": "staging",
-    "evidence_id": "staging_legal_pages_external_user_20260527T2230Z",
+    "evidence_id": "legal-pages-external-user",
     "exists": true,
     "gate_impact": {
       "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
       "can_clear_check_level_item": true,
-      "can_clear_legal_pages_subitem": true
+      "can_clear_legal_pages_subitem": true,
+      "can_clear_release_gate_check": false,
+      "check_level_item": "Private Beta/Staging legal pages external-user visibility evidence \u901a\u8fc7\uff1astaging evidence proves Terms\u3001Privacy\u3001Acceptable Use\u3001AI/content disclaimer\u3001IP complaint flow are externally visible under `ops/evidence/staging/`\u3002"
     },
     "passed": true,
     "path": "ops/evidence/staging/legal-pages-external-user.json",
@@ -59,27 +21,167 @@
   },
   "canonical_legal_pages_external_user_report": "ops/evidence/staging/legal-pages-external-user.json",
   "canonical_object_retention_cleanup_probe": {
+    "audit_linkage": {
+      "audit_endpoint_covers_cleanup_refs": {
+        "expired_export_cleanup": [
+          "audit_4a203a7e855cd8a76d17cfbf",
+          "audit_a099c66106dd5096ec5635c2"
+        ],
+        "orphan_cleanup": [
+          "audit_5ea7630f7e829b5ae7c0840f",
+          "audit_b8021799356e171cf2888ac0"
+        ]
+      },
+      "audit_endpoint_missing_cleanup_refs": {
+        "expired_export_cleanup": [],
+        "orphan_cleanup": []
+      },
+      "audit_endpoint_refs": [
+        "audit_238cfc926f160d0a1e039a63",
+        "audit_2a53f8c63abe41b53887d002",
+        "audit_318ca6cfde7c3ff57e300cd0",
+        "audit_3f0c12bbe398a97bd37350e4",
+        "audit_48ce483a965be043c9cc80fb",
+        "audit_4a203a7e855cd8a76d17cfbf",
+        "audit_583b8fb27445d2cd205cbd5f",
+        "audit_5ea7630f7e829b5ae7c0840f",
+        "audit_79d4412d0d7606a450d27272",
+        "audit_7eed0b3add2abadb97ae3898",
+        "audit_883a6ec864d9512fd733363f",
+        "audit_933ec41324c31a2cbd5013f3",
+        "audit_94cb5d171b3daa3b898e45d5",
+        "audit_a099c66106dd5096ec5635c2",
+        "audit_b8021799356e171cf2888ac0",
+        "audit_ce66e75cebaf40d765a78672",
+        "audit_d6630b2cc6dd0e8adf37cb3b",
+        "audit_dc2e1ab4a61e98a38e170d67",
+        "audit_f26c220849c6af9e8d324181",
+        "audit_fa29afaab97000dcaf97972a"
+      ],
+      "audit_endpoint_request_id_cleanup_refs_by_probe": {
+        "expired_export_cleanup": [
+          "audit_4a203a7e855cd8a76d17cfbf",
+          "audit_a099c66106dd5096ec5635c2"
+        ],
+        "orphan_cleanup": [
+          "audit_5ea7630f7e829b5ae7c0840f",
+          "audit_b8021799356e171cf2888ac0"
+        ]
+      },
+      "audit_endpoint_request_id_missing_cleanup_refs": [],
+      "audit_endpoint_request_id_missing_cleanup_refs_by_probe": {
+        "expired_export_cleanup": [],
+        "orphan_cleanup": []
+      },
+      "audit_endpoint_semantic_cleanup_refs": [
+        "audit_4a203a7e855cd8a76d17cfbf",
+        "audit_5ea7630f7e829b5ae7c0840f",
+        "audit_a099c66106dd5096ec5635c2",
+        "audit_b8021799356e171cf2888ac0"
+      ],
+      "audit_endpoint_semantic_cleanup_refs_by_probe": {
+        "expired_export_cleanup": [
+          "audit_4a203a7e855cd8a76d17cfbf",
+          "audit_a099c66106dd5096ec5635c2"
+        ],
+        "orphan_cleanup": [
+          "audit_5ea7630f7e829b5ae7c0840f",
+          "audit_b8021799356e171cf2888ac0"
+        ]
+      },
+      "audit_endpoint_semantic_missing_cleanup_refs": [],
+      "cleanup_audit_refs": [
+        "audit_4a203a7e855cd8a76d17cfbf",
+        "audit_5ea7630f7e829b5ae7c0840f",
+        "audit_a099c66106dd5096ec5635c2",
+        "audit_b8021799356e171cf2888ac0"
+      ],
+      "cleanup_audit_refs_by_probe": {
+        "expired_export_cleanup": [
+          "audit_4a203a7e855cd8a76d17cfbf",
+          "audit_a099c66106dd5096ec5635c2"
+        ],
+        "orphan_cleanup": [
+          "audit_5ea7630f7e829b5ae7c0840f",
+          "audit_b8021799356e171cf2888ac0"
+        ]
+      },
+      "missing_cleanup_audit_refs": [],
+      "request_id_verified": true,
+      "semantic_verified": true,
+      "verified": true
+    },
     "canonical": true,
-    "environment": null,
-    "exists": false,
-    "missing_requirements": [
-      "missing_file"
+    "coverage_areas": [
+      "audit_refs",
+      "expired_export_cleanup",
+      "orphan_cleanup",
+      "retention_policy"
     ],
-    "passed": false,
+    "csrf": {
+      "header_name": "X-Zenari-CSRF",
+      "origin": "https://staging.zenari.ai",
+      "ready": true
+    },
+    "environment": "staging",
+    "exists": true,
+    "gate_impact": {
+      "can_clear_release_gate_check": true,
+      "can_clear_retention_cleanup_checklist_item": true,
+      "check_level_item": "Private Beta/Staging object retention/cleanup runtime evidence \u901a\u8fc7\uff1astaging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`\u3002",
+      "preserved_do_not_launch_condition_id": null,
+      "preserved_release_gate_check_id": null,
+      "remaining_release_gate_blockers_after_pass": [],
+      "requires_release_gate_fixture_update_after_pass": true
+    },
+    "input_readiness": {
+      "admin_tenant_id_ready": true,
+      "admin_user_id_ready": true,
+      "allow_local_devport_evidence": false,
+      "auth_ready": true,
+      "canonical_pass_path": true,
+      "canonical_write_requested": true,
+      "csrf_ready": true,
+      "preflight_stage1": false,
+      "probe_urls_ready": true,
+      "production_like_staging_targets": true,
+      "release_sha_matches_signed_url": true,
+      "release_sha_provided": true,
+      "signed_url_evidence_ready": true,
+      "use_dev_identity_headers": false
+    },
+    "kind": "object_storage_retention_cleanup",
+    "missing_requirements": [],
+    "passed": true,
     "path": "ops/evidence/staging/object-storage-retention-cleanup.json",
-    "release_gate_check_id": null,
-    "status": "missing"
+    "release_gate_check_id": "staging_object_storage_signed_downloads",
+    "release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a",
+    "result_count": 4,
+    "results_path": "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+    "split_evidence": {
+      "canonical_pass_paths": true,
+      "release_sha_matches_signed_url": true,
+      "retention_cleanup_ready": true,
+      "retention_cleanup_runtime_ready": true,
+      "signed_url_evidence": "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json",
+      "signed_url_ready": true,
+      "signed_url_reason": "signed_url_runtime_evidence_ready",
+      "signed_url_release_sha": "d3b1107c33dc40b8936f28549e06553fbd7b104a"
+    },
+    "status": "pass"
   },
   "canonical_object_retention_cleanup_report": "ops/evidence/staging/object-storage-retention-cleanup.json",
   "canonical_support_contact_external_user_probe": {
     "canonical": true,
     "environment": "staging",
-    "evidence_id": "staging_support_contact_external_user_20260527T2230Z",
+    "evidence_id": "support-contact-external-user",
     "exists": true,
     "gate_impact": {
       "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
       "can_clear_check_level_item": true,
-      "can_clear_support_contact_subitem": true
+      "can_clear_release_gate_check": false,
+      "can_clear_support_contact_subitem": true,
+      "check_level_item": "Private Beta/Staging support contact external-user visibility evidence \u901a\u8fc7\uff1astaging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`\u3002"
     },
     "passed": true,
     "path": "ops/evidence/staging/support-contact-external-user.json",
@@ -87,84 +189,78 @@
     "status": "pass"
   },
   "canonical_support_contact_external_user_report": "ops/evidence/staging/support-contact-external-user.json",
-  "ci_closure_artifact_blocking_reasons": [
-    "ci_closure_artifact_missing:ci_installed_workflow",
-    "ci_closure_artifact_missing:ci_pr_main_run",
-    "ci_closure_artifact_missing:ci_playwright_smoke",
-    "ci_closure_artifact_missing:ci_docker_image_build"
-  ],
+  "ci_closure_artifact_blocking_reasons": [],
   "ci_closure_artifacts": [
     {
       "artifact_id": "ci_installed_workflow",
-      "exists": false,
+      "exists": true,
       "label": "installed PR/main workflow",
       "path": ".github/workflows/stage0-rev2-ci.yml",
       "required_before_ci_gate_closure": true
     },
     {
       "artifact_id": "ci_pr_main_run",
-      "exists": false,
+      "exists": true,
       "label": "PR/main workflow run evidence",
       "path": "ops/evidence/ci/stage0-rev2-pr-main-run.json",
       "required_before_ci_gate_closure": true
     },
     {
       "artifact_id": "ci_playwright_smoke",
-      "exists": false,
+      "exists": true,
       "label": "CI Playwright smoke evidence",
       "path": "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
       "required_before_ci_gate_closure": true
     },
     {
       "artifact_id": "ci_docker_image_build",
-      "exists": false,
+      "exists": true,
       "label": "CI Docker image build evidence",
       "path": "ops/evidence/ci/stage0-rev2-docker-image-build.json",
       "required_before_ci_gate_closure": true
     }
   ],
-  "ci_closure_artifacts_ready": false,
+  "ci_closure_artifacts_ready": true,
   "created_at": "stage0-rev2-current-release-evidence-bundle",
   "created_by_lane": "lane5",
-  "decision": "no-go",
+  "decision": "go",
   "decision_inputs": {
-    "gate_fixtures_clear": false,
-    "post_deploy_smoke_verified": false,
+    "gate_fixtures_clear": true,
+    "post_deploy_smoke_verified": true,
     "profile_post_deploy": true,
-    "release_evidence_complete": false,
-    "smoke_passed": false
+    "release_evidence_complete": true,
+    "smoke_passed": true
   },
   "environment": "staging",
-  "gate_fixtures_clear": false,
+  "gate_fixtures_clear": true,
   "kind": "release_evidence_bundle",
   "legal_pages_external_user_probe": {
-    "environment": null,
-    "exists": false,
-    "kind": null,
-    "passed": false,
-    "path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-pages-external-user.json",
-    "release_gate_check_id": null,
-    "status": "missing"
-  },
-  "legal_support_evidence_source": "canonical_staging_split_evidence",
-  "legal_support_split_reports_verified": true,
-  "legal_support_visibility_exit_code": 2,
-  "legal_support_visibility_probe": {
-    "blocked_checks": [
-      "terms:missing_staging_web_url",
-      "privacy:missing_staging_web_url",
-      "acceptable_use:missing_staging_web_url",
-      "ip_complaint:missing_staging_web_url",
-      "ai_content_disclaimer:missing_staging_web_url",
-      "support_contact:missing_staging_web_url",
-      "billing_policy:missing_staging_web_url"
-    ],
     "environment": "staging",
     "exists": true,
-    "exit_code": 2,
+    "gate_impact": {
+      "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
+      "can_clear_check_level_item": true,
+      "can_clear_legal_pages_subitem": true,
+      "can_clear_release_gate_check": false,
+      "check_level_item": "Private Beta/Staging legal pages external-user visibility evidence \u901a\u8fc7\uff1astaging evidence proves Terms\u3001Privacy\u3001Acceptable Use\u3001AI/content disclaimer\u3001IP complaint flow are externally visible under `ops/evidence/staging/`\u3002"
+    },
+    "kind": "legal_pages_external_user_visibility",
+    "passed": true,
+    "path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-pages-external-user.json",
+    "release_gate_check_id": "staging_legal_external_user_pages",
+    "status": "pass"
+  },
+  "legal_support_evidence_source": "generated_probe",
+  "legal_support_split_reports_verified": true,
+  "legal_support_visibility_exit_code": 0,
+  "legal_support_visibility_probe": {
+    "blocked_checks": [],
+    "environment": "staging",
+    "exists": true,
+    "exit_code": 0,
     "gate_impact": {
       "can_clear_aggregate_item": false,
-      "can_clear_release_gate_check": false,
+      "can_clear_release_gate_check": true,
       "check_level_items": [
         "Private Beta/Staging legal/support external-user visibility runtime evidence \u901a\u8fc7\u3002",
         "Private Beta/Staging legal pages external-user visibility evidence \u901a\u8fc7\uff1astaging evidence proves Terms\u3001Privacy\u3001Acceptable Use\u3001AI/content disclaimer\u3001IP complaint flow are externally visible under `ops/evidence/staging/`\u3002",
@@ -178,13 +274,13 @@
     },
     "input_readiness": {
       "dry_run": false,
-      "external_probe_attempted": false,
-      "legal_pages_split_ready": false,
-      "support_contact_split_ready": false,
-      "web_url_ready": false
+      "external_probe_attempted": true,
+      "legal_pages_split_ready": true,
+      "support_contact_split_ready": true,
+      "web_url_ready": true
     },
     "kind": "legal_support_visibility",
-    "passed": false,
+    "passed": true,
     "path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.json",
     "probe_contract": {
       "blocked_without_runtime_inputs": true,
@@ -194,6 +290,7 @@
       "do_not_launch_condition_id": "external_user_legal_pages_missing",
       "environment": "staging",
       "local_blocked_command": "DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh || test \"$?\" = 2",
+      "local_devport_debug_command": "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 WEB_URL=http://127.0.0.1:26080 scripts/staging_legal_support_visibility_smoke.sh || test \"$?\" = 2",
       "release_gate_check_id": "staging_legal_external_user_pages",
       "required_env": [
         "STAGING_WEB_URL or WEB_URL"
@@ -204,6 +301,7 @@
         "/legal/acceptable-use",
         "/legal/ip-complaints",
         "/support",
+        "/report-problem",
         "/legal/billing-policy"
       ],
       "results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson",
@@ -231,6 +329,7 @@
         "billing_policy": "/legal/billing-policy",
         "ip_complaint": "/legal/ip-complaints",
         "privacy": "/legal/privacy",
+        "report_problem": "/report-problem",
         "support_contact": "/support",
         "terms": "/legal/terms"
       },
@@ -238,29 +337,18 @@
       "source_file_policy": "web source files or checked-in policy text alone cannot satisfy staging legal/support visibility; the pass report requires deployed external-user HTTP probe results."
     },
     "split_evidence": {},
-    "status": "blocked"
+    "status": "pass"
   },
   "legal_support_visibility_verified": true,
-  "missing_slots": [
-    "backup_restore_evidence",
-    "config_diff_evidence",
-    "image_refs",
-    "load_evidence",
-    "migration_evidence",
-    "observability_evidence",
-    "release_notes_path",
-    "release_sha",
-    "rollback_evidence",
-    "security_scan_evidence"
-  ],
-  "object_retention_cleanup_blocked_reason": "missing STAGING_BASE_URL or explicit probe URL env vars",
+  "missing_slots": [],
+  "object_retention_cleanup_blocked_reason": "retention_policy:unexpected_http_status; expired_export_cleanup:unexpected_http_status; orphan_cleanup:unexpected_http_status; audit_refs:unexpected_http_status",
   "object_retention_cleanup_exit_code": 2,
   "object_retention_cleanup_probe": {
     "blocked_checks": [
-      "retention_policy:dry_run_no_staging_runtime_probe",
-      "expired_export_cleanup:dry_run_no_staging_runtime_probe",
-      "orphan_cleanup:dry_run_no_staging_runtime_probe",
-      "audit_refs:dry_run_no_staging_runtime_probe"
+      "retention_policy:unexpected_http_status",
+      "expired_export_cleanup:unexpected_http_status",
+      "orphan_cleanup:unexpected_http_status",
+      "audit_refs:unexpected_http_status"
     ],
     "environment": "staging",
     "exists": true,
@@ -277,30 +365,47 @@
       "requires_release_gate_fixture_update_after_pass": false
     },
     "input_readiness": {
-      "admin_tenant_id_ready": false,
-      "admin_user_id_ready": false,
-      "auth_ready": false,
+      "admin_tenant_id_ready": true,
+      "admin_user_id_ready": true,
+      "allow_local_devport_evidence": false,
+      "auth_ready": true,
       "canonical_pass_path": false,
-      "csrf_ready": false,
-      "probe_urls_ready": false,
+      "canonical_write_requested": false,
+      "csrf_ready": true,
+      "preflight_stage1": false,
+      "probe_urls_ready": true,
+      "production_like_staging_targets": true,
       "release_sha_matches_signed_url": false,
-      "release_sha_provided": false,
-      "signed_url_evidence_ready": true
+      "release_sha_provided": true,
+      "signed_url_evidence_ready": true,
+      "use_dev_identity_headers": false
     },
     "kind": "object_storage_retention_cleanup",
     "passed": false,
     "path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.object-storage-retention-cleanup.json",
     "probe_contract": {
+      "allow_local_devport_evidence_env": "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 writes debug-only evidence under ops/evidence/staging/local-devport/ and cannot clear staging gates",
       "blocked_report": "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
       "blocked_results": "ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson",
       "blocked_without_runtime_inputs": true,
+      "canonical_outputs_are_atomic": true,
       "canonical_pass_report": "ops/evidence/staging/object-storage-retention-cleanup.json",
       "canonical_pass_results": "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
       "contract_id": "object_storage_retention_cleanup_runtime_probe",
       "do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
       "environment": "staging",
+      "failed_strict_candidate_writes_blocked_evidence_only": true,
       "local_blocked_command": "DRY_RUN=1 scripts/staging_object_storage_retention_cleanup_smoke.sh || test \"$?\" = 2",
+      "local_devport_debug_command": "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 BASE_URL=http://127.0.0.1:31080 USE_DEV_IDENTITY_HEADERS=1 SMOKE_ADMIN_USER_ID=<admin-user> SMOKE_ADMIN_TENANT_ID=<tenant> CSRF_ORIGIN=http://localhost:26081 scripts/staging_object_storage_retention_cleanup_smoke.sh",
+      "local_devport_report": "ops/evidence/staging/local-devport/object-storage-retention-cleanup.local-devport.json",
+      "local_devport_results": "ops/evidence/staging/local-devport/object-storage-retention-cleanup.local-devport.ndjson",
       "non_canonical_reports_are_validation_only": true,
+      "pass_evidence_written_only_after_strict_validator_accepts": true,
+      "preflight_can_clear_stage1_staging_runtime_gate": false,
+      "preflight_command": "OBJECT_RETENTION_MODE=preflight_stage1 scripts/staging_object_storage_retention_cleanup_smoke.sh || test \"$?\" = 2",
+      "preflight_does_not_run_cleanup": true,
+      "preflight_report": "ops/evidence/staging/object-storage-retention-cleanup.preflight.json",
+      "preflight_results": "ops/evidence/staging/object-storage-retention-cleanup.preflight.ndjson",
       "probe_routes": {
         "audit_refs": {
           "default_path": "/api/admin/v1/audit?subject=object_storage_cleanup&limit=20",
@@ -333,6 +438,7 @@
           "method": "GET"
         }
       },
+      "production_like_local_fixture_command": "STAGING_API_URL=https://zenari-staging.example.test:<port> BASE_URL_RESOLVE_ADDR=127.0.0.1 BASE_URL_CA_CERT=<self-signed-ca.pem> RELEASE_SHA=<signed-url-release-sha> ADMIN_BEARER_TOKEN=<token> SMOKE_ADMIN_USER_ID=<admin-user> SMOKE_ADMIN_TENANT_ID=<tenant> CSRF_ORIGIN=https://zenari-staging.example.test:<port> CSRF_HEADER_VALUE=<csrf> scripts/staging_object_storage_retention_cleanup_smoke.sh",
       "release_gate_check_id": "staging_object_storage_signed_downloads",
       "request_id_header": "X-Request-ID",
       "required_checks": [
@@ -342,7 +448,8 @@
         "retention_policy"
       ],
       "required_env": [
-        "STAGING_BASE_URL or explicit RETENTION_POLICY_URL/EXPIRED_EXPORT_CLEANUP_URL/ORPHAN_CLEANUP_URL/AUDIT_REFS_URL",
+        "STAGING_API_URL or STAGING_BASE_URL or explicit RETENTION_POLICY_URL/EXPIRED_EXPORT_CLEANUP_URL/ORPHAN_CLEANUP_URL/AUDIT_REFS_URL",
+        "optional BASE_URL_RESOLVE_ADDR/STAGING_API_URL_RESOLVE_ADDR/STAGING_BASE_URL_RESOLVE_ADDR and BASE_URL_CA_CERT/STAGING_API_URL_CA_CERT/STAGING_BASE_URL_CA_CERT for production-like local HTTPS fixtures",
         "RELEASE_SHA matching signed URL evidence",
         "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE",
         "SMOKE_ADMIN_USER_ID",
@@ -351,13 +458,14 @@
         "CSRF_HEADER_VALUE"
       ],
       "schema_version": "stage0.rev2.staging.probe_contract",
-      "staging_pass_command": "STAGING_BASE_URL=https://<staging-admin-or-api> RELEASE_SHA=<signed-url-release-sha> ADMIN_BEARER_TOKEN=<token> SMOKE_ADMIN_USER_ID=<admin-user> SMOKE_ADMIN_TENANT_ID=<tenant> CSRF_ORIGIN=<allowed-origin> CSRF_HEADER_VALUE=<csrf> scripts/staging_object_storage_retention_cleanup_smoke.sh",
+      "staging_pass_command": "WRITE_CANONICAL_STAGE1_OBJECT_RETENTION_EVIDENCE=1 STAGING_API_URL=https://<real-staging-admin-or-api> RELEASE_SHA=<signed-url-release-sha> ADMIN_BEARER_TOKEN=<token> SMOKE_ADMIN_USER_ID=<admin-user> SMOKE_ADMIN_TENANT_ID=<tenant> CSRF_ORIGIN=<allowed-origin> CSRF_HEADER_VALUE=<csrf> scripts/staging_object_storage_retention_cleanup_smoke.sh",
       "success_criteria": [
         "retention_policy, expired_export_cleanup, orphan_cleanup, and audit_refs all return 200 or 202",
         "each response body is non-empty and matches the expected retention/cleanup/audit tokens",
         "each response echoes the per-probe request ID in the configured request-id header",
         "expired-export and orphan cleanup responses include cleanup audit refs",
         "the audit endpoint contains those cleanup audit refs with admin, tenant, cleanup semantics, and the exact cleanup probe request IDs",
+        "the generated pass candidate is accepted by scripts/validate_stage1_staging_object_retention_evidence.py before canonical files are replaced",
         "the canonical pass report and NDJSON paths under ops/evidence/staging/ are used"
       ]
     },
@@ -370,13 +478,13 @@
     ],
     "results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.object-storage-retention-cleanup.ndjson",
     "runtime_input_requirements": {
-      "blocked_input_reason": "missing STAGING_BASE_URL or explicit probe URL env vars",
+      "blocked_input_reason": "",
       "canonical_pass_report": "ops/evidence/staging/object-storage-retention-cleanup.json",
       "canonical_pass_results": "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
       "pass_file_policy": "canonical pass paths require passing evidence to be written to ops/evidence/staging/object-storage-retention-cleanup.json and ops/evidence/staging/object-storage-retention-cleanup.ndjson; non-canonical paths are validation-only.",
       "required_auth": "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE with admin_operator access",
-      "required_base_url": "STAGING_BASE_URL or explicit probe URL env vars",
-      "required_csrf_header": "X-ZenArt-CSRF header with CSRF_HEADER_VALUE for state-changing object cleanup POST probes",
+      "required_base_url": "STAGING_API_URL, STAGING_BASE_URL, or explicit probe URL env vars",
+      "required_csrf_header": "X-Zenari-CSRF header with CSRF_HEADER_VALUE for state-changing object cleanup POST probes",
       "required_csrf_origin": "CSRF_ORIGIN, STAGING_ADMIN_URL, ADMIN_URL, STAGING_WEB_URL, or WEB_URL matching an allowed staging origin for POST cleanup probes",
       "required_probe_routes": {
         "audit_refs": {
@@ -427,123 +535,180 @@
     },
     "status": "blocked"
   },
-  "object_retention_cleanup_verified": false,
-  "post_deploy_smoke_verified": false,
+  "object_retention_cleanup_verified": true,
+  "post_deploy_smoke_verified": true,
   "private_beta_gate": "open_until_release_evidence_bundle_status_passed_and_private_beta_fixture_clear",
-  "production_backup_rollback_split_blocking_reasons": [
-    "production_upstream_ci_gate_not_go",
-    "production_upstream_private_beta_staging_gate_not_go",
-    "production_backup_restore_split_not_passed",
-    "production_rollback_incident_post_deploy_split_not_passed",
-    "production_exact_backup_rollback_split_files_not_ready"
-  ],
+  "production_backup_rollback_split_blocking_reasons": [],
   "production_backup_rollback_split_preflight": {
     "backup_restore_split": {
-      "exists": false,
-      "missing_requirements": [
-        "missing_file"
-      ],
-      "passed": false,
+      "exists": true,
+      "missing_requirements": [],
+      "passed": true,
       "path": "ops/evidence/production/backup-restore.json",
-      "status": "missing"
+      "status": "pass"
     },
     "blocked_checks": [
-      "release_sha_missing_or_not_full_sha",
-      "ci_gate_not_go",
-      "private_beta_staging_gate_not_go",
-      "production_backup_restore_split_not_passed",
-      "production_rollback_incident_post_deploy_split_not_passed"
+      "production_gate_fixture_has_unrelated_blockers"
     ],
     "do_not_launch_condition_ids": [
-      "backup_restore_rollback_smoke_missing",
-      "production_deploy_rollback_smoke_missing",
-      "ci_staging_gates_not_passed"
+      "paid_billing_or_comp_only_mode_missing",
+      "skill_release_eval_canary_missing",
+      "activation_eval_review_audit_runtime_missing",
+      "admin_high_risk_review_runtime_missing",
+      "abuse_throttle_hold_missing",
+      "security_privacy_legal_incomplete",
+      "secret_exposure_runtime_not_verified",
+      "public_legal_support_policy_not_deployed"
     ],
     "environment": "production",
-    "exact_split_files_ready": false,
+    "exact_split_files_ready": true,
     "exists": true,
     "kind": "production_backup_rollback_split_preflight",
     "passed": false,
     "path": "ops/evidence/production/backup-rollback-split.blocked.json",
     "release_gate_check_id": "production_backup_rollback_incident",
     "rollback_incident_post_deploy_split": {
-      "exists": false,
-      "missing_requirements": [
-        "missing_file"
-      ],
-      "passed": false,
+      "exists": true,
+      "missing_requirements": [],
+      "passed": true,
       "path": "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
-      "status": "missing"
+      "status": "pass"
     },
     "schema_version": "stage0.rev2.production.backup_rollback_split_preflight",
-    "status": "blocked_by_upstream_gates",
-    "upstream_ci_gate_status": "no_go",
-    "upstream_private_beta_staging_gate_status": "no_go"
+    "status": "exact_split_ready_blocked_by_other_production_runtime_items",
+    "upstream_ci_gate_status": "go",
+    "upstream_private_beta_staging_gate_status": "go"
   },
   "production_gate": "open_until_ci_private_beta_and_production_release_evidence_bundles_pass",
-  "release_evidence_complete": false,
-  "release_sha": "",
+  "production_gate_fixture_blocked_conditions": [
+    "production_launch:production_paid_billing_lifecycle",
+    "production_launch:production_skill_release_eval_canary",
+    "production_launch:production_activation_review_audit",
+    "production_launch:production_abuse_throttle_hold",
+    "production_launch:production_security_launch_checks",
+    "production_launch:production_legal_support_policy",
+    "production_launch:paid_billing_or_comp_only_mode_missing",
+    "production_launch:skill_release_eval_canary_missing",
+    "production_launch:activation_eval_review_audit_runtime_missing",
+    "production_launch:admin_high_risk_review_runtime_missing",
+    "production_launch:abuse_throttle_hold_missing",
+    "production_launch:security_privacy_legal_incomplete",
+    "production_launch:secret_exposure_runtime_not_verified",
+    "production_launch:public_legal_support_policy_not_deployed"
+  ],
+  "production_gate_fixture_blocking_reason_count": 0,
+  "production_gate_fixture_blocking_reasons": [],
+  "release_evidence_complete": true,
+  "release_metadata_blocking_reasons": [],
+  "release_metadata_preflight": {
+    "blocking_reasons": [],
+    "environment": "staging",
+    "evidence_refs": {
+      "backup_restore_evidence": "ops/evidence/release/staging/stage1-strict-backup-restore-evidence.json",
+      "config_diff_evidence": "ops/evidence/release/staging/stage1-strict-config-diff-evidence.json",
+      "load_evidence": "ops/evidence/release/staging/stage1-strict-load-evidence.json",
+      "migration_evidence": "ops/evidence/release/staging/stage1-strict-migration-evidence.json",
+      "observability_evidence": "ops/evidence/release/staging/stage1-strict-observability-evidence.json",
+      "rollback_evidence": "ops/evidence/release/staging/stage1-strict-rollback-evidence.json",
+      "security_scan_evidence": "ops/evidence/staging/20260624T112854Z-security-scan-smoke-98675.json"
+    },
+    "exists": true,
+    "gate_impact": {
+      "can_clear_stage1_production_launch_gate": false,
+      "can_clear_stage1_staging_runtime_gate": false,
+      "preserved_do_not_launch_condition_id": null,
+      "preserved_release_gate_check_id": "staging_observability_backup_load"
+    },
+    "image_refs": [
+      "ghcr.io/alphane-ai/zenari-backend:b885b7ac1c75cad256d774a1fed82008eea4aecf@sha256:43f931dd9e5be4c6dd3c798eb90f531185b2b60c593fe9d8eb83349bffc6669a",
+      "ghcr.io/alphane-ai/zenari-web:b885b7ac1c75cad256d774a1fed82008eea4aecf@sha256:3ddc8a76d75df96a46b2fff274d3dfd8fc39642f57f0c913692218e739a0f7db",
+      "ghcr.io/alphane-ai/zenari-admin:b885b7ac1c75cad256d774a1fed82008eea4aecf@sha256:4121fa88ebd5565f69aee4cbf28ac5c238a7f6ae1af1b4861a4e6c7e66c1727b"
+    ],
+    "kind": "stage1_release_metadata_preflight",
+    "metadata_complete": true,
+    "missing_slots": [],
+    "path": "ops/evidence/release/staging/stage1-release-metadata-preflight.json",
+    "release_notes_path": "ops/release/stage1_release_candidate_metadata_draft.md",
+    "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+    "release_tag": "",
+    "schema_version": "stage1.release_metadata_preflight.v1",
+    "slot_verified": {
+      "backup_restore_evidence": true,
+      "config_diff_evidence": true,
+      "image_refs": true,
+      "load_evidence": true,
+      "migration_evidence": true,
+      "observability_evidence": true,
+      "release_notes_path": true,
+      "release_sha": true,
+      "rollback_evidence": true,
+      "security_scan_evidence": true
+    },
+    "status": "passed",
+    "unverified_slots": []
+  },
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
   "run_id": "stage0-rev2-current-release-evidence-bundle",
   "slots": [
     {
-      "provided": false,
-      "reason": "missing_ref",
+      "provided": true,
+      "reason": null,
       "slot": "backup_restore_evidence",
-      "verified": false
+      "verified": true
     },
     {
-      "provided": false,
-      "reason": "missing_ref",
+      "provided": true,
+      "reason": null,
       "slot": "config_diff_evidence",
-      "verified": false
+      "verified": true
     },
     {
-      "provided": false,
-      "reason": "missing_image_refs",
+      "provided": true,
+      "reason": null,
       "slot": "image_refs",
-      "verified": false
+      "verified": true
     },
     {
-      "provided": false,
-      "reason": "missing_ref",
+      "provided": true,
+      "reason": null,
       "slot": "load_evidence",
-      "verified": false
+      "verified": true
     },
     {
-      "provided": false,
-      "reason": "missing_ref",
+      "provided": true,
+      "reason": null,
       "slot": "migration_evidence",
-      "verified": false
+      "verified": true
     },
     {
-      "provided": false,
-      "reason": "missing_ref",
+      "provided": true,
+      "reason": null,
       "slot": "observability_evidence",
-      "verified": false
+      "verified": true
     },
     {
-      "provided": false,
-      "reason": "missing_ref",
+      "provided": true,
+      "reason": null,
       "slot": "release_notes_path",
-      "verified": false
+      "verified": true
     },
     {
-      "provided": false,
+      "provided": true,
       "reason": null,
       "slot": "release_sha",
-      "verified": false
+      "verified": true
     },
     {
-      "provided": false,
-      "reason": "missing_ref",
+      "provided": true,
+      "reason": null,
       "slot": "rollback_evidence",
-      "verified": false
+      "verified": true
     },
     {
-      "provided": false,
-      "reason": "missing_ref",
+      "provided": true,
+      "reason": null,
       "slot": "security_scan_evidence",
-      "verified": false
+      "verified": true
     }
   ],
   "source_legal_pages_external_user_report": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-pages-external-user.json",
@@ -551,41 +716,182 @@
   "source_legal_support_visibility_results": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson",
   "source_object_retention_cleanup_report": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.object-storage-retention-cleanup.json",
   "source_object_retention_cleanup_results": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.object-storage-retention-cleanup.ndjson",
+  "source_staging_smoke_blocked_conditions": [],
+  "source_staging_smoke_blocking_reasons": [],
+  "source_staging_smoke_decision": "go",
+  "source_staging_smoke_gate_fixtures_clear": true,
+  "source_staging_smoke_production_context_blocked_conditions": [
+    "production_launch:production_paid_billing_lifecycle",
+    "production_launch:production_skill_release_eval_canary",
+    "production_launch:production_activation_review_audit",
+    "production_launch:production_abuse_throttle_hold",
+    "production_launch:production_security_launch_checks",
+    "production_launch:production_legal_support_policy",
+    "production_launch:paid_billing_or_comp_only_mode_missing",
+    "production_launch:skill_release_eval_canary_missing",
+    "production_launch:activation_eval_review_audit_runtime_missing",
+    "production_launch:admin_high_risk_review_runtime_missing",
+    "production_launch:abuse_throttle_hold_missing",
+    "production_launch:security_privacy_legal_incomplete",
+    "production_launch:secret_exposure_runtime_not_verified",
+    "production_launch:public_legal_support_policy_not_deployed"
+  ],
   "source_staging_smoke_report": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.staging-smoke.json",
   "source_staging_smoke_results": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.staging-smoke.ndjson",
   "source_support_contact_external_user_report": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.support-contact-external-user.json",
   "split_probe_decision_inputs": {
     "canonical_legal_pages_external_user_verified": true,
-    "canonical_object_retention_cleanup_verified": false,
+    "canonical_object_retention_cleanup_verified": true,
     "canonical_support_contact_external_user_verified": true,
     "generated_object_retention_probe_passed": false,
-    "legal_pages_external_user_verified": false,
-    "legal_support_evidence_source": "canonical_staging_split_evidence",
+    "legal_pages_external_user_verified": true,
+    "legal_support_evidence_source": "generated_probe",
     "legal_support_visibility_verified": true,
-    "object_retention_cleanup_verified": false,
-    "support_contact_external_user_verified": false
+    "object_retention_cleanup_verified": true,
+    "stage1_load_verified": true,
+    "stage1_quota_replay_verified": true,
+    "stage1_staging_runtime_readiness": {
+      "admin_auth_ready": true,
+      "backup_restore_ready": true,
+      "csrf_ready": true,
+      "load_ready": true,
+      "object_storage_ready": true,
+      "observability_ready": true,
+      "provider_live_calls_ready": true,
+      "quota_replay_ready": true,
+      "staging_admin_ready": true,
+      "staging_api_ready": true,
+      "staging_web_ready": true,
+      "stripe_test_ready": true,
+      "user_auth_ready": true
+    },
+    "stage1_staging_runtime_release_gate_decision": "go",
+    "stage1_staging_runtime_verified": true,
+    "support_contact_external_user_verified": true
   },
+  "stage1_load_blocking_reasons": [],
+  "stage1_load_readiness": {
+    "admin_auth_ready": true,
+    "backup_restore_ready": true,
+    "csrf_ready": true,
+    "load_ready": true,
+    "object_storage_ready": true,
+    "observability_ready": true,
+    "provider_live_calls_ready": true,
+    "quota_replay_ready": true,
+    "staging_admin_ready": true,
+    "staging_api_ready": true,
+    "staging_web_ready": true,
+    "stripe_test_ready": true,
+    "user_auth_ready": true
+  },
+  "stage1_load_verified": true,
+  "stage1_quota_replay_blocking_reasons": [],
+  "stage1_quota_replay_verified": true,
+  "stage1_staging_runtime": {
+    "all_components_passed": true,
+    "blockers": [],
+    "component_statuses": {
+      "auth_rbac_tenant_audit": {
+        "blockers": [],
+        "exact_evidence": true,
+        "status": "passed"
+      },
+      "backup_restore": {
+        "blockers": [],
+        "exact_evidence": true,
+        "status": "passed"
+      },
+      "batch_runtime": {
+        "blockers": [],
+        "exact_evidence": true,
+        "status": "passed"
+      },
+      "legal_support_external_user": {
+        "blockers": [],
+        "exact_evidence": true,
+        "status": "passed"
+      },
+      "load": {
+        "blockers": [],
+        "exact_evidence": true,
+        "status": "passed"
+      },
+      "object_storage_retention_cleanup": {
+        "blockers": [],
+        "exact_evidence": true,
+        "status": "passed"
+      },
+      "observability": {
+        "blockers": [],
+        "exact_evidence": true,
+        "status": "passed"
+      },
+      "provider_sandbox": {
+        "blockers": [],
+        "exact_evidence": true,
+        "status": "passed"
+      },
+      "safety_qa_eval": {
+        "blockers": [],
+        "exact_evidence": true,
+        "status": "passed"
+      },
+      "staging_quota_replay": {
+        "blockers": [],
+        "exact_evidence": true,
+        "status": "passed"
+      },
+      "stripe_test_lifecycle": {
+        "blockers": [],
+        "exact_evidence": true,
+        "status": "passed"
+      }
+    },
+    "do_not_launch_conditions": [],
+    "environment": "staging",
+    "exists": true,
+    "kind": "stage1_staging_runtime",
+    "passed": true,
+    "path": "ops/evidence/staging/stage1-runtime.json",
+    "readiness_ready": true,
+    "release_gate_decision": "go",
+    "runtime_input_readiness": {
+      "admin_auth_ready": true,
+      "backup_restore_ready": true,
+      "csrf_ready": true,
+      "load_ready": true,
+      "object_storage_ready": true,
+      "observability_ready": true,
+      "provider_live_calls_ready": true,
+      "quota_replay_ready": true,
+      "staging_admin_ready": true,
+      "staging_api_ready": true,
+      "staging_web_ready": true,
+      "stripe_test_ready": true,
+      "user_auth_ready": true
+    },
+    "status": "pass"
+  },
+  "stage1_staging_runtime_blocking_reasons": [],
+  "stage1_staging_runtime_verified": true,
   "staging_smoke_exit_code": 0,
-  "status": "blocked",
+  "status": "passed",
   "support_contact_external_user_probe": {
-    "environment": null,
-    "exists": false,
-    "kind": null,
-    "passed": false,
+    "environment": "staging",
+    "exists": true,
+    "gate_impact": {
+      "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
+      "can_clear_check_level_item": true,
+      "can_clear_release_gate_check": false,
+      "can_clear_support_contact_subitem": true,
+      "check_level_item": "Private Beta/Staging support contact external-user visibility evidence \u901a\u8fc7\uff1astaging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`\u3002"
+    },
+    "kind": "support_contact_external_user_visibility",
+    "passed": true,
     "path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.support-contact-external-user.json",
-    "release_gate_check_id": null,
-    "status": "missing"
+    "release_gate_check_id": "staging_legal_external_user_pages",
+    "status": "pass"
   },
-  "unverified_slots": [
-    "backup_restore_evidence",
-    "config_diff_evidence",
-    "image_refs",
-    "load_evidence",
-    "migration_evidence",
-    "observability_evidence",
-    "release_notes_path",
-    "release_sha",
-    "rollback_evidence",
-    "security_scan_evidence"
-  ]
+  "unverified_slots": []
 }

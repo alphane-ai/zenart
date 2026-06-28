@@ -1,0 +1,24 @@
+{
+  "blocked": true,
+  "code": "csrf_origin_denied",
+  "details": {
+    "origin": "http://127.0.0.1:26081",
+    "strategy": "same-site-origin-check",
+    "taxonomy": {
+      "blocked": true,
+      "category": "blocked",
+      "retryable": false,
+      "user_actionable": false
+    }
+  },
+  "field_errors": [],
+  "message": "request origin is not allowed for state-changing API requests",
+  "request_id": "stage0-object-retention-cleanup-expired_export_cleanup",
+  "retryable": false,
+  "taxonomy": {
+    "blocked": true,
+    "category": "blocked",
+    "retryable": false,
+    "user_actionable": false
+  }
+}

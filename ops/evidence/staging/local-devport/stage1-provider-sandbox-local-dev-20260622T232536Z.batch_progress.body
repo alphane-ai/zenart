@@ -1,0 +1,12 @@
+{
+  "batch_id": "batch_dfd63af58153cd7e422656ef",
+  "status": "succeeded",
+  "requested_count": 1,
+  "queued": 0,
+  "running": 0,
+  "succeeded": 1,
+  "failed": 0,
+  "cancelled": 0,
+  "blocked": 0,
+  "retryable": 0
+}

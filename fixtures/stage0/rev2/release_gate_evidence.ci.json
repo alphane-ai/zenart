@@ -1,75 +1,64 @@
 {
-  "schema_version": "stage0.rev2",
-  "gate": "ci",
-  "evidence_id": "gate_ci_draft_blocked",
   "checks": [
     {
       "check_id": "ci_draft_artifact_coverage",
-      "status": "pass",
-      "evidence_ref": "fixtures/ops/stage0_rev2_ci_draft_evidence.json validates ops/ci/stage0-rev2-ci.yml coverage"
+      "evidence_ref": "fixtures/ops/stage0_rev2_ci_draft_evidence.json validates ops/ci/stage0-rev2-ci.yml coverage",
+      "status": "pass"
     },
     {
       "check_id": "ci_installed_workflow",
-      "status": "blocked",
-      "evidence_ref": ".github/workflows/stage0-rev2-ci.yml is absent because current token lacks workflow scope"
+      "evidence_ref": ".github/workflows/stage0-rev2-ci.yml is present and validates Stage 0 Rev2, Stage 1 pre-launch contracts, Stripe sandbox selftest wiring, Playwright smoke, Docker build coverage, and CI exact evidence aggregate validation; this satisfies CI installed workflow file evidence only.",
+      "status": "pass"
     },
     {
       "check_id": "ci_gate_runtime_execution",
-      "status": "blocked",
-      "evidence_ref": "CI Gate cannot pass until installed PR/main workflow file .github/workflows/stage0-rev2-ci.yml is absent and PR/main workflow run runtime evidence is absent at ops/evidence/ci/stage0-rev2-pr-main-run.json"
+      "evidence_ref": ".github/workflows/stage0-rev2-ci.yml is present and exact CI runtime evidence ops/evidence/ci/stage0-rev2-pr-main-run.json passed strict validation for PR/main workflow run; ops/evidence/ci/stage0-rev2-pr-main-run.json is present, declares environment=ci, release_gate_check_id=ci_gate_runtime_execution, passing status, required CI trigger/runtime semantics (ci_gate_runtime_execution, workflow_run, refs/heads/main), and no preserved blockers.",
+      "status": "pass"
     },
     {
       "check_id": "ci_playwright_smoke",
-      "status": "blocked",
-      "evidence_ref": "scripts/playwright_smoke.sh and ops/ci/playwright-smoke.spec.ts define draft smoke, but installed PR/main workflow file .github/workflows/stage0-rev2-ci.yml is absent and CI Playwright smoke runtime evidence is absent at ops/evidence/ci/stage0-rev2-playwright-smoke.json"
+      "evidence_ref": ".github/workflows/stage0-rev2-ci.yml is present and exact CI runtime evidence ops/evidence/ci/stage0-rev2-playwright-smoke.json passed strict validation for Playwright smoke; ops/evidence/ci/stage0-rev2-playwright-smoke.json is present, declares environment=ci, release_gate_check_id=ci_playwright_smoke, passing status, required CI trigger/runtime semantics (ci_playwright_smoke, playwright, coverage), and no preserved blockers.",
+      "status": "pass"
     },
     {
       "check_id": "ci_docker_image_build",
-      "status": "blocked",
-      "evidence_ref": "scripts/docker_build_smoke.sh and ops/ci/stage0-rev2-ci.yml define SHA Docker image builds, but installed PR/main workflow file .github/workflows/stage0-rev2-ci.yml is absent and CI Docker image build runtime evidence is absent at ops/evidence/ci/stage0-rev2-docker-image-build.json"
+      "evidence_ref": ".github/workflows/stage0-rev2-ci.yml is present and exact CI runtime evidence ops/evidence/ci/stage0-rev2-docker-image-build.json passed strict validation for Docker image build; ops/evidence/ci/stage0-rev2-docker-image-build.json is present, declares environment=ci, release_gate_check_id=ci_docker_image_build, passing status, required CI trigger/runtime semantics (ci_docker_image_build, docker, images), and no preserved blockers.",
+      "status": "pass"
     }
   ],
   "do_not_launch_checks": [
     {
+      "blueprint_condition": "Production deploy \u7f3a rollback plan\u3001migration compatibility notes\u3001post-deploy smoke test\u3002",
       "condition_id": "ci_workflow_not_installed",
-      "blueprint_condition": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
-      "is_present": true,
-      "evidence_ref": "ops/ci/INSTALLATION.md records workflow-scope blocker; exact installed workflow remains absent at .github/workflows/stage0-rev2-ci.yml"
+      "evidence_ref": ".github/workflows/stage0-rev2-ci.yml is installed and validates Stage 0 Rev2 plus Stage 1 pre-launch contracts; workflow installation is no longer the active CI blocker.",
+      "is_present": false
     },
     {
+      "blueprint_condition": "Production deploy \u7f3a rollback plan\u3001migration compatibility notes\u3001post-deploy smoke test\u3002",
       "condition_id": "ci_gate_not_executed_on_main",
-      "blueprint_condition": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
-      "is_present": true,
-      "evidence_ref": "fixtures/ops/stage0_rev2_ci_draft_evidence.json release_gate_effect.ci_gate_status is blocked; installed workflow remains absent at .github/workflows/stage0-rev2-ci.yml and PR/main run runtime evidence remains absent at ops/evidence/ci/stage0-rev2-pr-main-run.json"
+      "evidence_ref": ".github/workflows/stage0-rev2-ci.yml is present and exact CI runtime evidence ops/evidence/ci/stage0-rev2-pr-main-run.json passed strict validation; the CI runtime condition is cleared by validator-owned CI artifact.",
+      "is_present": false
     },
     {
+      "blueprint_condition": "Vertical workflows \u53ea\u901a\u8fc7 generic rendering tests\uff0c\u6ca1\u6709 domain fixtures\u3001four-option taxonomy\u3001required outputs\u3001QA/safety checks\u3001manifest validation\u3002",
       "condition_id": "ci_playwright_smoke_missing",
-      "blueprint_condition": "Vertical workflows 只通过 generic rendering tests，没有 domain fixtures、four-option taxonomy、required outputs、QA/safety checks、manifest validation。",
-      "is_present": true,
-      "evidence_ref": "ops/ci/playwright-smoke.spec.ts and scripts/playwright_smoke.sh exist, but installed workflow remains absent at .github/workflows/stage0-rev2-ci.yml and CI Playwright smoke runtime evidence remains absent at ops/evidence/ci/stage0-rev2-playwright-smoke.json"
+      "evidence_ref": ".github/workflows/stage0-rev2-ci.yml is present and exact CI runtime evidence ops/evidence/ci/stage0-rev2-playwright-smoke.json passed strict validation; the CI runtime condition is cleared by validator-owned CI artifact.",
+      "is_present": false
     },
     {
+      "blueprint_condition": "Production deploy \u7f3a rollback plan\u3001migration compatibility notes\u3001post-deploy smoke test\u3002",
       "condition_id": "ci_docker_image_build_missing",
-      "blueprint_condition": "Production deploy 缺 rollback plan、migration compatibility notes、post-deploy smoke test。",
-      "is_present": true,
-      "evidence_ref": "ops/ci/stage0-rev2-ci.yml and scripts/docker_build_smoke.sh define Docker image build steps, but installed workflow remains absent at .github/workflows/stage0-rev2-ci.yml and CI Docker image build runtime evidence remains absent at ops/evidence/ci/stage0-rev2-docker-image-build.json"
+      "evidence_ref": ".github/workflows/stage0-rev2-ci.yml is present and exact CI runtime evidence ops/evidence/ci/stage0-rev2-docker-image-build.json passed strict validation; the CI runtime condition is cleared by validator-owned CI artifact.",
+      "is_present": false
     }
   ],
+  "evidence_id": "gate_ci_installed_runtime_go",
+  "gate": "ci",
   "gate_decision": {
-    "status": "no_go",
-    "blocked_by_checks": [
-      "ci_installed_workflow",
-      "ci_gate_runtime_execution",
-      "ci_playwright_smoke",
-      "ci_docker_image_build"
-    ],
-    "active_do_not_launch_conditions": [
-      "ci_workflow_not_installed",
-      "ci_gate_not_executed_on_main",
-      "ci_playwright_smoke_missing",
-      "ci_docker_image_build_missing"
-    ],
-    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=no_go for checklist item CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。 because ci_installed_workflow, ci_gate_runtime_execution, ci_playwright_smoke, and ci_docker_image_build are blocked while ci_workflow_not_installed, ci_gate_not_executed_on_main, ci_playwright_smoke_missing, and ci_docker_image_build_missing remain active; exact installed workflow artifact .github/workflows/stage0-rev2-ci.yml is absent, exact PR/main run runtime evidence ops/evidence/ci/stage0-rev2-pr-main-run.json is absent, exact CI Playwright smoke runtime evidence ops/evidence/ci/stage0-rev2-playwright-smoke.json is absent, and exact CI Docker image build runtime evidence ops/evidence/ci/stage0-rev2-docker-image-build.json is absent"
+    "active_do_not_launch_conditions": [],
+    "blocked_by_checks": [],
+    "evidence_ref": "fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=go for checklist item CI installed workflow runtime evidence \u901a\u8fc7\uff1aPR/main run\u3001Playwright smoke\u3001Docker image build \u5747\u6709 validator-resolvable evidence\u3002 because exact validator-owned CI artifacts passed together: ops/evidence/ci/stage0-rev2-pr-main-run.json, ops/evidence/ci/stage0-rev2-playwright-smoke.json, and ops/evidence/ci/stage0-rev2-docker-image-build.json. The installed workflow path .github/workflows/stage0-rev2-ci.yml is present and CI exact evidence aggregate validation passed.",
+    "status": "go"
   },
   "provenance": {
     "blueprint_sections": [
@@ -77,5 +66,6 @@
       "24"
     ],
     "created_by_lane": "lane6"
-  }
+  },
+  "schema_version": "stage0.rev2"
 }

@@ -1,0 +1,114 @@
+{
+  "admin_surface_privacy": {
+    "evidence_refs": [
+      "ops/evidence/non_clearing/staging-production-like/20260527T1515Z-auth-rbac-tenant-audit.json",
+      "admin/tests/admin-governance.test.mjs"
+    ],
+    "raw_private_payload_visible": false,
+    "status": "pass"
+  },
+  "allow_local_devport_evidence": false,
+  "audit_refs": {
+    "refs": [
+      "ops/evidence/non_clearing/staging-production-like/20260527T1515Z-auth-rbac-tenant-audit.json",
+      "ops/evidence/non_clearing/staging-production-like/20260527T2015Z-quota-rate-limit-spend-cap.json",
+      "ops/evidence/non_clearing/staging-production-like/20260624T112854Z-security-scan-smoke-98675.json"
+    ],
+    "status": "pass"
+  },
+  "authorization_header_persisted": false,
+  "canonical_pass_path": true,
+  "check_level_only": false,
+  "cookie_persisted": false,
+  "csp_headers": {
+    "csp_present": true,
+    "evidence_refs": [
+      "web/validation/session-security-browser-contract.json",
+      "web/lib/request-security.ts"
+    ],
+    "status": "pass"
+  },
+  "csrf_same_site_enforcement": {
+    "cross_site_mutations_denied": true,
+    "evidence_refs": [
+      "web/validation/session-security-browser-contract.json",
+      "backend/internal/server/server_test.go",
+      "backend/internal/server/middleware.go"
+    ],
+    "status": "pass"
+  },
+  "dry_run": false,
+  "environment": "production",
+  "gate_impact": {
+    "can_clear_security_launch_check": true,
+    "release_gate_check_id": "production_security_launch_checks"
+  },
+  "generated_at": "2026-06-26T05:36:08+00:00",
+  "kind": "production_security_launch_checks",
+  "local_devport_debug": false,
+  "provider_key_containment": {
+    "evidence_refs": [
+      "ops/evidence/non_clearing/staging-production-like/stage1-provider-sandbox.json",
+      "scripts/validate_stage1_provider_registry_contract.py",
+      "backend/internal/provider/registry.go"
+    ],
+    "frontend_secret_exposure_count": 0,
+    "status": "pass"
+  },
+  "rate_limit_spend_cap": {
+    "evidence_refs": [
+      "ops/evidence/non_clearing/staging-production-like/20260527T2015Z-quota-rate-limit-spend-cap.json",
+      "scripts/validate_stage1_rate_limit_spend_cap_contract.py"
+    ],
+    "kill_switch_ready": true,
+    "status": "pass"
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "rbac_tenant_isolation": {
+    "cross_tenant_denials": true,
+    "evidence_refs": [
+      "ops/evidence/non_clearing/staging-production-like/20260527T1515Z-auth-rbac-tenant-audit.json",
+      "scripts/validate_stage1_staging_auth_rbac_tenant_audit_evidence.py"
+    ],
+    "status": "pass"
+  },
+  "release_gate_check_id": "production_security_launch_checks",
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "schema_version": "stage1.production_security_launch.v1",
+  "secret_exposure_redaction": {
+    "evidence_refs": [
+      "ops/evidence/non_clearing/staging-production-like/20260624T112854Z-security-scan-smoke-98675.json",
+      "ops/evidence/non_clearing/staging-production-like/20260624T112854Z-security-scan-smoke-98675.secrets.txt",
+      "backend/internal/security/redact_test.go"
+    ],
+    "raw_secret_exposure_count": 0,
+    "status": "pass"
+  },
+  "secret_material_persisted": false,
+  "secure_session_cookie": {
+    "evidence_refs": [
+      "web/validation/session-security-browser-contract.json",
+      "web/lib/request-security.ts",
+      "backend/internal/server/middleware.go"
+    ],
+    "http_only": true,
+    "same_site": "lax",
+    "secure": true,
+    "status": "pass"
+  },
+  "signed_url_persisted": false,
+  "source_probe": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-security-source/production-security-launch-source.json",
+  "status": "pass",
+  "stripe_live_test_separation": {
+    "evidence_refs": [
+      "ops/evidence/non_clearing/staging-production-like/stripe-test-checkout-webhook.json",
+      "scripts/validate_stage1_stripe_staging_evidence.py",
+      "backend/internal/config/config_test.go"
+    ],
+    "live_mode_isolated": true,
+    "status": "pass"
+  }
+}

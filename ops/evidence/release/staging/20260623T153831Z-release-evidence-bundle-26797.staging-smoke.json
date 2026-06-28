@@ -1,0 +1,657 @@
+{
+  "admin_url": "",
+  "base_url": "",
+  "blueprint_checklist_item": "Staging post-deploy smoke tests \u901a\u8fc7\u3002",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_at": "20260623T153831Z-release-evidence-bundle-26797.staging-smoke",
+  "created_by_lane": "lane5",
+  "environment": "staging",
+  "evidence_path_policy": "ops/evidence/staging/",
+  "gate_impact": {
+    "aggregate_checklist_item": "Private Beta/Staging observability/backup/load runtime evidence \u901a\u8fc7\u3002",
+    "can_clear_post_deploy_smoke_item": false,
+    "post_deploy_checklist_item": "Staging post-deploy smoke tests \u901a\u8fc7\u3002",
+    "preserved_do_not_launch_condition_id": "staging_observability_restore_load_missing",
+    "preserved_release_gate_check_id": "staging_observability_backup_load"
+  },
+  "kind": "post_deploy_smoke",
+  "private_beta_gate": "open_until_this_smoke_passes_against_production_like_postgres_redis_object_storage_observability_backups_and_seeded_release_smoke_records",
+  "production_gate": "open_until_post_deploy_smoke_passes_for_approved_release_sha_with_attached_release_notes",
+  "profile": "post_deploy",
+  "release_gate_check_id": "staging_observability_backup_load",
+  "release_notes_path": "ops/release/stage1_release_candidate_metadata_draft.md",
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "release_tag": "",
+  "request_id_header": "X-Request-ID",
+  "request_id_value": "stage0-staging-smoke",
+  "required_categories": [
+    "backend_health",
+    "web",
+    "admin",
+    "auth_boundary",
+    "worker_task",
+    "export_package",
+    "signed_download",
+    "crawler_admin",
+    "quota_rate_limit",
+    "observability"
+  ],
+  "results_path": "ops/evidence/release/staging/20260623T153831Z-release-evidence-bundle-26797.staging-smoke.ndjson",
+  "run_id": "20260623T153831Z-release-evidence-bundle-26797.staging-smoke",
+  "status": "planned",
+  "summary": {
+    "categories": [
+      "admin",
+      "auth_boundary",
+      "backend_health",
+      "crawler_admin",
+      "export_package",
+      "observability",
+      "quota_rate_limit",
+      "signed_download",
+      "web",
+      "worker_task"
+    ],
+    "check_count": 12,
+    "failure_count": 0,
+    "go_no_go": {
+      "blocked_conditions": [
+        "private_beta_staging:staging_object_storage_signed_downloads",
+        "private_beta_staging:object_storage_signed_retention_runtime_missing",
+        "production_launch:production_paid_billing_lifecycle",
+        "production_launch:production_backup_rollback_incident",
+        "production_launch:paid_billing_or_comp_only_mode_missing",
+        "production_launch:backup_restore_rollback_smoke_missing",
+        "production_launch:production_deploy_rollback_smoke_missing",
+        "production_launch:ci_staging_gates_not_passed"
+      ],
+      "blocking_reasons": [
+        "staging_smoke_not_passed",
+        "post_deploy_smoke_contract_unverified",
+        "missing_release_evidence:image_refs",
+        "unverified_release_evidence:backup_restore_evidence",
+        "unverified_release_evidence:config_diff_evidence",
+        "unverified_release_evidence:image_refs",
+        "unverified_release_evidence:load_evidence",
+        "unverified_release_evidence:migration_evidence",
+        "unverified_release_evidence:observability_evidence",
+        "unverified_release_evidence:rollback_evidence",
+        "unverified_release_evidence:security_scan_evidence",
+        "gate_fixture_blocked:private_beta_staging:staging_object_storage_signed_downloads",
+        "gate_fixture_blocked:private_beta_staging:object_storage_signed_retention_runtime_missing",
+        "gate_fixture_blocked:production_launch:production_paid_billing_lifecycle",
+        "gate_fixture_blocked:production_launch:production_backup_rollback_incident",
+        "gate_fixture_blocked:production_launch:paid_billing_or_comp_only_mode_missing",
+        "gate_fixture_blocked:production_launch:backup_restore_rollback_smoke_missing",
+        "gate_fixture_blocked:production_launch:production_deploy_rollback_smoke_missing",
+        "gate_fixture_blocked:production_launch:ci_staging_gates_not_passed"
+      ],
+      "decision": "no-go",
+      "decision_inputs": {
+        "gate_fixtures_clear": false,
+        "post_deploy_smoke_verified": false,
+        "profile_post_deploy": true,
+        "release_evidence_complete": false,
+        "smoke_passed": false
+      },
+      "gate_fixtures_clear": false,
+      "missing_release_evidence_slots": [
+        "image_refs"
+      ],
+      "post_deploy_smoke_verified": false,
+      "release_evidence_complete": false,
+      "release_evidence_verified": false,
+      "smoke_passed": false,
+      "unverified_release_evidence_slots": [
+        "backup_restore_evidence",
+        "config_diff_evidence",
+        "image_refs",
+        "load_evidence",
+        "migration_evidence",
+        "observability_evidence",
+        "rollback_evidence",
+        "security_scan_evidence"
+      ]
+    },
+    "missing_required_categories": [],
+    "post_deploy_smoke_evidence": {
+      "accepted_statuses": [
+        "passed"
+      ],
+      "expected_evidence_kind": "post_deploy_smoke",
+      "failed_checks": [
+        "backend_health",
+        "backend_ready",
+        "observability_request_id",
+        "web_home",
+        "admin_home",
+        "user_task_auth_boundary",
+        "admin_audit_auth_boundary",
+        "task_status",
+        "export_create",
+        "export_status",
+        "crawler_sources",
+        "quota_rate_limit"
+      ],
+      "missing_required_categories": [],
+      "present_categories": [
+        "admin",
+        "auth_boundary",
+        "backend_health",
+        "crawler_admin",
+        "export_package",
+        "observability",
+        "quota_rate_limit",
+        "signed_download",
+        "web",
+        "worker_task"
+      ],
+      "profile": "post_deploy",
+      "reason": "post_deploy_smoke_failed_semantic_checks:status_passed,all_checks_passed,request_id_checks_passed,seeded_runtime_inputs_present",
+      "report_path": "ops/evidence/release/staging/20260623T153831Z-release-evidence-bundle-26797.staging-smoke.json",
+      "request_id_check_count": 7,
+      "request_id_failed_checks": [
+        "backend_health",
+        "observability_request_id",
+        "task_status",
+        "export_create",
+        "export_status",
+        "crawler_sources",
+        "quota_rate_limit"
+      ],
+      "required_categories": [
+        "admin",
+        "auth_boundary",
+        "backend_health",
+        "crawler_admin",
+        "export_package",
+        "observability",
+        "quota_rate_limit",
+        "signed_download",
+        "web",
+        "worker_task"
+      ],
+      "required_environment": "staging",
+      "seeded_missing": [
+        "smoke_export_id",
+        "smoke_package_id",
+        "smoke_task_id",
+        "smoke_tenant_id",
+        "smoke_user_id"
+      ],
+      "semantic_checks": {
+        "all_checks_passed": false,
+        "all_required_categories_present": true,
+        "environment_staging": true,
+        "evidence_kind_post_deploy_smoke": true,
+        "profile_post_deploy": true,
+        "release_sha_present": true,
+        "request_id_checks_passed": false,
+        "seeded_runtime_inputs_present": false,
+        "status_passed": false
+      },
+      "verified": false
+    },
+    "release_evidence": {
+      "complete": false,
+      "evidence_refs": {
+        "backup_restore": "ops/evidence/release/staging/stage1-release-candidate-backup-restore-draft.json",
+        "config_diff": "ops/evidence/release/staging/stage1-release-candidate-config-diff-draft.json",
+        "load": "ops/evidence/release/staging/stage1-release-candidate-load-draft.json",
+        "migration": "ops/evidence/release/staging/stage1-release-candidate-migration-draft.json",
+        "observability": "ops/evidence/release/staging/stage1-release-candidate-observability-draft.json",
+        "rollback": "ops/evidence/release/staging/stage1-release-candidate-rollback-draft.json",
+        "security_scan": "ops/evidence/release/staging/stage1-release-candidate-security-scan-draft.json"
+      },
+      "image_refs": [],
+      "local_evidence_verification": {
+        "backup_restore_evidence": {
+          "accepted_statuses": [
+            "passed"
+          ],
+          "backup_restore_contract": {
+            "evidence_ref_counts": {},
+            "evidence_refs": {},
+            "missing": [
+              "postgres_restore",
+              "object_restore"
+            ],
+            "missing_evidence_ref": [],
+            "not_passed": [],
+            "present": [],
+            "required": [
+              "object_restore",
+              "postgres_restore"
+            ],
+            "verified": false
+          },
+          "environment_values": [
+            "staging_metadata_draft"
+          ],
+          "evidence_kind_values": [
+            "backup_restore"
+          ],
+          "exists": true,
+          "expected_evidence_kind": "backup_restore",
+          "kind": "local_file",
+          "path": "ops/evidence/release/staging/stage1-release-candidate-backup-restore-draft.json",
+          "reason": "backup_restore_evidence_failed_semantic_checks:environment_staging,status_accepted,backup_restore_contract",
+          "ref": "ops/evidence/release/staging/stage1-release-candidate-backup-restore-draft.json",
+          "required_environment": "staging",
+          "semantic_checks": {
+            "environment_staging": false,
+            "evidence_kind_match": true,
+            "json_parseable": true,
+            "release_sha_match": true,
+            "release_sha_present": true,
+            "status_accepted": false
+          },
+          "sha_match": true,
+          "sha_values": [
+            "7123957dcc3371c6e2d1912b5c2ca418a551b943"
+          ],
+          "status_values": [
+            "blocked"
+          ],
+          "verified": false
+        },
+        "config_diff_evidence": {
+          "accepted_statuses": [
+            "no_diff",
+            "passed",
+            "reviewed"
+          ],
+          "environment_values": [
+            "staging_metadata_draft"
+          ],
+          "evidence_kind_values": [
+            "config_diff"
+          ],
+          "exists": true,
+          "expected_evidence_kind": "config_diff",
+          "kind": "local_file",
+          "path": "ops/evidence/release/staging/stage1-release-candidate-config-diff-draft.json",
+          "reason": "config_diff_evidence_failed_semantic_checks:environment_staging,status_accepted",
+          "ref": "ops/evidence/release/staging/stage1-release-candidate-config-diff-draft.json",
+          "required_environment": "staging",
+          "semantic_checks": {
+            "environment_staging": false,
+            "evidence_kind_match": true,
+            "json_parseable": true,
+            "release_sha_match": true,
+            "release_sha_present": true,
+            "status_accepted": false
+          },
+          "sha_match": true,
+          "sha_values": [
+            "7123957dcc3371c6e2d1912b5c2ca418a551b943"
+          ],
+          "status_values": [
+            "blocked"
+          ],
+          "verified": false
+        },
+        "image_refs": {
+          "missing_images": [
+            "backend",
+            "web",
+            "admin"
+          ],
+          "reason": "missing_image_refs",
+          "refs": [],
+          "refs_without_release_sha": [],
+          "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+          "required_images": [
+            "backend",
+            "web",
+            "admin"
+          ],
+          "sha_tokens": [
+            "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+            "7123957dcc33"
+          ],
+          "verified": false
+        },
+        "load_evidence": {
+          "accepted_statuses": [
+            "passed"
+          ],
+          "environment_values": [
+            "staging_metadata_draft"
+          ],
+          "evidence_kind_values": [
+            "load"
+          ],
+          "exists": true,
+          "expected_evidence_kind": "load",
+          "kind": "local_file",
+          "load_contract": {
+            "evidence_ref_counts": {},
+            "evidence_refs": {},
+            "missing": [
+              "chat_task",
+              "worker_generation",
+              "zip_export",
+              "signed_download",
+              "crawler_throttle",
+              "quota_contention",
+              "workspace_rendering"
+            ],
+            "missing_evidence_ref": [],
+            "not_passed": [],
+            "present": [],
+            "required": [
+              "chat_task",
+              "crawler_throttle",
+              "quota_contention",
+              "signed_download",
+              "worker_generation",
+              "workspace_rendering",
+              "zip_export"
+            ],
+            "verified": false
+          },
+          "path": "ops/evidence/release/staging/stage1-release-candidate-load-draft.json",
+          "reason": "load_evidence_failed_semantic_checks:environment_staging,status_accepted,load_contract",
+          "ref": "ops/evidence/release/staging/stage1-release-candidate-load-draft.json",
+          "required_environment": "staging",
+          "semantic_checks": {
+            "environment_staging": false,
+            "evidence_kind_match": true,
+            "json_parseable": true,
+            "release_sha_match": true,
+            "release_sha_present": true,
+            "status_accepted": false
+          },
+          "sha_match": true,
+          "sha_values": [
+            "7123957dcc3371c6e2d1912b5c2ca418a551b943"
+          ],
+          "status_values": [
+            "blocked"
+          ],
+          "verified": false
+        },
+        "migration_evidence": {
+          "accepted_statuses": [
+            "compatible",
+            "passed"
+          ],
+          "environment_values": [
+            "staging_metadata_draft"
+          ],
+          "evidence_kind_values": [
+            "migration"
+          ],
+          "exists": true,
+          "expected_evidence_kind": "migration",
+          "kind": "local_file",
+          "path": "ops/evidence/release/staging/stage1-release-candidate-migration-draft.json",
+          "reason": "migration_evidence_failed_semantic_checks:environment_staging,status_accepted",
+          "ref": "ops/evidence/release/staging/stage1-release-candidate-migration-draft.json",
+          "required_environment": "staging",
+          "semantic_checks": {
+            "environment_staging": false,
+            "evidence_kind_match": true,
+            "json_parseable": true,
+            "release_sha_match": true,
+            "release_sha_present": true,
+            "status_accepted": false
+          },
+          "sha_match": true,
+          "sha_values": [
+            "7123957dcc3371c6e2d1912b5c2ca418a551b943"
+          ],
+          "status_values": [
+            "blocked"
+          ],
+          "verified": false
+        },
+        "observability_evidence": {
+          "accepted_statuses": [
+            "passed"
+          ],
+          "environment_values": [
+            "staging_metadata_draft"
+          ],
+          "evidence_kind_values": [
+            "observability"
+          ],
+          "exists": true,
+          "expected_evidence_kind": "observability",
+          "kind": "local_file",
+          "observability_contract": {
+            "evidence_ref_counts": {},
+            "evidence_refs": {},
+            "missing": [
+              "request_id_propagation",
+              "structured_json_logs",
+              "opentelemetry_traces",
+              "backend_worker_crawler_metrics",
+              "dashboard_import",
+              "alert_routes"
+            ],
+            "missing_evidence_ref": [],
+            "not_passed": [],
+            "present": [],
+            "required": [
+              "alert_routes",
+              "backend_worker_crawler_metrics",
+              "dashboard_import",
+              "opentelemetry_traces",
+              "request_id_propagation",
+              "structured_json_logs"
+            ],
+            "verified": false
+          },
+          "path": "ops/evidence/release/staging/stage1-release-candidate-observability-draft.json",
+          "reason": "observability_evidence_failed_semantic_checks:environment_staging,status_accepted,observability_contract",
+          "ref": "ops/evidence/release/staging/stage1-release-candidate-observability-draft.json",
+          "required_environment": "staging",
+          "semantic_checks": {
+            "environment_staging": false,
+            "evidence_kind_match": true,
+            "json_parseable": true,
+            "release_sha_match": true,
+            "release_sha_present": true,
+            "status_accepted": false
+          },
+          "sha_match": true,
+          "sha_values": [
+            "7123957dcc3371c6e2d1912b5c2ca418a551b943"
+          ],
+          "status_values": [
+            "blocked"
+          ],
+          "verified": false
+        },
+        "release_notes_path": {
+          "decision_recorded": true,
+          "exists": true,
+          "kind": "local_file",
+          "missing_fragments": [],
+          "path": "ops/release/stage1_release_candidate_metadata_draft.md",
+          "ref": "ops/release/stage1_release_candidate_metadata_draft.md",
+          "required_fragments": [
+            "## Identity",
+            "## Scope",
+            "## Migration List",
+            "## Config Diff",
+            "## Feature Flags",
+            "## Smoke Plan",
+            "## Evidence",
+            "## Rollback Plan",
+            "## Known Risks",
+            "## Go/No-Go"
+          ],
+          "sha_match": true,
+          "unresolved_placeholders": [],
+          "verified": true
+        },
+        "rollback_evidence": {
+          "accepted_statuses": [
+            "passed",
+            "validated"
+          ],
+          "environment_values": [
+            "staging_metadata_draft"
+          ],
+          "evidence_kind_values": [
+            "rollback"
+          ],
+          "exists": true,
+          "expected_evidence_kind": "rollback",
+          "kind": "local_file",
+          "path": "ops/evidence/release/staging/stage1-release-candidate-rollback-draft.json",
+          "reason": "rollback_evidence_failed_semantic_checks:environment_staging,status_accepted,rollback_contract",
+          "ref": "ops/evidence/release/staging/stage1-release-candidate-rollback-draft.json",
+          "required_environment": "staging",
+          "rollback_contract": {
+            "evidence_ref_counts": {},
+            "evidence_refs": {},
+            "missing": [
+              "image_rollback",
+              "feature_flag_rollback",
+              "migration_compatibility",
+              "worker_drain",
+              "post_rollback_smoke"
+            ],
+            "missing_evidence_ref": [],
+            "not_passed": [],
+            "present": [],
+            "required": [
+              "feature_flag_rollback",
+              "image_rollback",
+              "migration_compatibility",
+              "post_rollback_smoke",
+              "worker_drain"
+            ],
+            "verified": false
+          },
+          "semantic_checks": {
+            "environment_staging": false,
+            "evidence_kind_match": true,
+            "json_parseable": true,
+            "release_sha_match": true,
+            "release_sha_present": true,
+            "status_accepted": false
+          },
+          "sha_match": true,
+          "sha_values": [
+            "7123957dcc3371c6e2d1912b5c2ca418a551b943"
+          ],
+          "status_values": [
+            "blocked"
+          ],
+          "verified": false
+        },
+        "security_scan_evidence": {
+          "accepted_statuses": [
+            "passed"
+          ],
+          "environment_values": [
+            "staging_metadata_draft"
+          ],
+          "evidence_kind_values": [
+            "security_scan"
+          ],
+          "exists": true,
+          "expected_evidence_kind": "security_scan",
+          "kind": "local_file",
+          "path": "ops/evidence/release/staging/stage1-release-candidate-security-scan-draft.json",
+          "reason": "security_scan_evidence_failed_semantic_checks:environment_staging,status_accepted,security_scan_contract",
+          "ref": "ops/evidence/release/staging/stage1-release-candidate-security-scan-draft.json",
+          "required_environment": "staging",
+          "security_scan_contract": {
+            "evidence_ref_counts": {},
+            "evidence_refs": {},
+            "missing": [
+              "dependency_scan",
+              "image_scan",
+              "secret_scan"
+            ],
+            "missing_evidence_ref": [],
+            "not_passed": [],
+            "present": [],
+            "required": [
+              "dependency_scan",
+              "image_scan",
+              "secret_scan"
+            ],
+            "verified": false
+          },
+          "semantic_checks": {
+            "environment_staging": false,
+            "evidence_kind_match": true,
+            "json_parseable": true,
+            "release_sha_match": true,
+            "release_sha_present": true,
+            "status_accepted": false
+          },
+          "sha_match": true,
+          "sha_values": [
+            "7123957dcc3371c6e2d1912b5c2ca418a551b943"
+          ],
+          "status_values": [
+            "blocked"
+          ],
+          "verified": false
+        }
+      },
+      "release_notes_path": "ops/release/stage1_release_candidate_metadata_draft.md",
+      "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+      "release_tag": "",
+      "required_slots": {
+        "backup_restore_evidence": true,
+        "config_diff_evidence": true,
+        "image_refs": false,
+        "load_evidence": true,
+        "migration_evidence": true,
+        "observability_evidence": true,
+        "release_notes_path": true,
+        "release_sha": true,
+        "rollback_evidence": true,
+        "security_scan_evidence": true
+      }
+    },
+    "release_gate_fixtures": {
+      "private_beta_staging": {
+        "blocked_checks": [
+          "staging_object_storage_signed_downloads"
+        ],
+        "do_not_launch_present": [
+          "object_storage_signed_retention_runtime_missing"
+        ],
+        "path": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json"
+      },
+      "production_launch": {
+        "blocked_checks": [
+          "production_paid_billing_lifecycle",
+          "production_backup_rollback_incident"
+        ],
+        "do_not_launch_present": [
+          "paid_billing_or_comp_only_mode_missing",
+          "backup_restore_rollback_smoke_missing",
+          "production_deploy_rollback_smoke_missing",
+          "ci_staging_gates_not_passed"
+        ],
+        "path": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json"
+      }
+    },
+    "statuses": {
+      "admin_audit_auth_boundary:planned": "/api/admin/v1/audit",
+      "admin_home:planned": "/",
+      "backend_health:planned": "/healthz",
+      "backend_ready:planned": "/readyz",
+      "crawler_sources:planned": "/api/admin/v1/crawler/sources",
+      "export_create:planned": "/api/v1/packages//exports",
+      "export_status:planned": "/api/v1/exports/",
+      "observability_request_id:planned": "/healthz",
+      "quota_rate_limit:planned": "/api/v1/quota",
+      "task_status:planned": "/api/v1/tasks/",
+      "user_task_auth_boundary:planned": "/api/v1/tasks/stage0-smoke-auth",
+      "web_home:planned": "/"
+    }
+  },
+  "web_url": ""
+}

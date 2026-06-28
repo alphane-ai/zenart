@@ -33,18 +33,24 @@ export default async function SafetyPage() {
       <section className="panel">
         <div className="panel-header">
           <div>
-            <h3>Risky Exports</h3>
-            <p>Rules can allow, warn, require user confirmation, require admin review, or block.</p>
+            <h3>Safety Review Queue</h3>
+            <p>API-backed queue for risky exports and safety decisions; fixture fallback is used only when the admin backend is unavailable.</p>
           </div>
+          <StatusBadge
+            value={exports.some((row) => row.source === "api") ? "healthy" : "warning"}
+            label={exports.some((row) => row.source === "api") ? "live api" : "fixture fallback"}
+          />
         </div>
         <DataTable<RiskyExport>
           rows={exports}
           columns={[
             { key: "export", header: "Export", render: (row) => <span className="mono">{row.exportId}</span> },
+            { key: "decision-id", header: "Safety Decision", render: (row) => <span className="mono">{row.safetyDecisionId ?? row.id}</span> },
             { key: "rule", header: "Rule", render: (row) => row.rule },
             { key: "point", header: "Enforcement", render: (row) => row.enforcementPoint },
             { key: "severity", header: "Severity", render: (row) => <StatusBadge value={row.severity} /> },
             { key: "action", header: "Action", render: (row) => <StatusBadge value={row.action === "block" ? "blocked" : "warning"} label={row.action} /> },
+            { key: "review-status", header: "Review Status", render: (row) => <StatusBadge value={row.reviewStatus === "approved" ? "approved" : row.reviewStatus === "pending" ? "warning" : "blocked"} label={row.reviewStatus ?? "fixture"} /> },
             { key: "override", header: "Override", render: (row) => (row.overrideEligible ? "Eligible" : "Not eligible") },
             { key: "audit", header: "Audit", render: (row) => (row.auditRequired ? "Required" : "Optional") },
             {
@@ -57,6 +63,9 @@ export default async function SafetyPage() {
                 />
               )
             },
+            { key: "outcome", header: "User Outcome", render: (row) => row.userVisibleOutcome ?? "review policy pending" },
+            { key: "evidence", header: "Evidence Refs", render: (row) => row.requiredEvidenceRefs?.join(", ") ?? "fixture evidence" },
+            { key: "audit-ref", header: "Audit Ref", render: (row) => (row.auditRef ? <span className="mono">{row.auditRef}</span> : "pending") },
             { key: "rationale", header: "Review Rationale", render: (row) => row.reviewRationale }
           ]}
         />

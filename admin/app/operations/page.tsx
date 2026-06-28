@@ -9,6 +9,7 @@ import {
   getMaintenanceBanners,
   getOperationalDashboardRuntimeEvidence,
   getOperationalDashboards,
+  getOperationsIncidentRunbookContract,
   getObservabilityTelemetryRuntimeEvidence,
   getProductionBackupRollbackIncidentEvidence,
   getProductionBackupRollbackSplitPreflightEvidence,
@@ -26,6 +27,8 @@ import type {
   MaintenanceBanner,
   OperationalDashboard,
   OperationalDashboardRuntimeEvidence,
+  OperationsIncidentRunbookAction,
+  OperationsIncidentRunbookContract,
   ObservabilityTelemetryRuntimeControl,
   ObservabilityTelemetryRuntimeEvidence,
   ProductionBackupRollbackIncidentCoverage,
@@ -61,6 +64,7 @@ export default async function OperationsPage() {
     alertRuntimeEvidence,
     metricsRuntimeEvidence,
     telemetryRuntimeEvidence,
+    operationsIncidentRunbookContract,
     observabilityBackupLoadPreflight,
     objectStorageRetentionCleanupEvidence,
     productionBackupRollbackIncidentEvidence,
@@ -75,6 +79,7 @@ export default async function OperationsPage() {
     getAlertRouteRuntimeEvidence(),
     getBackendMetricsRuntimeEvidence(),
     getObservabilityTelemetryRuntimeEvidence(),
+    getOperationsIncidentRunbookContract(),
     getStagingObservabilityBackupLoadPreflightEvidence(),
     getStagingObjectStorageRetentionCleanupEvidence(),
     getProductionBackupRollbackIncidentEvidence(),
@@ -89,6 +94,70 @@ export default async function OperationsPage() {
         title="Operations Gate"
         description="Incident log and maintenance banner control surface for support, retry, rollback, and release gate evidence."
       />
+
+      <section className="panel" data-ops-incident-runbook-contract="stage1.operations-incident-runbook-local-contract">
+        <div className="panel-header">
+          <div>
+            <h3>Incident Runbook Contract</h3>
+            <p>Stage 1 operations runbook evidence links incidents, alert routes, blockers, maintenance banners, rollback evidence, and preserved DNL conditions without clearing launch gates.</p>
+          </div>
+        </div>
+        <div className="dependency-summary" data-ops-runbook-non-launch-status="local-contract-only">
+          <article>
+            <span>Staging gate</span>
+            <strong>preserved</strong>
+            <small>canClearStagingGate: false</small>
+          </article>
+          <article>
+            <span>Production gate</span>
+            <strong>preserved</strong>
+            <small>canClearProductionGate: false</small>
+          </article>
+          <article>
+            <span>DNL closure</span>
+            <strong>blocked</strong>
+            <small>canCloseDoNotLaunch: false</small>
+          </article>
+          <article>
+            <span>Gate override controls</span>
+            <strong>disabled</strong>
+            <small>manualGoControlsEnabled: false</small>
+          </article>
+        </div>
+        <DataTable<OperationsIncidentRunbookContract>
+          rows={[operationsIncidentRunbookContract]}
+          columns={[
+            { key: "id", header: "Contract", render: (row) => <span className="mono">{row.contractId}</span> },
+            { key: "schema", header: "Schema", render: (row) => row.schema },
+            { key: "blueprint", header: "Blueprint Items", render: (row) => row.blueprintItems.join(", ") },
+            { key: "source", header: "Evidence Source", render: (row) => row.evidenceSource },
+            { key: "route", header: "Admin Route", render: (row) => row.adminRoute },
+            { key: "blocked", header: "Blocked Gate Checks", render: (row) => <span data-ops-runbook-blocked-gate-checks>{row.blockedGateChecks.join(", ")}</span> },
+            { key: "dnl", header: "Preserved DNL Conditions", render: (row) => <span data-ops-runbook-preserved-dnl>{row.preservedDoNotLaunchConditions.join(", ")}</span> }
+          ]}
+        />
+        <DataTable<OperationsIncidentRunbookContract>
+          rows={[operationsIncidentRunbookContract]}
+          columns={[
+            { key: "incident", header: "Required Incident Fields", render: (row) => <span data-ops-runbook-required-incident-fields>{row.requiredIncidentFields.join(", ")}</span> },
+            { key: "alert", header: "Required Alert Route Fields", render: (row) => <span data-ops-runbook-required-alert-fields>{row.requiredAlertRouteFields.join(", ")}</span> },
+            { key: "rollback", header: "Required Rollback Evidence", render: (row) => <span data-ops-runbook-required-rollback-evidence>{row.requiredRollbackEvidenceRefs.join(", ")}</span> }
+          ]}
+        />
+        <DataTable<OperationsIncidentRunbookAction>
+          rows={operationsIncidentRunbookContract.actionMatrix}
+          columns={[
+            { key: "id", header: "Action", render: (row) => <span className="mono">{row.actionId}</span> },
+            { key: "kind", header: "Runbook Step", render: (row) => row.action },
+            { key: "surface", header: "Source Surface", render: (row) => row.sourceSurface },
+            { key: "role", header: "Required Role", render: (row) => row.requiredRole },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "boundary", header: "Operator Boundary", render: (row) => row.operatorBoundary },
+            { key: "evidence", header: "Required Evidence", render: (row) => <span data-ops-runbook-action-matrix>{row.requiredEvidenceRefs.join(", ")}</span> },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
 
       <section className="panel">
         <div className="panel-header">

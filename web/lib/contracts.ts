@@ -7,6 +7,9 @@ export type QaSeverity = "pass" | "warn" | "block";
 
 export type ExportFormat = "zip" | "pdf-placeholder";
 
+export type EditToolType = "crop" | "rotate" | "flip" | "remove_background" | "upscale" | "erase" | "expand";
+export type MaskKind = "brush" | "rect" | "lasso";
+
 export interface SessionUser {
   id: string;
   name: string;
@@ -142,6 +145,182 @@ export interface BillingPlan {
   quotaUsed: number;
   resetAt: string;
   renewalMode: "mock-checkout" | "provider";
+  checkoutSessionId?: string;
+  checkoutProvider?: string;
+  checkoutRedirectUrl?: string;
+  checkoutCreatedAt?: string;
+  portalSessionId?: string;
+  portalRedirectUrl?: string;
+  cancellationStatus?: string;
+  cancelAtPeriodEnd?: boolean;
+  cancellationUpdatedAt?: string;
+  invoices: BillingInvoice[];
+  invoiceSyncStatus: "api" | "local" | "unavailable";
+  invoiceSyncedAt?: string;
+}
+
+export interface BillingInvoice {
+  id: string;
+  provider: string;
+  status: string;
+  currency: string;
+  amountDueCents: number;
+  amountPaidCents: number;
+  invoiceUrl?: string;
+  receiptUrl?: string;
+  createdAt: string;
+}
+
+export interface TeamSeatUsage {
+  teamId: string;
+  tenantId: string;
+  planId: string;
+  seatLimit: number;
+  activeSeats: number;
+  invitedSeats: number;
+  billableSeats: number;
+  availableSeats: number;
+}
+
+export interface TeamSeatEntitlement {
+  allowed: boolean;
+  reason: "ok" | "seat_limit_exceeded";
+  additionalSeats: number;
+  checkedAt: string;
+}
+
+export interface TeamInviteState {
+  teamId: string;
+  inviteId: string;
+  email: string;
+  role: "admin" | "member";
+  status: "pending" | "accepted";
+  acceptedAt?: string;
+}
+
+export interface TeamSeatBillingProjection {
+  provider: "stripe" | "local";
+  prorationBehavior: "create_prorations" | "none" | "always_invoice";
+  invoiceImpact: "prorated_on_next_invoice" | "no_proration" | "immediate_invoice";
+  nextBillableSeats: number;
+  syncStatus: "api" | "local" | "pending" | "failed" | "unavailable";
+  lastSyncedAt?: string;
+  auditEvent: "team.seat.refresh" | "team.invite.accept";
+  safeProjection: true;
+}
+
+export interface TeamSeatState {
+  usage: TeamSeatUsage;
+  entitlement: TeamSeatEntitlement;
+  billingProjection: TeamSeatBillingProjection;
+  pendingInvite?: TeamInviteState;
+  lastAcceptedInviteId?: string;
+  lastSyncStatus?: "local" | "api";
+}
+
+export interface AssetLibraryItem {
+  id: string;
+  assetId: string;
+  title: string;
+  assetType: string;
+  status: string;
+  visibility: "project" | "tenant" | "private";
+  favorite: boolean;
+  archived: boolean;
+  reusable: boolean;
+  allowedProjects: string[];
+  tags: string[];
+  objectKey?: string;
+  thumbnailKey?: string;
+  lineageKind?: string;
+  traceId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BrandKitItem {
+  id: string;
+  name: string;
+  status: "draft" | "active" | "archived";
+  logos: Array<{ assetId?: string; objectMetadataId?: string; usage?: string }>;
+  palette: Array<{ name: string; hex: string; role?: string }>;
+  fonts: Array<{ family: string; assetId?: string; role?: string }>;
+  guidelines: Array<{ id: string; title: string; body: string; severity: "recommended" | "required" | string }>;
+  sourceRefs: Array<{ kind: string; assetId?: string; traceId?: string }>;
+  projectBindings: Array<{ projectId: string; default?: boolean }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssetLibraryState {
+  items: AssetLibraryItem[];
+  brandKits: BrandKitItem[];
+  defaultBrandKit?: BrandKitItem;
+  syncStatus: "local" | "api" | "unavailable";
+  syncedAt?: string;
+  operations: Array<
+    | "listAssetLibrary"
+    | "createAssetLibraryEntry"
+    | "updateAssetLibraryEntry"
+    | "listBrandKits"
+    | "createBrandKit"
+    | "updateBrandKit"
+    | "getProjectDefaultBrandKit"
+    | "setProjectDefaultBrandKit"
+  >;
+  packagedAssetIds: string[];
+}
+
+export interface EditMaskState {
+  assetId: string;
+  objectKey: string;
+  width: number;
+  height: number;
+  kind: MaskKind;
+  coveragePct: number;
+  sourceNodeId?: string;
+}
+
+export interface EditToolRevision {
+  id: string;
+  sourceAssetId: string;
+  derivedAssetId: string;
+  sourceNodeId: string;
+  derivedNodeId: string;
+  tool: EditToolType;
+  nonDestructive: boolean;
+  originalAssetRetained: boolean;
+  providerRequestRequired: boolean;
+  mask?: EditMaskState;
+  transform?: {
+    crop?: { x: number; y: number; width: number; height: number };
+    rotate?: number;
+    flipX?: boolean;
+    flipY?: boolean;
+  };
+  lineage: {
+    originalAssetId: string;
+    derivedFromAssetId: string;
+    toolType: EditToolType;
+    traceId: string;
+    rawPayloadPersisted: false;
+  };
+  createdAt: string;
+}
+
+export interface EditToolState {
+  contract: "stage1.edit-tools-mask-local-contract";
+  availableTools: EditToolType[];
+  activeTool: EditToolType;
+  mask: EditMaskState;
+  sourceAssetId: string;
+  sourceNodeId: string;
+  sourceWidth: number;
+  sourceHeight: number;
+  revisions: EditToolRevision[];
+  lastRevisionId?: string;
+  lastAction: "load" | "mask" | "tool" | "apply";
+  syncStatus: "local" | "api" | "unavailable";
 }
 
 export interface ProjectSummary {
@@ -343,10 +522,16 @@ export interface Candidate {
 export interface CanvasNode {
   id: string;
   title: string;
-  kind: "brief" | "candidate" | "iteration" | "export";
+  kind: "brief" | "candidate" | "iteration" | "export" | "generated_layer";
   x: number;
   y: number;
   body: string;
+  width?: number;
+  height?: number;
+  zIndex?: number;
+  locked?: boolean;
+  hidden?: boolean;
+  frameId?: string;
 }
 
 export interface CanvasEdge {
@@ -359,6 +544,39 @@ export interface CanvasVersion {
   label: string;
   createdAt: string;
   nodeCount: number;
+  versionNumber?: number;
+  snapshot?: {
+    nodes: CanvasNode[];
+    edges: CanvasEdge[];
+  };
+  diff?: {
+    addedNodeIds: string[];
+    removedNodeIds: string[];
+    changedNodeIds: string[];
+    unchangedNodeIds: string[];
+  };
+  restorePreview?: {
+    restoresNodeIds: string[];
+    preservesNodeIds: string[];
+    conflictNodeIds: string[];
+  };
+}
+
+export type CanvasTool = "select" | "hand" | "frame" | "text" | "shape" | "upload";
+
+export interface CanvasInteractionState {
+  contract: "stage1.canvas-interaction-user-contract";
+  tool: CanvasTool;
+  zoom: number;
+  selectedNodeIds: string[];
+  pan: {
+    x: number;
+    y: number;
+  };
+  lastAction: "load" | "select" | "drag" | "zoom" | "fit" | "tool" | "layer-hide" | "layer-lock" | "keyboard" | "undo" | "redo";
+  keyboardShortcuts: Array<"delete" | "duplicate" | "undo" | "redo" | "zoom_in" | "zoom_out" | "space_hand" | "shift_multi_select">;
+  toolbarTools: CanvasTool[];
+  layersPanelEnabled: boolean;
 }
 
 export interface WorkspaceRenderingPerformanceSmoke {
@@ -505,6 +723,70 @@ export interface ExportRecord {
   safetyReport: SafetyPolicyReport;
 }
 
+export interface SafetyExportStateEvidence {
+  schema_version: "stage1.safety-export-state-local-contract.v1";
+  status: "pass" | "empty";
+  export_count: number;
+  ready_export_count: number;
+  blocked_export_count: number;
+  failed_export_count: number;
+  running_export_count: number;
+  qa_block_finding_count: number;
+  safety_block_finding_count: number;
+  admin_review_required_count: number;
+  blocked_download_cta_count: 0;
+  blocked_share_cta_count: 0;
+  downloadable_ready_export_count: number;
+  blocked_export_without_download_count: number;
+  blocked_export_without_share_count: number;
+  latest_export_id: string;
+  latest_export_status: ExportRecord["status"] | "none";
+  latest_blocked_reason: string;
+  blocked_reasons: string[];
+  raw_provider_payload_projected: false;
+  raw_safety_payload_projected: false;
+  secret_like_value_projected: false;
+  can_clear_stage1_staging_runtime_gate: false;
+}
+
+export interface RenderedExportAssetEvidence {
+  schema_version: "stage1.rendered-export-asset-local-contract.v1";
+  status: "pass" | "fail";
+  exportId: string;
+  packageId: string;
+  projectId: string;
+  renderMode: "deterministic-local-svg-pdf";
+  renderedAssetManifestPayloadName: string;
+  manifestAssetOutputCount: number;
+  renderedAssetPayloadCount: number;
+  renderedAssetPayloadNames: string[];
+  renderedAssetOutputNames: string[];
+  renderedAssetContentTypes: string[];
+  renderedAssetByteCount: number;
+  placeholderPayloadCount: number;
+  placeholderPayloadNames: string[];
+  unsafePayloadCount: number;
+  unsafePayloadNames: string[];
+  rawProviderPayloadProjected: false;
+  rawSafetyPayloadProjected: false;
+  secretLikeValueProjected: false;
+  signedUrlPersisted: false;
+  stagingSignedUrlEvidence: "open";
+  objectRetentionCleanupEvidence: "open";
+  canClearStage1StagingRuntimeGate: false;
+  canClearStage1ProductionLaunchGate: false;
+  failures: Array<
+    | "format"
+    | "status"
+    | "manifest"
+    | "rendered-assets"
+    | "placeholder-payload"
+    | "unsafe-payload"
+    | "raw-payload"
+    | "signed-url"
+  >;
+}
+
 export interface PackageExportMetadataEvidence {
   schema_version: "stage0.rev2.package-export-metadata-ui";
   status: "pass" | "fail";
@@ -639,7 +921,7 @@ export interface ExportZipPayloadSmokeEvidence {
     | "workflow-metadata"
     | "trace-provenance"
     | "ai-content-disclaimer"
-    | "assets-readme"
+    | "rendered-asset-manifest"
   >;
 }
 
@@ -718,6 +1000,42 @@ export interface ExportDownloadParityEvidence {
   >;
 }
 
+export interface ExportDownloadAccessBoundaryEvidence {
+  schema_version: "stage1.export-download-access-boundary-local-contract.v1";
+  status: "pass" | "fail";
+  scenario: "local-browser-zip-does-not-clear-server-signed-url-or-retention-gates";
+  exportId: string;
+  packageId: string;
+  fileName: string;
+  localBrowserDownloadStatus: ExportDownloadParityEvidence["downloadHandoffStatus"];
+  localZipPayloadStatus: ExportZipPayloadSmokeEvidence["status"];
+  renderedAssetStatus: RenderedExportAssetEvidence["status"];
+  productDownloadUrlPolicy: "server-mediated-relative-signed-url";
+  serverDownloadRoute: "GET /api/v1/objects/download";
+  objectStoreDirectSigningUsedForExportDownload: false;
+  signedUrlPersisted: false;
+  signedUrlMaterialProjected: false;
+  downloadResponseDisclosesObjectKeyHeader: false;
+  requiresActiveRetentionMetadata: true;
+  requiresDownloadAudit: true;
+  requiresDownloadAnalytics: true;
+  strictStagingSignedUrlEvidence: "open";
+  strictStagingRetentionCleanupEvidence: "open";
+  productionObjectStorageEvidence: "open";
+  canClearStage1StagingRuntimeGate: false;
+  canClearStage1ProductionLaunchGate: false;
+  canClearObjectStorageDoNotLaunch: false;
+  failures: Array<
+    | "local-download"
+    | "zip-payload"
+    | "rendered-assets"
+    | "signed-url-persisted"
+    | "staging-signed-url"
+    | "retention"
+    | "gate-boundary"
+  >;
+}
+
 export interface ShareLink {
   id: string;
   exportId: string;
@@ -737,6 +1055,7 @@ export interface SupportTicket {
   body: string;
   status: "open" | "triaged";
   linkedExportId?: string;
+  linkedBatchId?: string;
   linkedTaskId?: string;
   linkedTraceId?: string;
   linkedAssetIds: string[];
@@ -747,6 +1066,117 @@ export interface SupportTicket {
     status: SubscriptionStatus;
     resetAt: string;
   };
+  linkedBillingReferenceId?: string;
+}
+
+export type PromptComposerAspectRatio = "1:1" | "4:5" | "16:9" | "9:16";
+export type PromptComposerQuality = "draft" | "standard" | "high";
+
+export interface PromptComposerContext {
+  text: string;
+  selected_object_ids: string[];
+  reference_asset_ids: string[];
+  brand_kit_id?: string;
+  model_hints: string[];
+  tool_hint: string;
+}
+
+export interface PromptComposerPayload {
+  schema_version: "stage1.prompt-composer-contract.v1";
+  prompt_context_status: "local";
+  prompt_context: PromptComposerContext;
+  requested_count: number;
+  aspect_ratio: PromptComposerAspectRatio;
+  quality: PromptComposerQuality;
+  allowed_models: string[];
+  projected: {
+    selected_object_count: number;
+    reference_asset_count: number;
+    brand_kit_selected: boolean;
+    allowed_model_count: number;
+    selected_object_ids: string[];
+    reference_asset_ids: string[];
+    brand_kit_id: string;
+    model_hints: string[];
+  };
+  blocked: {
+    hidden_object_count: number;
+    rejected_reference_count: number;
+    archived_asset_count: number;
+    unresolved_mention_count: number;
+    duplicate_mention_count: number;
+    forbidden_model_mention_count: number;
+  };
+  redaction: {
+    raw_provider_payload_persisted: false;
+    raw_hidden_prompt_projected: false;
+    secret_like_value_projected: false;
+  };
+  operations: ["createBatchGeneration"];
+}
+
+export type BatchGenerationStatus = "queued" | "running" | "succeeded" | "partial_succeeded" | "partial_failed" | "failed" | "cancelled" | "blocked";
+export type BatchGenerationChildStatus = "queued" | "running" | "succeeded" | "failed" | "cancelled" | "blocked";
+
+export interface BatchGenerationChild {
+  id: string;
+  batchId: string;
+  status: BatchGenerationChildStatus;
+  providerId: string;
+  modelId: string;
+  toolType: "image.generate";
+  seed: string;
+  retryCount: number;
+  maxRetries: number;
+  quotaEstimateUnits: number;
+  quotaCommittedUnits: number;
+  quotaRefundedUnits: number;
+  assetId?: string;
+  canvasObjectId?: string;
+  traceId: string;
+  visibleTraceRef: string;
+  failureCode?: string;
+  failureMessage?: string;
+}
+
+export interface BatchGeneration {
+  id: string;
+  projectId: string;
+  status: BatchGenerationStatus;
+  prompt: string;
+  requestedCount: number;
+  providerId: string;
+  modelId: string;
+  createdAt: string;
+  updatedAt: string;
+  progressPercent: number;
+  queuedCount: number;
+  runningCount: number;
+  succeededCount: number;
+  failedCount: number;
+  cancelledCount: number;
+  blockedCount: number;
+  retryableCount: number;
+  progressSyncStatus: "local" | "api" | "unavailable";
+  progressSyncedAt?: string;
+  promptContext?: PromptComposerContext;
+  promptComposerPayload?: PromptComposerPayload;
+  children: BatchGenerationChild[];
+}
+
+export interface ResultPlacementEvidence {
+  schema_version: "stage1.result-placement-contract.v1";
+  status: "local" | "empty";
+  projected_child_count: number;
+  placed_canvas_object_count: number;
+  asset_library_entry_count: number;
+  latest_child_id: string;
+  latest_asset_id: string;
+  latest_canvas_object_id: string;
+  latest_trace_id: string;
+  duplicate_projection_count: number;
+  raw_provider_payload_projected: false;
+  missing_projection_count: number;
 }
 
 export interface WorkspaceState {
@@ -754,6 +1184,9 @@ export interface WorkspaceState {
   sessionContract: SessionContract;
   account: AccountSettings;
   billing: BillingPlan;
+  teamSeats: TeamSeatState;
+  assetLibrary: AssetLibraryState;
+  editTools: EditToolState;
   projects: ProjectSummary[];
   activeProjectId: string;
   chat: ChatMessage[];
@@ -766,14 +1199,16 @@ export interface WorkspaceState {
     versions: CanvasVersion[];
     activeVersionId: string;
     autosavedAt: string;
+    interaction: CanvasInteractionState;
   };
   packageItems: PackageItem[];
   exports: ExportRecord[];
   shareLinks: ShareLink[];
   supportTickets: SupportTicket[];
+  batchGenerations: BatchGeneration[];
 }
 
-export interface ZenArtClient {
+export interface ZenariClient {
   loadWorkspace(): Promise<WorkspaceState>;
   login(email: string): Promise<WorkspaceState>;
   logout(): Promise<WorkspaceState>;
@@ -788,10 +1223,39 @@ export interface ZenArtClient {
   selectCandidate(candidateId: string): Promise<WorkspaceState>;
   iterateSelected(instruction: string): Promise<WorkspaceState>;
   restoreCanvasVersion(versionId: string): Promise<WorkspaceState>;
+  selectCanvasNode(nodeId: string, additive?: boolean): Promise<WorkspaceState>;
+  moveCanvasNode(nodeId: string, delta: { x: number; y: number }): Promise<WorkspaceState>;
+  setCanvasZoom(zoom: number): Promise<WorkspaceState>;
+  fitCanvasToView(): Promise<WorkspaceState>;
+  setCanvasTool(tool: CanvasTool): Promise<WorkspaceState>;
+  toggleCanvasNodeHidden(nodeId: string): Promise<WorkspaceState>;
+  toggleCanvasNodeLocked(nodeId: string): Promise<WorkspaceState>;
+  duplicateSelectedCanvasNodes(): Promise<WorkspaceState>;
+  deleteSelectedCanvasNodes(): Promise<WorkspaceState>;
+  setEditTool(tool: EditToolType): Promise<WorkspaceState>;
+  updateEditMask(mask: Partial<EditMaskState>): Promise<WorkspaceState>;
+  applyEditTool(): Promise<WorkspaceState>;
   addPackageItem(sourceId: string): Promise<WorkspaceState>;
   createExport(format: ExportFormat): Promise<WorkspaceState>;
   createShareLink(exportId: string): Promise<WorkspaceState>;
+  createBatchGeneration(countOrPayload?: number | PromptComposerPayload): Promise<WorkspaceState>;
+  refreshBatchGenerationProgress(batchId: string): Promise<WorkspaceState>;
+  cancelBatchGeneration(batchId: string): Promise<WorkspaceState>;
+  retryBatchGenerationChild(childId: string): Promise<WorkspaceState>;
   createMockCheckout(): Promise<WorkspaceState>;
+  createBillingPortalSession(): Promise<WorkspaceState>;
+  cancelSubscription(): Promise<WorkspaceState>;
+  refreshBillingInvoices(): Promise<WorkspaceState>;
+  refreshTeamSeats(): Promise<WorkspaceState>;
+  acceptTeamInvite(): Promise<WorkspaceState>;
+  refreshAssetLibrary(): Promise<WorkspaceState>;
+  createAssetLibraryEntryFromSelection(): Promise<WorkspaceState>;
+  toggleAssetLibraryFavorite(entryId: string): Promise<WorkspaceState>;
+  archiveAssetLibraryEntry(entryId: string): Promise<WorkspaceState>;
+  createBrandKitFromLogoAsset(entryId: string): Promise<WorkspaceState>;
+  updateBrandKitGuidelines(brandKitId: string): Promise<WorkspaceState>;
+  setDefaultBrandKit(brandKitId: string): Promise<WorkspaceState>;
+  packageAssetLibraryItem(entryId: string): Promise<WorkspaceState>;
   setBillingScenario(scenario: BillingScenario): Promise<WorkspaceState>;
   updateAccount(settings: AccountSettings): Promise<WorkspaceState>;
   reportProblem(input: Pick<SupportTicket, "category" | "body" | "linkedExportId">): Promise<WorkspaceState>;

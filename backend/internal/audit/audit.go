@@ -14,6 +14,7 @@ type recorderKey struct{}
 
 type Event struct {
 	ID        string         `json:"id"`
+	AuditRef  string         `json:"audit_ref,omitempty"`
 	TenantID  string         `json:"tenant_id"`
 	ActorID   string         `json:"actor_id"`
 	Action    string         `json:"action"`
@@ -138,6 +139,7 @@ LIMIT $5`,
 			_ = json.Unmarshal(metadata, &event.Metadata)
 		}
 		event.Metadata = security.RedactMap(event.Metadata)
+		event.AuditRef = event.ID
 		page.Items = append(page.Items, event)
 	}
 	if err := rows.Err(); err != nil {

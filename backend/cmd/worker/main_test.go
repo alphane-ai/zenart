@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alphane-ai/zenart/backend/internal/config"
+	"github.com/alphane-ai/zenart/backend/internal/provider"
 	"github.com/alphane-ai/zenart/backend/internal/stage0"
 	"github.com/alphane-ai/zenart/backend/internal/worker"
 )
@@ -75,6 +77,85 @@ func TestRunCleanupOnceInvokesService(t *testing.T) {
 		if !strings.Contains(body, fragment) {
 			t.Fatalf("metrics body = %s, missing %s", body, fragment)
 		}
+	}
+}
+
+func TestBatchPolicyFromConfigMapsWorkerSettings(t *testing.T) {
+	cfg := config.Config{}
+	cfg.Worker.InstanceID = "worker_1"
+	cfg.Worker.BatchTenantID = "tenant_1"
+	cfg.Worker.BatchClaimLimit = 3
+	cfg.Worker.BatchClaimTimeout = 9 * time.Minute
+	cfg.Worker.BatchMaxTenantConcurrency = 5
+	cfg.Worker.BatchProviderMaxConcurrency = map[string]int{"zenari-image-sandbox": 4}
+	cfg.Worker.BatchProviderModelMaxConcurrency = map[string]int{"zenari-image-sandbox:image-fast-v1": 2}
+	cfg.Worker.BatchAllowedProviderModelToolTypes = []string{"zenari-image-sandbox:image-fast-v1:image.generate"}
+
+	policy := batchPolicyFromConfig(cfg)
+	if policy.TenantID != "tenant_1" || policy.WorkerID != "worker_1" || policy.Limit != 3 || policy.MaxTenantConcurrency != 5 {
+		t.Fatalf("policy basics = %#v", policy)
+	}
+	if policy.ClaimTimeout != 9*time.Minute {
+		t.Fatalf("policy claim timeout = %s, want 9m", policy.ClaimTimeout)
+	}
+	if policy.ProviderMaxConcurrency["zenari-image-sandbox"] != 4 {
+		t.Fatalf("provider concurrency = %#v", policy.ProviderMaxConcurrency)
+	}
+	if policy.ProviderModelConcurrency["zenari-image-sandbox:image-fast-v1"] != 2 {
+		t.Fatalf("provider/model concurrency = %#v", policy.ProviderModelConcurrency)
+	}
+	if len(policy.AllowedProviderModelTools) != 1 || policy.AllowedProviderModelTools[0].ToolType != "image.generate" {
+		t.Fatalf("allowed tools = %#v", policy.AllowedProviderModelTools)
+	}
+}
+
+func TestBatchProviderClientsFromConfigDefaultsSandboxToDevProvider(t *testing.T) {
+	cfg := config.Config{}
+
+	clients := batchProviderClientsFromConfig(cfg)
+	sandboxClient, ok := clients.ResolveProviderClient("zenari-image-sandbox")
+	if !ok {
+		t.Fatal("zenari-image-sandbox provider missing")
+	}
+	if _, ok := sandboxClient.(provider.DevProvider); !ok {
+		t.Fatalf("sandbox provider = %T, want provider.DevProvider when live calls disabled", sandboxClient)
+	}
+	devClient, ok := clients.ResolveProviderClient("dev")
+	if !ok {
+		t.Fatal("dev provider missing")
+	}
+	if _, ok := devClient.(provider.DevProvider); !ok {
+		t.Fatalf("dev provider = %T, want provider.DevProvider", devClient)
+	}
+}
+
+func TestBatchProviderClientsFromConfigUsesOpenAICompatibleWhenLiveEnabled(t *testing.T) {
+	cfg := config.Config{}
+	cfg.LLM.Provider = "openai-compatible"
+	cfg.LLM.OpenAIBaseURL = "https://api.z.ai/api/coding/paas/v4"
+	cfg.LLM.OpenAIAPIKey = strings.Repeat("a", 32) + "." + strings.Repeat("b", 16)
+	cfg.LLM.OpenAIModel = "glm-5.2"
+	cfg.LLM.RequestTimeout = 5 * time.Second
+	cfg.LLM.EnableLiveCalls = true
+
+	clients := batchProviderClientsFromConfig(cfg)
+	sandboxClient, ok := clients.ResolveProviderClient("zenari-image-sandbox")
+	if !ok {
+		t.Fatal("zenari-image-sandbox provider missing")
+	}
+	openAIClient, ok := sandboxClient.(provider.OpenAICompatibleProvider)
+	if !ok {
+		t.Fatalf("sandbox provider = %T, want provider.OpenAICompatibleProvider", sandboxClient)
+	}
+	if openAIClient.Config.BaseURL != cfg.LLM.OpenAIBaseURL || openAIClient.Config.ModelID != cfg.LLM.OpenAIModel || !openAIClient.Config.LiveCallsEnabled {
+		t.Fatalf("openai-compatible config = %#v", openAIClient.Config)
+	}
+	devClient, ok := clients.ResolveProviderClient("dev")
+	if !ok {
+		t.Fatal("dev provider missing")
+	}
+	if _, ok := devClient.(provider.DevProvider); !ok {
+		t.Fatalf("dev provider = %T, want provider.DevProvider", devClient)
 	}
 }
 

@@ -7,7 +7,7 @@ export const csrfSafeMethods: Array<Extract<HttpMethod, "GET" | "HEAD" | "OPTION
 
 export const defaultSameSiteCsrfContract: SessionContract["csrf"] = {
   strategy: "same-site-origin-check",
-  headerName: "X-ZenArt-CSRF",
+  headerName: "X-Zenari-CSRF",
   headerValue: "same-site-origin-check",
   sameSiteRequired: "lax-or-strict",
   credentialMode: "include",
@@ -76,7 +76,10 @@ export const stripCsrfHeaderAliases = (
   contract = defaultSameSiteCsrfContract
 ) =>
   Object.fromEntries(
-    Object.entries(headers).filter(([headerName]) => headerName.toLowerCase() !== contract.headerName.toLowerCase())
+    Object.entries(headers).filter(([headerName]) => {
+      const normalized = headerName.toLowerCase();
+      return normalized !== contract.headerName.toLowerCase() && normalized !== "x-zenari-csrf";
+    })
   );
 
 export const buildCsrfRequestHeaders = (
@@ -123,7 +126,7 @@ export const buildSessionSecurityContractEvidence = (
   ].filter(Boolean) as SessionSecurityContractEvidence["hostPrefixInvariant"]["failureReasons"];
   const csrfFailureReasons = [
     sessionContract.csrf.strategy === "same-site-origin-check" ? "" : "csrf-strategy",
-    sessionContract.csrf.headerName === "X-ZenArt-CSRF" ? "" : "csrf-header",
+    sessionContract.csrf.headerName === "X-Zenari-CSRF" ? "" : "csrf-header",
     sessionContract.csrf.credentialMode === "include" ? "" : "csrf-credentials",
     sessionContract.csrf.originPolicy === "same-site-only" ? "" : "csrf-origin-policy",
     sessionContract.csrf.sameSiteRequired === "lax-or-strict" ? "" : "csrf-same-site-requirement",
@@ -224,7 +227,7 @@ export const buildGeneratedApiCsrfRequestContractEvidence = (
   ];
   const failureReasons = [
     contract.credentialMode === "include" ? "" : "csrf-credentials",
-    contract.headerName === "X-ZenArt-CSRF" ? "" : "csrf-header",
+    contract.headerName === "X-Zenari-CSRF" ? "" : "csrf-header",
     contract.headerValue === "same-site-origin-check" ? "" : "csrf-header-value",
     contract.originPolicy === "same-site-only" ? "" : "csrf-origin-policy",
     contract.sameSiteRequired === "lax-or-strict" ? "" : "csrf-same-site-requirement",

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import generatedApiCsrfContract from "../../validation/generated-api-csrf-contract.json";
 import userRouteSmoke from "../../validation/user-routes-smoke.json";
 import { buildGeneratedApiCsrfRequestContractEvidence, defaultSameSiteCsrfContract } from "../request-security";
-import { apiOperations, OperationId, ZenArtApiClient } from "./zenart-api";
+import { apiOperations, OperationId, ZenariApiClient } from "./zenart-api";
 
 describe("generated web API client CSRF contract", () => {
   afterEach(() => {
@@ -16,7 +16,7 @@ describe("generated web API client CSRF contract", () => {
         headers: { "Content-Type": "application/json" }
       })
     );
-    const client = new ZenArtApiClient();
+    const client = new ZenariApiClient();
 
     await client.request("updateAccount", {
       idempotencyKey: "idem-account-001",
@@ -31,7 +31,7 @@ describe("generated web API client CSRF contract", () => {
         headers: expect.objectContaining({
           "Content-Type": "application/json",
           "Idempotency-Key": "idem-account-001",
-          "X-ZenArt-CSRF": "same-site-origin-check"
+          "X-Zenari-CSRF": "same-site-origin-check"
         })
       })
     );
@@ -44,12 +44,12 @@ describe("generated web API client CSRF contract", () => {
         headers: { "Content-Type": "application/json" }
       })
     );
-    const client = new ZenArtApiClient();
+    const client = new ZenariApiClient();
 
     await client.request("createUpload", {
       idempotencyKey: "idem-upload-001",
       headers: {
-        "X-ZenArt-CSRF": "stale-client-token",
+        "X-Zenari-CSRF": "stale-client-token",
         "X-Client-Trace": "trace-upload-001"
       },
       body: {
@@ -67,7 +67,7 @@ describe("generated web API client CSRF contract", () => {
           "Content-Type": "application/json",
           "Idempotency-Key": "idem-upload-001",
           "X-Client-Trace": "trace-upload-001",
-          "X-ZenArt-CSRF": "same-site-origin-check"
+          "X-Zenari-CSRF": "same-site-origin-check"
         })
       })
     );
@@ -80,24 +80,27 @@ describe("generated web API client CSRF contract", () => {
         headers: { "Content-Type": "application/json" }
       })
     );
-    const client = new ZenArtApiClient();
+    const client = new ZenariApiClient();
 
     await client.request("createProject", {
       idempotencyKey: "idem-project-001",
       headers: {
-        "x-zenart-csrf": "lowercase-stale-token",
-        "X-ZenArt-CSRF": "stale-token"
+        "x-zenari-csrf": "lowercase-stale-token",
+        "X-Zenari-CSRF": "stale-token"
       },
       body: { name: "Northstar launch" }
     });
 
     const requestHeaders = fetchMock.mock.calls[0][1]?.headers as Record<string, string>;
-    const csrfHeaderNames = Object.keys(requestHeaders).filter((headerName) => headerName.toLowerCase() === "x-zenart-csrf");
+    const csrfHeaderNames = Object.keys(requestHeaders).filter(
+      (headerName) => headerName.toLowerCase() === defaultSameSiteCsrfContract.headerName.toLowerCase()
+    );
 
-    expect(csrfHeaderNames).toEqual(["X-ZenArt-CSRF"]);
+    expect(csrfHeaderNames).toEqual(["X-Zenari-CSRF"]);
+    expect(Object.keys(requestHeaders)).not.toContain("x-zenari-csrf");
     expect(requestHeaders).toEqual(
       expect.objectContaining({
-        "X-ZenArt-CSRF": "same-site-origin-check"
+        "X-Zenari-CSRF": "same-site-origin-check"
       })
     );
   });
@@ -109,18 +112,18 @@ describe("generated web API client CSRF contract", () => {
         headers: { "Content-Type": "application/json" }
       })
     );
-    const client = new ZenArtApiClient();
+    const client = new ZenariApiClient();
 
     await client.request("getSession", {
       headers: {
-        "x-zenart-csrf": "lowercase-stale-token",
-        "X-ZenArt-CSRF": "stale-token"
+        "x-zenari-csrf": "lowercase-stale-token",
+        "X-Zenari-CSRF": "stale-token"
       }
     });
 
     const requestHeaders = fetchMock.mock.calls[0][1]?.headers as Record<string, string>;
 
-    expect(Object.keys(requestHeaders).filter((headerName) => headerName.toLowerCase() === "x-zenart-csrf")).toEqual([]);
+    expect(Object.keys(requestHeaders).filter((headerName) => headerName.toLowerCase() === "x-zenari-csrf")).toEqual([]);
   });
 
   it("keeps read-only requests credentialed without adding the CSRF header", async () => {
@@ -130,7 +133,7 @@ describe("generated web API client CSRF contract", () => {
         headers: { "Content-Type": "application/json" }
       })
     );
-    const client = new ZenArtApiClient();
+    const client = new ZenariApiClient();
 
     await client.request("getSession");
 
@@ -140,7 +143,7 @@ describe("generated web API client CSRF contract", () => {
         method: "GET",
         credentials: "include",
         headers: expect.not.objectContaining({
-          "X-ZenArt-CSRF": "same-site-origin-check"
+          "X-Zenari-CSRF": "same-site-origin-check"
         })
       })
     );
@@ -159,7 +162,7 @@ describe("generated web API client CSRF contract", () => {
         headers: { "Content-Type": "application/json" }
       })
     );
-    const client = new ZenArtApiClient();
+    const client = new ZenariApiClient();
 
     for (const [operationId, operation] of unsafeOperations) {
       await client.request(operationId, {
@@ -169,7 +172,7 @@ describe("generated web API client CSRF contract", () => {
       });
     }
 
-    expect(unsafeOperations).toHaveLength(15);
+    expect(unsafeOperations).toHaveLength(27);
     expect(unsafeOperations.map(([operationId]) => operationId)).toEqual([
       "deleteSession",
       "updateAccount",
@@ -177,14 +180,26 @@ describe("generated web API client CSRF contract", () => {
       "updateProject",
       "createChatSession",
       "createChatMessage",
+      "createBatchGeneration",
+      "cancelBatchGeneration",
+      "retryBatchGenerationChild",
       "createCandidateSet",
       "selectDirection",
       "createCanvasNode",
       "createCanvasVersion",
       "createUpload",
+      "createAssetLibraryEntry",
+      "updateAssetLibraryEntry",
+      "createBrandKit",
+      "updateBrandKit",
+      "setProjectDefaultBrandKit",
       "createPackage",
       "createExport",
       "createShareLink",
+      "createCheckoutSession",
+      "createBillingPortalSession",
+      "cancelSubscription",
+      "acceptTeamInvite",
       "createSupportTicket"
     ]);
     for (const [callIndex, [operationId, operation]] of unsafeOperations.entries()) {
@@ -348,11 +363,11 @@ describe("generated web API client CSRF contract", () => {
   });
 
   it("rejects cross-origin API bases before same-site credentialed requests can be made", () => {
-    expect(() => new ZenArtApiClient("https://api.example.invalid")).toThrow(
-      "ZenArtApiClient baseUrl must be same-origin for same-site CSRF protection"
+    expect(() => new ZenariApiClient("https://api.example.invalid")).toThrow(
+      "ZenariApiClient baseUrl must be same-origin for same-site CSRF protection"
     );
-    expect(() => new ZenArtApiClient("//api.example.invalid")).toThrow(
-      "ZenArtApiClient baseUrl must not be protocol-relative for same-site CSRF protection"
+    expect(() => new ZenariApiClient("//api.example.invalid")).toThrow(
+      "ZenariApiClient baseUrl must not be protocol-relative for same-site CSRF protection"
     );
   });
 
@@ -362,10 +377,10 @@ describe("generated web API client CSRF contract", () => {
     try {
       vi.stubGlobal("window", undefined);
 
-      expect(() => new ZenArtApiClient("https://app.example.invalid/api")).toThrow(
-        "ZenArtApiClient absolute baseUrl requires a browser origin for same-site CSRF protection"
+      expect(() => new ZenariApiClient("https://app.example.invalid/api")).toThrow(
+        "ZenariApiClient absolute baseUrl requires a browser origin for same-site CSRF protection"
       );
-      expect(() => new ZenArtApiClient("/api")).not.toThrow();
+      expect(() => new ZenariApiClient("/api")).not.toThrow();
     } finally {
       vi.stubGlobal("window", originalWindow);
     }
@@ -378,7 +393,7 @@ describe("generated web API client CSRF contract", () => {
         headers: { "Content-Type": "application/json" }
       })
     );
-    const client = new ZenArtApiClient(window.location.origin);
+    const client = new ZenariApiClient(window.location.origin);
 
     await client.request("getSession");
 
@@ -395,14 +410,14 @@ describe("generated web API client CSRF contract", () => {
     const currentUrl = new URL(window.location.origin);
     const sameOriginWithCredentials = `${currentUrl.protocol}//user:pass@${currentUrl.host}`;
 
-    expect(() => new ZenArtApiClient(sameOriginWithCredentials)).toThrow(
-      "ZenArtApiClient baseUrl must not include credentials for same-site CSRF protection"
+    expect(() => new ZenariApiClient(sameOriginWithCredentials)).toThrow(
+      "ZenariApiClient baseUrl must not include credentials for same-site CSRF protection"
     );
-    expect(() => new ZenArtApiClient(`${window.location.origin}/api?token=secret`)).toThrow(
-      "ZenArtApiClient baseUrl must not include query or fragment material for same-site CSRF protection"
+    expect(() => new ZenariApiClient(`${window.location.origin}/api?token=secret`)).toThrow(
+      "ZenariApiClient baseUrl must not include query or fragment material for same-site CSRF protection"
     );
-    expect(() => new ZenArtApiClient(`${window.location.origin}/api#csrf`)).toThrow(
-      "ZenArtApiClient baseUrl must not include query or fragment material for same-site CSRF protection"
+    expect(() => new ZenariApiClient(`${window.location.origin}/api#csrf`)).toThrow(
+      "ZenariApiClient baseUrl must not include query or fragment material for same-site CSRF protection"
     );
   });
 
@@ -443,7 +458,7 @@ describe("generated web API client CSRF contract", () => {
       unitTest: "web/lib/request-security.test.ts",
       generatedClientUnitTest: "web/lib/generated/zenart-api.test.ts",
       status: "pass",
-      canonicalHeaderName: "X-ZenArt-CSRF",
+      canonicalHeaderName: "X-Zenari-CSRF",
       canonicalHeaderValue: "same-site-origin-check",
       callerAliasStripped: true,
       safeRequestAliasesStripped: true,
@@ -464,7 +479,7 @@ describe("generated web API client CSRF contract", () => {
     });
     expect(generatedApiCsrfContract.assertions).toEqual(
       expect.arrayContaining([
-        "Generated web API client strips caller-supplied CSRF header aliases before applying one canonical X-ZenArt-CSRF header.",
+        "Generated web API client strips caller-supplied CSRF header aliases before applying one canonical X-Zenari-CSRF header.",
         "Generated web API client strips caller-supplied CSRF header aliases from safe requests."
       ])
     );
@@ -477,7 +492,7 @@ describe("generated web API client CSRF contract", () => {
         headers: { "Content-Type": "application/json" }
       })
     );
-    const client = new ZenArtApiClient("/api");
+    const client = new ZenariApiClient("/api");
 
     await client.request("getProject", {
       pathParams: { project_id: "project-001" },
@@ -500,7 +515,7 @@ describe("generated web API client CSRF contract", () => {
         headers: { "Content-Type": "application/json" }
       })
     );
-    const client = new ZenArtApiClient();
+    const client = new ZenariApiClient();
 
     await expect(
       client.request("getProject", {
@@ -534,7 +549,7 @@ describe("generated web API client CSRF contract", () => {
         headers: { "Content-Type": "application/json" }
       })
     );
-    const client = new ZenArtApiClient();
+    const client = new ZenariApiClient();
 
     await client.request("getProject", {
       pathParams: { project_id: "project 001" }
@@ -602,9 +617,15 @@ const probePathParams: Record<string, string> = {
   chat_session_id: "chat-001",
   workspace_id: "workspace-001",
   task_id: "task-001",
+  batch_id: "batch-001",
+  child_id: "child-001",
   candidate_set_id: "candidate-set-001",
+  entry_id: "entry-001",
+  brand_kit_id: "brand-kit-001",
   package_id: "pkg-001",
-  export_id: "export-001"
+  export_id: "export-001",
+  team_id: "team-001",
+  invite_id: "invite-001"
 };
 
 const interpolateProbePath = (pathTemplate: string) =>

@@ -1,0 +1,201 @@
+{
+  "abuse": {
+    "account_hold": {
+      "evidence_refs": [
+        "replace_me:production/abuse-account-hold"
+      ],
+      "required_runtime_proof": "abuse-account-hold",
+      "required_tokens": [
+        "hold"
+      ],
+      "status": "template_only"
+    },
+    "audit_refs": [
+      "replace_me:audit://production/abuse-hold"
+    ],
+    "rate_limit": {
+      "evidence_refs": [
+        "replace_me:production/abuse-rate-limit"
+      ],
+      "required_runtime_proof": "abuse-rate-limit",
+      "required_tokens": [
+        "rate limit"
+      ],
+      "status": "template_only"
+    },
+    "rbac_audit": {
+      "evidence_refs": [
+        "replace_me:production/abuse-rbac-audit"
+      ],
+      "required_runtime_proof": "abuse-rbac-audit",
+      "required_tokens": [
+        "rbac",
+        "audit"
+      ],
+      "status": "template_only"
+    },
+    "release_gate_check_id": "production_abuse_throttle_hold",
+    "runtime_request_ids": [
+      "replace_me:production-abuse-request-id"
+    ],
+    "spend_cap_or_kill_switch": {
+      "evidence_refs": [
+        "replace_me:production/abuse-spend-cap-kill-switch"
+      ],
+      "required_runtime_proof": "abuse-spend-cap-kill-switch",
+      "required_tokens": [
+        "spend cap",
+        "kill switch"
+      ],
+      "status": "template_only"
+    }
+  },
+  "activation": {
+    "activation_gates": {
+      "evidence_refs": [
+        "replace_me:production/activation-gates"
+      ],
+      "required_runtime_proof": "activation-gates",
+      "required_tokens": [
+        "gate"
+      ],
+      "status": "template_only"
+    },
+    "audit_immutability": {
+      "evidence_refs": [
+        "replace_me:production/activation-audit-immutability"
+      ],
+      "required_runtime_proof": "activation-audit-immutability",
+      "required_tokens": [
+        "immutable"
+      ],
+      "status": "template_only"
+    },
+    "audit_refs": [
+      "replace_me:audit://production/activation-review"
+    ],
+    "high_risk_rbac": {
+      "evidence_refs": [
+        "replace_me:production/activation-high-risk-rbac"
+      ],
+      "required_runtime_proof": "activation-high-risk-rbac",
+      "required_tokens": [
+        "rbac"
+      ],
+      "status": "template_only"
+    },
+    "release_gate_check_id": "production_activation_review_audit",
+    "reviewer_rationale": {
+      "evidence_refs": [
+        "replace_me:production/activation-reviewer-rationale"
+      ],
+      "required_runtime_proof": "activation-reviewer-rationale",
+      "required_tokens": [
+        "rationale"
+      ],
+      "status": "template_only"
+    },
+    "runtime_request_ids": [
+      "replace_me:production-activation-request-id"
+    ],
+    "second_review": {
+      "evidence_refs": [
+        "replace_me:production/activation-second-review"
+      ],
+      "required_runtime_proof": "activation-second-review",
+      "required_tokens": [
+        "second review"
+      ],
+      "status": "template_only"
+    }
+  },
+  "allow_local_devport_evidence": false,
+  "authorization_header_persisted": false,
+  "cookie_persisted": false,
+  "dry_run": false,
+  "environment": "production",
+  "generated_at": "2026-06-28T17:48:17+00:00",
+  "kind": "production_governance_release_source",
+  "local_devport_debug": false,
+  "operator_note": "Replace every replace_me:* evidence ref with sanitized production runtime/audit evidence, set status fields to pass only after the runtime probe has actually run, and write the final source JSON to the required ops/evidence/production/*-source.json path.",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_sha": "0123456789abcdef0123456789abcdef01234567",
+  "schema_version": "stage1.production_governance_release_source.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "skill": {
+    "audit_refs": [
+      "replace_me:audit://production/skill-canary"
+    ],
+    "canary_metrics": {
+      "evidence_refs": [
+        "replace_me:production/skill-canary-metrics"
+      ],
+      "required_runtime_proof": "skill-canary-metrics",
+      "required_tokens": [
+        "canary"
+      ],
+      "status": "template_only"
+    },
+    "eval_suite": {
+      "evidence_refs": [
+        "replace_me:production/skill-eval-suite"
+      ],
+      "required_runtime_proof": "skill-eval-suite",
+      "required_tokens": [
+        "eval"
+      ],
+      "status": "template_only"
+    },
+    "owner_risk": {
+      "evidence_refs": [
+        "replace_me:production/skill-owner-risk"
+      ],
+      "required_runtime_proof": "skill-owner-risk",
+      "required_tokens": [
+        "owner",
+        "risk"
+      ],
+      "status": "template_only"
+    },
+    "release_gate_check_id": "production_skill_release_eval_canary",
+    "release_notes": {
+      "evidence_refs": [
+        "replace_me:production/skill-release-notes"
+      ],
+      "required_runtime_proof": "skill-release-notes",
+      "required_tokens": [
+        "release notes"
+      ],
+      "status": "template_only"
+    },
+    "rollback_target": {
+      "evidence_refs": [
+        "replace_me:production/skill-rollback-target"
+      ],
+      "required_runtime_proof": "skill-rollback-target",
+      "required_tokens": [
+        "rollback"
+      ],
+      "status": "template_only"
+    },
+    "runtime_request_ids": [
+      "replace_me:production-skill-canary-request-id"
+    ],
+    "safety_refs": {
+      "evidence_refs": [
+        "replace_me:production/skill-safety-refs"
+      ],
+      "required_runtime_proof": "skill-safety-refs",
+      "required_tokens": [
+        "safety"
+      ],
+      "status": "template_only"
+    }
+  },
+  "status": "template_only",
+  "template_only": true
+}

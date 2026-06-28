@@ -1,0 +1,108 @@
+{
+  "schema_version": "stage1.rate_limit_spend_cap.contract.v1",
+  "kind": "backend_rate_limit_spend_cap_contract",
+  "contract_version": 1,
+  "blueprint_items": ["BE-13", "BL-11", "PR-10", "OP-13"],
+  "backend_package": "backend/internal/ratelimit",
+  "config_source": "backend/internal/config/config.go",
+  "runtime_wiring": "backend/internal/server with app runtime MemoryStore/RedisStore selection",
+  "store_contract": {
+    "interface": "Store",
+    "local_store": "MemoryStore",
+    "production_store": "RedisStore",
+    "atomic_reservation": true,
+    "nonlocal_requires_redis": true
+  },
+  "covered_scopes": [
+    {
+      "scope": "user",
+      "action": "batch_generation.create",
+      "subject": "user_id",
+      "limit_env": "RATELIMIT_USER_REQUESTS_PER_MINUTE",
+      "denial_code": "rate_limit_exceeded",
+      "http_status": 429,
+      "audit_required": true
+    },
+    {
+      "scope": "tenant",
+      "action": "create_export",
+      "subject": "tenant_id",
+      "limit_env": "RATELIMIT_TENANT_REQUESTS_PER_MINUTE",
+      "denial_code": "rate_limit_exceeded",
+      "http_status": 429,
+      "audit_required": false
+    },
+    {
+      "scope": "provider",
+      "action": "provider.sandbox_test_call",
+      "subject": "provider_id",
+      "limit_env": "RATELIMIT_PROVIDER_REQUESTS_PER_MINUTE",
+      "spend_cap_env": "RATELIMIT_PROVIDER_DAILY_SPEND_CAP_CENTS",
+      "kill_switch_env": "RATELIMIT_PROVIDER_EMERGENCY_KILL_SWITCH",
+      "denial_codes": ["rate_limit_exceeded", "daily_spend_cap_exceeded", "provider_kill_switch_enabled"],
+      "http_status": 403,
+      "audit_required": true
+    },
+    {
+      "scope": "admin_action",
+      "action": "admin.billing.manual_credit",
+      "subject": "admin_user_id",
+      "limit_env": "RATELIMIT_ADMIN_ACTIONS_PER_MINUTE",
+      "denial_code": "rate_limit_exceeded",
+      "http_status": 429,
+      "audit_required": true
+    }
+  ],
+  "runtime_routes": [
+    "POST /api/v1/projects/{project_id}/batch-generations",
+    "POST /api/v1/packages/{package_id}/exports",
+    "POST /api/admin/v1/providers/registry/{provider_id}/health-probe",
+    "POST /api/admin/v1/providers/registry/{provider_id}/test-call",
+    "POST /api/admin/v1/billing/manual-credit",
+    "POST /api/admin/v1/billing/refund-note",
+    "POST /api/admin/v1/billing/subscription-sync",
+    "POST /api/admin/v1/billing/account-lock"
+  ],
+  "explainable_error_contract": {
+    "fields": ["scope", "action", "limit", "observed", "remaining", "cost_cents", "spend_cap_cents", "retry_after_seconds", "reset_at"],
+    "codes": ["rate_limit_exceeded", "daily_spend_cap_exceeded", "provider_kill_switch_enabled"],
+    "audit_event": "rate_limit.denied",
+    "audit_metadata_flags": {
+      "raw_prompt_included": false,
+      "raw_provider_payload": false,
+      "raw_secret_projection": false
+    }
+  },
+  "required_code_anchors": [
+    "type Enforcer",
+    "type Store",
+    "type RedisStore",
+    "type MemoryStore",
+    "type Decision",
+    "ScopeUser",
+    "ScopeTenant",
+    "ScopeProvider",
+    "ScopeAdminAction",
+    "rate_limit_exceeded",
+    "daily_spend_cap_exceeded",
+    "provider_kill_switch_enabled",
+    "AuditMetadata",
+    "PublicErrorDetails",
+    "withRateLimit",
+    "ContextWithRateLimiter"
+  ],
+  "non_launch_status": {
+    "local_contract": "pass",
+    "staging_evidence": "open",
+    "production_security_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_security_gate": false
+  },
+  "required_staging_evidence": [
+    "deployed Redis-backed rate limit denial for user and tenant requests",
+    "deployed provider spend cap and emergency kill switch denial",
+    "admin action denial audit event visible in immutable audit search",
+    "production security launch check covering rate limit and provider key containment"
+  ],
+  "release_note": "Local BE-13 rate-limit/spend-cap contract only; Redis-backed staging runtime and production security launch evidence remain required before launch."
+}

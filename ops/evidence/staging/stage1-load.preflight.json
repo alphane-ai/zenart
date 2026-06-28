@@ -1,0 +1,70 @@
+{
+  "blocked_checks": [],
+  "can_clear_load_slot": false,
+  "can_clear_stage1_staging_runtime_gate": false,
+  "canonical_pass_path": false,
+  "canonical_pass_report": "ops/evidence/staging/stage1-load.json",
+  "canonical_pass_results": "ops/evidence/staging/stage1-load.ndjson",
+  "environment": "staging",
+  "generated_at": "2026-06-24T10:09:04+00:00",
+  "input_readiness": {
+    "admin_url_ready": true,
+    "api_url_ready": true,
+    "canonical_write_enabled": true,
+    "concurrency_ready": true,
+    "release_sha_full_length": true,
+    "release_sha_provided": true,
+    "requests_per_mode_ready": true,
+    "web_url_ready": true
+  },
+  "kind": "stage1_load_preflight",
+  "next_command_contract": {
+    "command": "WRITE_CANONICAL_STAGE1_LOAD_EVIDENCE=1 LOAD_MODE=all scripts/load_smoke.sh",
+    "requires_concurrency_at_least": 4,
+    "requires_env": [
+      "BASE_URL",
+      "WEB_URL",
+      "ADMIN_URL",
+      "RELEASE_SHA"
+    ],
+    "requires_non_local_https_targets": true,
+    "requires_requests_per_mode_at_least": 20
+  },
+  "preflight_report": "ops/evidence/staging/stage1-load.preflight.json",
+  "release_gate_check_id": "staging_observability_backup_load",
+  "safe_projection_policy": {
+    "authorization_header_persisted": false,
+    "cookie_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "secret_material_persisted": false,
+    "signed_url_persisted": false
+  },
+  "schema_version": "stage1.load.preflight.v1",
+  "status": "ready",
+  "target_summaries": {
+    "admin": {
+      "host": "staging.zenari.ai",
+      "issues": [],
+      "ready": true,
+      "sanitized_url": "https://staging.zenari.ai/admin",
+      "scheme": "https"
+    },
+    "api": {
+      "host": "staging.zenari.ai",
+      "issues": [],
+      "ready": true,
+      "sanitized_url": "https://staging.zenari.ai",
+      "scheme": "https"
+    },
+    "web": {
+      "host": "staging.zenari.ai",
+      "issues": [],
+      "ready": true,
+      "sanitized_url": "https://staging.zenari.ai",
+      "scheme": "https"
+    }
+  }
+}

@@ -32,6 +32,7 @@ export type Skill = {
   status: "active" | "suspended";
   risk: RiskLevel;
   updatedAt: string;
+  source?: "api" | "fixture";
 };
 
 export type SkillReleaseState =
@@ -81,6 +82,44 @@ export type SkillVersion = {
   releaseEvidence: string;
   rollbackTarget: string;
   rollbackAuditRef: string;
+  evalSuiteId?: string | null;
+  releaseGate?: {
+    requiresEvalPass: boolean;
+    eligibleForCanary: boolean;
+    eligibleForActive: boolean;
+    blockingReason: string;
+    lastEvalResultId?: string | null;
+    lastEvalStatus?: "pass" | "fail" | "blocked" | null;
+    evalContractComplete: boolean;
+    criticalSafetyRegressions: number;
+  };
+  source?: "api" | "fixture";
+};
+
+export type EvalResult = {
+  resultId: string;
+  suiteId: string;
+  subjectType: string;
+  subjectId: string;
+  subjectVersion: string;
+  candidateStatusAfterEval: "draft" | "eligible_for_canary" | "eligible_for_active" | "blocked";
+  status: "pass" | "fail" | "blocked";
+  completedAt: string;
+  createdAt: string;
+  totalFixtures: number;
+  passedFixtures: number;
+  failedFixtures: number;
+  blockedFixtures: number;
+  criticalSafetyRegressions: number;
+  regressionPassRate: string;
+  traceComplete: boolean;
+  exportContractComplete: boolean;
+  qaFixtureCoverageComplete: boolean;
+  fixtureResultCount: number;
+  runnerSha256: string;
+  storageTable: string;
+  artifactRef: string;
+  source: "api" | "fixture";
 };
 
 export type SkillCanaryMetricName =
@@ -465,6 +504,182 @@ export type ProviderHealth = {
   releaseEvidence: string;
 };
 
+export type ProviderRegistryCapability = {
+  provider_id: string;
+  model_id: string;
+  endpoints: string[];
+  input_types: string[];
+  output_types: string[];
+  tool_types?: string[];
+  max_cost_units: number;
+  cost_currency?: string;
+  estimated_cost_cents?: number;
+  supports_batch: boolean;
+  max_batch_size?: number;
+  supports_seed?: boolean;
+  supports_cancel?: boolean;
+  supported_aspect_ratios?: string[];
+  supported_qualities?: string[];
+};
+
+export type ProviderRoutingPolicy = {
+  weight: number;
+  canary_percent: number;
+  max_concurrency: number;
+  fallback_provider_ids?: string[];
+  kill_switch: boolean;
+};
+
+export type ProviderHealthSnapshot = {
+  available: boolean;
+  latency_ms: number;
+  error_rate_percent: number;
+  last_checked_at: string;
+  message?: string;
+};
+
+export type ProviderRegistryEntry = {
+  provider_id: string;
+  display_name: string;
+  mode: "dev" | "sandbox" | "production";
+  status: "enabled" | "disabled" | "kill_switch";
+  secret_ref?: string;
+  capabilities: ProviderRegistryCapability[];
+  routing: ProviderRoutingPolicy;
+  health: ProviderHealthSnapshot;
+  metadata?: Record<string, string>;
+  secret_present: boolean;
+  updated_at: string;
+};
+
+export type ProviderRegistrySource = "api" | "fixture";
+
+export type ProviderStrategySelectionPolicy = "weighted" | "priority" | "canary" | "failover";
+
+export type ProviderStrategyGroupMember = {
+  provider_id: string;
+  weight: number;
+  canary_percent: number;
+  max_concurrency: number;
+  fallback_rank: number;
+  enabled: boolean;
+};
+
+export type ProviderStrategyGroup = {
+  group_id: string;
+  display_name: string;
+  tool_type: string;
+  status: "enabled" | "disabled" | "kill_switch";
+  selection_policy: ProviderStrategySelectionPolicy;
+  fallback_provider_ids?: string[];
+  kill_switch: boolean;
+  members: ProviderStrategyGroupMember[];
+  metadata?: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Team = {
+  id: string;
+  tenant_id: string;
+  name: string;
+  plan_id: string;
+  seat_limit: number;
+  created_at: string;
+};
+
+export type TeamInvite = {
+  id: string;
+  team_id: string;
+  tenant_id: string;
+  email: string;
+  role: "admin" | "member";
+  idempotency_key: string;
+  invited_by: string;
+  expires_at: string;
+  created_at: string;
+};
+
+export type AdminTeamMemberRemoveResult = {
+  team_id: string;
+  tenant_id: string;
+  member_id: string;
+  removed_by: string;
+  removed: boolean;
+};
+
+export type TeamSeatUsage = {
+  team_id: string;
+  tenant_id: string;
+  plan_id: string;
+  seat_limit: number;
+  active_seats: number;
+  invited_seats: number;
+  billable_seats: number;
+  available_seats: number;
+};
+
+export type TeamBillingLink = {
+  tenant_id: string;
+  team_id: string;
+  provider: "stripe" | "mock";
+  provider_subscription_id: string;
+  provider_subscription_item_id: string;
+  price_id?: string;
+  proration_behavior: "create_prorations" | "none" | "always_invoice";
+  status: "active" | "paused" | "removed";
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TeamSeatBillingSync = {
+  id: string;
+  tenant_id: string;
+  team_id: string;
+  provider: string;
+  provider_subscription_id?: string;
+  provider_subscription_item_id?: string;
+  price_id?: string;
+  requested_quantity: number;
+  synced_quantity: number;
+  proration_behavior: "create_prorations" | "none" | "always_invoice";
+  status: "synced" | "skipped" | "failed";
+  reason?: string;
+  operation: string;
+  idempotency_key: string;
+  created_at: string;
+};
+
+export type TeamBillingLinkSource = "api" | "fixture";
+
+export type AdminBillingOperationKind = "manual_credit" | "refund_note" | "sync_subscription" | "account_lock";
+
+export type AdminBillingOperationStatus = "pending" | "recorded" | "succeeded" | "failed";
+
+export type AdminBillingOperation = {
+  id: string;
+  tenant_id: string;
+  actor_id: string;
+  target_user_id: string;
+  operation: AdminBillingOperationKind;
+  idempotency_key: string;
+  status: AdminBillingOperationStatus;
+  units?: number;
+  bucket_id?: string;
+  subscription_id?: string;
+  provider?: string;
+  provider_ref?: string;
+  rationale: string;
+  note?: string;
+  locked?: boolean;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdminBillingOpsSource = "fixture";
+
 export type ProductionProviderModeCoverage = {
   area:
     | "provider_launch_mode"
@@ -594,6 +809,8 @@ export type BackendMetricsRuntimeProbe = {
   evidenceRefs: string[];
 };
 
+export type PrivateBetaAggregateGateStatus = "blocked_by_other_staging_runtime_items" | "go";
+
 export type BackendMetricsRuntimeEvidence = {
   id: string;
   environment: "staging";
@@ -604,7 +821,7 @@ export type BackendMetricsRuntimeEvidence = {
   releaseGateCheckId: "staging_observability_backup_load";
   blueprintChecklistItem: "staging backend/worker/crawler metrics runtime evidence 通过。";
   canClearChecklistItem: boolean;
-  aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items";
+  aggregatePrivateBetaGateStatus: PrivateBetaAggregateGateStatus;
   probes: BackendMetricsRuntimeProbe[];
   remainingBlockers: string[];
 };
@@ -636,7 +853,7 @@ export type ObservabilityTelemetryRuntimeEvidence = {
     | "staging OpenTelemetry traces runtime evidence 通过。"
   >;
   canClearChecklistItems: boolean;
-  aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items";
+  aggregatePrivateBetaGateStatus: PrivateBetaAggregateGateStatus;
   controls: ObservabilityTelemetryRuntimeControl[];
   remainingBlockers: string[];
 };
@@ -727,6 +944,43 @@ export type ReleaseBlocker = {
   evidenceRefs: string[];
 };
 
+export type OperationsIncidentRunbookAction = {
+  actionId: string;
+  action:
+    | "acknowledge"
+    | "mitigate"
+    | "escalate"
+    | "rollback"
+    | "maintenance_banner"
+    | "support_update"
+    | "resolve";
+  sourceSurface: "incident_log" | "alert_route" | "release_blocker" | "maintenance_banner";
+  requiredRole: AdminRole;
+  status: "ready_for_review" | "blocked_until_evidence" | "blocked_by_do_not_launch";
+  operatorBoundary: string;
+  requiredEvidenceRefs: string[];
+  auditRef: string;
+};
+
+export type OperationsIncidentRunbookContract = {
+  schema: "stage1.operations-incident-runbook-local-contract.v1";
+  contractId: "stage1.operations-incident-runbook-local-contract";
+  routeMarker: "stage1.operations-incident-runbook-local-contract";
+  blueprintItems: Array<"AD-11" | "OP-8" | "OP-10" | "OP-11" | "VF-6" | "VF-7">;
+  adminRoute: "admin/app/operations/page.tsx";
+  evidenceSource: "admin fixture local contract";
+  requiredIncidentFields: string[];
+  requiredAlertRouteFields: string[];
+  requiredRollbackEvidenceRefs: string[];
+  preservedDoNotLaunchConditions: string[];
+  blockedGateChecks: string[];
+  actionMatrix: OperationsIncidentRunbookAction[];
+  canClearStagingGate: false;
+  canClearProductionGate: false;
+  canCloseDoNotLaunch: false;
+  manualGoControlsEnabled: false;
+};
+
 export type QueueHealth = {
   id: string;
   name: string;
@@ -742,6 +996,72 @@ export type QueueHealth = {
   ownerRole: "support_operator" | "admin_operator" | "admin_reviewer" | "admin_superadmin";
   linkedIncident: string;
   auditRef: string;
+};
+
+export type Stage1BatchQueueRuntime = {
+  id: string;
+  batchId: string;
+  tenantId: string;
+  projectId: string;
+  workspaceId: string;
+  status: "queued" | "running" | "partial_succeeded" | "succeeded" | "failed" | "cancelled" | "blocked";
+  requestedCount: number;
+  queued: number;
+  running: number;
+  succeeded: number;
+  failed: number;
+  cancelled: number;
+  blocked: number;
+  retryable: number;
+  workerId: string;
+  claimTimeoutSeconds: number;
+  oldestChildAgeMinutes: number;
+  providerId: string;
+  modelId: string;
+  toolType: string;
+  providerStrategyGroupId: string;
+  providerSelectionPolicy: ProviderStrategySelectionPolicy;
+  providerConcurrency: string;
+  providerModelConcurrency: string;
+  claimLeasePolicy: string;
+  drainPolicy: string;
+  quotaPolicy: string;
+  deadLetterPolicy: string;
+  idempotencyScope: string;
+  nextOperatorAction: string;
+  auditRef: string;
+  evidenceRefs: string[];
+};
+
+export type Stage1BatchChildTask = {
+  id: string;
+  batchId: string;
+  tenantId: string;
+  status: "queued" | "running" | "succeeded" | "failed" | "cancelled" | "blocked";
+  providerId: string;
+  modelId: string;
+  toolType: string;
+  retryCount: number;
+  maxRetries: number;
+  workerId: string;
+  claimAttempt: number;
+  claimExpiresAt: string;
+  fanoutStage: string;
+  failureCode: string;
+  reviewReason: string;
+  quotaEstimateUnits: number;
+  quotaCommittedUnits: number;
+  quotaRefundedUnits: number;
+  retryState: "not_retryable" | "retry_available" | "retry_exhausted" | "not_applicable";
+  deadLetterState: "not_dead_lettered" | "dead_lettered";
+  resultAssetId: string;
+  canvasObjectId: string;
+  visibleTraceRef: string;
+  providerUsageRef: string;
+  idempotencyKey: string;
+  operatorAction: string;
+  auditRef: string;
+  evidenceRefs: string[];
 };
 
 export type ExportJob = {
@@ -763,6 +1083,21 @@ export type ExportJob = {
   closureEvidenceRefs: string[];
   auditRef: string;
   operatorRunbook: string;
+  source?: "api" | "fixture";
+  projectId?: string;
+  taskId?: string;
+  format?: string;
+  downloadEnabled?: boolean;
+  signedUrlPresent?: boolean;
+  downloadExpiresAt?: string;
+  retentionUntil?: string;
+  blockedReasons?: string[];
+  finalExportAllowed?: boolean;
+  objectMetadataId?: string;
+  manifestPresent?: boolean;
+  qaReportPresent?: boolean;
+  provenancePresent?: boolean;
+  traceId?: string;
 };
 
 export type ExportRegenerationRuntimeDecision = {
@@ -987,7 +1322,7 @@ export type StagingSupportRetryAbuseEvidence = {
   gateImpact: {
     checklistItem: string;
     canClearCheckLevelItem: boolean;
-    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items";
+    aggregatePrivateBetaGateStatus: PrivateBetaAggregateGateStatus;
     remainingBlockers: string[];
   };
 };
@@ -1018,7 +1353,7 @@ export type StagingLegalSupportVisibilityEvidence = {
   gateImpact: {
     checklistItems: string[];
     canClearCheckLevelItem: boolean;
-    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items";
+    aggregatePrivateBetaGateStatus: PrivateBetaAggregateGateStatus;
     remainingBlockers: string[];
   };
 };
@@ -1054,7 +1389,7 @@ export type StagingAuthRbacTenantAuditEvidence = {
   gateImpact: {
     checklistItem: string;
     canClearCheckLevelItem: boolean;
-    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items";
+    aggregatePrivateBetaGateStatus: PrivateBetaAggregateGateStatus;
     remainingBlockers: string[];
   };
 };
@@ -1093,7 +1428,7 @@ export type StagingEvalQaSafetyEvidence = {
   gateImpact: {
     checklistItem: string;
     canClearCheckLevelItem: boolean;
-    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items";
+    aggregatePrivateBetaGateStatus: PrivateBetaAggregateGateStatus;
     remainingBlockers: string[];
   };
 };
@@ -1129,7 +1464,7 @@ export type StagingQuotaRateLimitSpendCapEvidence = {
   gateImpact: {
     checklistItem: string;
     canClearCheckLevelItem: boolean;
-    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items";
+    aggregatePrivateBetaGateStatus: PrivateBetaAggregateGateStatus;
     remainingBlockers: string[];
   };
 };
@@ -1313,7 +1648,7 @@ export type ProductionBackupRollbackSplitEvidenceStatus = {
   splitId: "backup_restore" | "rollback_incident_post_deploy_smoke";
   path: string;
   exists: boolean;
-  status: "missing" | "invalid" | "passed";
+  status: "missing" | "invalid" | "passed" | "pass";
   passed: boolean;
   environment: "production" | null;
   releaseGateCheckId: "production_backup_rollback_incident" | null;
@@ -1334,7 +1669,7 @@ export type ProductionBackupRollbackSplitPreflightEvidence = {
   id: string;
   evidencePath: "ops/evidence/production/backup-rollback-split.blocked.json";
   environment: "production";
-  status: "blocked_by_upstream_gates";
+  status: "blocked_by_upstream_gates" | "exact_split_ready_blocked_by_other_production_runtime_items";
   releaseGateCheckId: "production_backup_rollback_incident";
   kind: "production_backup_rollback_split_preflight";
   releaseShaStatus: "missing_or_not_full_sha" | "bound";
@@ -1346,13 +1681,11 @@ export type ProductionBackupRollbackSplitPreflightEvidence = {
   requiredUpstreamGates: string[];
   canClearReleaseGateCheck: boolean;
   canClearCheckLevelItems: boolean;
-  aggregateProductionGateStatus: "blocked_by_upstream_or_missing_exact_split_evidence";
-  preservedReleaseGateCheckId: "production_backup_rollback_incident";
-  preservedDoNotLaunchConditionIds: [
-    "backup_restore_rollback_smoke_missing",
-    "production_deploy_rollback_smoke_missing",
-    "ci_staging_gates_not_passed"
-  ];
+  aggregateProductionGateStatus:
+    | "blocked_by_upstream_or_missing_exact_split_evidence"
+    | "blocked_by_other_production_runtime_items";
+  preservedReleaseGateCheckId: "production_backup_rollback_incident" | null;
+  preservedDoNotLaunchConditionIds: string[];
   runtimeInputRequirements: Array<{
     split: "backup_restore" | "rollback_incident_post_deploy_smoke";
     path: string;
@@ -1426,11 +1759,14 @@ export type SupportTicket = {
   priority: "low" | "medium" | "high" | "critical";
   userId: string;
   projectId: string;
+  batchId: string;
   taskId: string;
   traceId: string;
   assetId: string;
   exportId: string;
+  quotaBucketId: string;
   quotaTransactionId: string;
+  billingReferenceId: string;
   subject: string;
   nextAction: string;
   auditRef: string;
@@ -1484,6 +1820,57 @@ export type SupportUser = {
   lookupActions: SupportLookupAction[];
 };
 
+export type SupportAdminDeletionRequest = {
+  requestId: string;
+  requestType:
+    | "account_deletion"
+    | "project_deletion"
+    | "asset_deletion"
+    | "export_deletion"
+    | "billing_data_erasure_review";
+  subjectUserId: string;
+  tenantId: string;
+  supportTicketId: string;
+  status:
+    | "blocked_pending_evidence"
+    | "ready_for_second_review"
+    | "retention_hold"
+    | "closed_no_action";
+  requiredRole: AdminRole;
+  secondReviewRequired: boolean;
+  secondReviewStatus: "required" | "completed" | "not_required" | "blocked";
+  abuseHoldRef: string;
+  linkedTraceIds: string[];
+  linkedAssetIds: string[];
+  linkedExportIds: string[];
+  billingReferenceIds: string[];
+  retainedEvidenceRefs: string[];
+  deletionPlan: string;
+  retentionBoundary: string;
+  blockedReason: string;
+  userVisibleMessage: string;
+  auditRef: string;
+};
+
+export type SupportAdminDeletionGovernanceContract = {
+  schema: "stage1.support-admin-deletion-governance-local-contract.v1";
+  contractId: "stage1.support-admin-deletion-governance-local-contract";
+  routeMarker: "stage1.support-admin-deletion-governance-local-contract";
+  blueprintItems: Array<"AD-12" | "BE-12" | "OP-12" | "OP-13" | "VF-5" | "VF-7">;
+  adminRoute: "admin/app/support/page.tsx";
+  evidenceSource: "admin fixture local contract";
+  requiredDeletionFields: string[];
+  requiredLinkedEvidence: string[];
+  deniedProjectionFields: string[];
+  preservedDoNotLaunchConditions: string[];
+  blockedGateChecks: string[];
+  requests: SupportAdminDeletionRequest[];
+  canClearStagingGate: false;
+  canClearProductionGate: false;
+  canCloseDoNotLaunch: false;
+  mutationControlsEnabled: false;
+};
+
 export type QuotaAccount = {
   userId: string;
   balance: number;
@@ -1533,6 +1920,7 @@ export type ProductionPaidBillingLifecycleEvidence = {
 export type RiskyExport = {
   id: string;
   exportId: string;
+  safetyDecisionId?: string;
   rule: string;
   enforcementPoint: "brief" | "provider_request" | "provider_response" | "qa" | "export";
   severity: RiskLevel;
@@ -1541,6 +1929,12 @@ export type RiskyExport = {
   auditRequired: boolean;
   reviewRationale: string;
   secondReviewRequired: boolean;
+  reviewStatus?: "pending" | "approved" | "rejected" | "escalated" | "blocked";
+  reviewerId?: string;
+  auditRef?: string;
+  requiredEvidenceRefs?: string[];
+  userVisibleOutcome?: string;
+  source?: "api" | "fixture";
 };
 
 export type AbuseEvent = {
@@ -1658,6 +2052,22 @@ export type AuditEvent = {
   immutable: true;
   evidenceRefs: string[];
   secondReviewStatus: "not_required" | "required" | "completed" | "blocked";
+};
+
+export type AuditSearchExportManifest = {
+  schema: "stage1.audit-search-export-local-contract.v1";
+  route: "/audit";
+  exportedAt: string;
+  resultCount: number;
+  highRiskCount: number;
+  secondReviewOpenCount: number;
+  immutableCount: number;
+  fieldAllowlist: string[];
+  deniedFields: string[];
+  filterPresets: string[];
+  canClearStagingGate: false;
+  canClearProductionGate: false;
+  canCloseDoNotLaunch: false;
 };
 
 export type AdminReviewDecision = {
@@ -2005,6 +2415,1632 @@ export type ReleaseEvidence = {
   reviewerRationale: string;
   rollbackTarget: string;
   auditRef: string;
+};
+
+export type Stage1ReleaseReadinessComponent = {
+  componentId: string;
+  environment: "staging" | "production" | "unknown";
+  status: string;
+  exactEvidence: boolean;
+  localOnly: boolean;
+  dryRun: boolean;
+  blockersPreserved?: boolean;
+  secretLeakDetected: boolean;
+  rawPayloadPersisted: boolean;
+  evidenceRefs: string[];
+  checkLevelPassed?: boolean;
+  checkLevelBlockersPreserved?: boolean;
+  checkLevelEvidenceRefs?: string[];
+  resultsRef?: string | null;
+  proofs: string[];
+  blockers: string[];
+  validatorCommands: string[];
+};
+
+export type Stage1ReleaseGateFixture = {
+  gateId: string;
+  path: string;
+  status: string;
+  blockedByChecks: string[];
+  activeDoNotLaunchConditions: string[];
+  blockers: string[];
+};
+
+export type Stage1CIEvidence = {
+  path: string;
+  status: string;
+  blockers: string[];
+};
+
+export type Stage1ReleaseBundlePreflight = {
+  path: string;
+  exists: boolean;
+  status: string;
+  decision: string;
+  stage1StagingRuntimeVerified: boolean;
+  stage1QuotaReplayVerified: boolean;
+  stage1LoadVerified: boolean;
+  objectRetentionCleanupVerified: boolean;
+  legalSupportVisibilityVerified: boolean;
+  ciClosureArtifactsReady: boolean;
+  productionBackupRollbackSplitReady: boolean;
+  releaseMetadataPreflightStatus: string;
+  releaseMetadataPreflightComplete: boolean;
+  releaseMetadataMissingSlots: string[];
+  releaseMetadataUnverifiedSlots: string[];
+  releaseMetadataBlockingReasons: string[];
+  blockingReasonCount?: number;
+  stage1StagingRuntimeBlockingReasons: string[];
+  stage1QuotaReplayBlockingReasons: string[];
+  stage1LoadBlockingReasons: string[];
+  missingSlots: string[];
+  unverifiedSlots: string[];
+  ciClosureArtifactBlockingReasons: string[];
+  productionBackupRollbackSplitBlockingReasons: string[];
+  blockingReasons: string[];
+  blockers: string[];
+};
+
+export type Stage1AggregateResultRow = {
+  componentId: string;
+  environment: "staging" | "production" | "unknown";
+  status: string;
+  exactEvidence: boolean;
+  secretLeakDetected: boolean;
+  rawPayloadPersisted: boolean;
+  blockersPreserved?: boolean;
+  checkLevelPassed?: boolean;
+  checkLevelBlockersPreserved?: boolean;
+  checkLevelEvidenceRefs?: string[];
+  blockers: string[];
+};
+
+export type Stage1AggregateGateCheck = {
+  checkId: string;
+  passed: boolean;
+  detail: string;
+};
+
+export type Stage1AggregateGateSafety = {
+  strictGateReady: boolean;
+  verdict: "go" | "blocked";
+  strictGateBlockers: string[];
+  checks: Stage1AggregateGateCheck[];
+};
+
+export type Stage1MissingEvidenceRef = {
+  componentId: string;
+  refType: "evidence" | "results" | "unknown";
+  path: string;
+  source: "aggregate" | "component";
+  blocker: string;
+};
+
+export type Stage1AggregateEvidence = {
+  schemaVersion: string;
+  kind: string;
+  environment: "staging" | "production" | "unknown";
+  sourcePath: string;
+  resultsPath: string;
+  evidencePresent: boolean;
+  resultsPresent: boolean;
+  status: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  allComponentsPassed: boolean;
+  allReleaseGatesGo?: boolean;
+  blockers: string[];
+  doNotLaunchConditions: string[];
+  missingEvidenceRefs: Stage1MissingEvidenceRef[];
+  components: Stage1ReleaseReadinessComponent[];
+  resultRows: Stage1AggregateResultRow[];
+  releaseGateFixtures: Stage1ReleaseGateFixture[];
+  ciEvidence: Stage1CIEvidence[];
+  releaseBundlePreflight?: Stage1ReleaseBundlePreflight;
+  runtimeInputReadiness: Record<string, boolean>;
+  validatorCommands: string[];
+  gateSafety: Stage1AggregateGateSafety;
+  safetyPolicy: {
+    secretMaterialPersisted: boolean;
+    rawPromptPersisted: boolean;
+    rawProviderPayloadPersisted: boolean;
+    rawStripePayloadPersisted: boolean;
+    rawSupportBodyProjected: boolean;
+    signedUrlPersisted: boolean;
+    authorizationHeaderPersisted: boolean;
+    cookiePersisted: boolean;
+  };
+};
+
+export type Stage1ExternalResourceGroup = {
+  resourceId: string;
+  lane: "provider" | "staging" | "ci" | "production" | "unknown";
+  status: "ready" | "provided_unverified" | "blocked" | "missing" | "unknown";
+  requiredResource: string;
+  providedSignal: string;
+  validationSignal: string;
+  currentBlocker: string;
+  gateDependency: string;
+  evidenceRefs: string[];
+  validator: string;
+  nextAction: string;
+  operatorAsk: string;
+  sourceProbeRequirements: Stage1ProductionSourceProbeRequirement[];
+};
+
+export type Stage1ProductionSourceProbeRequirement = {
+  probeId: string;
+  path: string;
+  schemaVersion: string;
+  status: "present" | "missing" | "unknown";
+  sourceProbeExists: boolean;
+  reportedByProductionAggregate: boolean;
+  currentBlocker: string;
+  generator: string;
+  strictValidator: string;
+};
+
+export type Stage1NonClearingRefreshBlockedEvidenceDetail = {
+  stepId: string;
+  source: string;
+  detail: string;
+};
+
+export type Stage1ExternalResourceNonClearingRefreshSummary = {
+  path: string;
+  status: string;
+  stepSummary: Stage1ProductionNonClearingRefreshStepSummary;
+  stage1Progress: {
+    completed: number;
+    total: number;
+    completionPercent: number;
+  };
+  productionInputProgress: {
+    configured: number;
+    total: number;
+    completionPercent: number;
+  };
+  blockedEvidenceDetails: Stage1NonClearingRefreshBlockedEvidenceDetail[];
+};
+
+export type Stage1ExternalResourceHandoff = {
+  status: string;
+  currentLoopBreaker: string;
+  readyResourceIds: string[];
+  missingResourceIds: string[];
+  blockedResourceIds: string[];
+  missingVariables: string[];
+  resourceClasses: string[];
+  productionSourceProbeRequirements: Stage1ProductionSourceProbeRequirement[];
+  commandsAfterInputs: string[];
+  inputPacketRef: string;
+  operatorBriefRef: string;
+  missingInputChecklistRef: string;
+  sourceProbeRunbookRef: string;
+  resourceStatus: Record<string, string>;
+  nonClearingPreflight: boolean;
+  nonClearingRefreshSummary: Stage1ExternalResourceNonClearingRefreshSummary;
+};
+
+export type Stage1ExternalResourceReadiness = {
+  schemaVersion: string;
+  kind: string;
+  sourcePath: string;
+  evidencePresent: boolean;
+  status: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  total: number;
+  ready: number;
+  providedUnverified: number;
+  blocked: number;
+  missing: number;
+  readyPercent: number;
+  blockers: string[];
+  operatorHandoff: Stage1ExternalResourceHandoff;
+  nonClearingRefreshSummary: Stage1ExternalResourceNonClearingRefreshSummary;
+  productionSourceProbeRequirements: Stage1ProductionSourceProbeRequirement[];
+  resourceGroups: Stage1ExternalResourceGroup[];
+};
+
+export type Stage1AzureOriginProbeRow = {
+  status: string;
+  errorSummary: string;
+};
+
+export type Stage1AzureOriginTcpProbe = Stage1AzureOriginProbeRow & {
+  host: string;
+  port: number;
+};
+
+export type Stage1AzureOriginHttpProbe = Stage1AzureOriginProbeRow & {
+  url: string;
+  method: string;
+  httpStatus: number | null;
+  finalUrlHost: string;
+  bodySamplePresent: boolean;
+  networkPhase: string;
+  failureCategory: string;
+  responseBytes: number;
+};
+
+export type Stage1AzureOriginDnsProbe = Stage1AzureOriginProbeRow & {
+  host: string;
+  addresses: string[];
+};
+
+export type Stage1AzureOriginSshPreflight = Stage1AzureOriginProbeRow & {
+  targetUser: string;
+  targetHost: string;
+  exitCode: number;
+  authMethod: string;
+  reason: string;
+  passwordAttempted: boolean;
+  hardTimeoutSeconds: number;
+};
+
+export type Stage1AzureCliPreflight = Stage1AzureOriginProbeRow & {
+  reason: string;
+  subscriptionId: string;
+  resourceGroup: string;
+  vmName: string;
+  azureIp: string;
+  exitCode: number;
+};
+
+export type Stage1AzureTransportDiagnosis = Stage1AzureOriginProbeRow & {
+  lane: string;
+  nextAction: string;
+  operatorSummary: string;
+  blockedReasons: string[];
+  tcpEntryPortsReachable: boolean;
+  tcp22Reachable: boolean;
+  tcp80Reachable: boolean;
+  tcp443Reachable: boolean;
+  sshTransportPhase: string;
+  sshBannerReceived: boolean;
+  sshAuthReached: boolean;
+  sshPasswordKeyRepairViable: boolean;
+  httpRequestSent: boolean;
+  httpResponseStarted: boolean;
+  httpZeroBytesAfterRequest: boolean;
+  tlsServerhelloTimeout: boolean;
+  azurePortalRunCommandRequired: boolean;
+};
+
+export type Stage1AzureOriginReadiness = {
+  schemaVersion: string;
+  kind: string;
+  sourcePath: string;
+  evidencePresent: boolean;
+  status: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  azureIp: string;
+  stagingWebUrl: string;
+  stagingHost: string;
+  nonClearingOriginProbe: boolean;
+  canonicalPassPath: boolean;
+  canClearStage1StagingRuntimeGate: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+  tcpPorts: Stage1AzureOriginTcpProbe[];
+  stagingDns: Stage1AzureOriginDnsProbe;
+  httpProbes: Stage1AzureOriginHttpProbe[];
+  sshKeyPreflight: Stage1AzureOriginSshPreflight;
+  azureCliPreflight: Stage1AzureCliPreflight;
+  transportDiagnosis: Stage1AzureTransportDiagnosis;
+  blockedChecks: string[];
+  sshHardTimeoutSeconds: number;
+  localRepairPasswordEnvKey: string;
+  localRepairPasswordConfigured: boolean;
+  localRepairPasswordRequired: boolean;
+  originRepairCommands: string[];
+  originDiagnosticsCommand: string;
+  originRepairCommand: string;
+  operatorNextActions: string[];
+};
+
+export type Stage1EvidenceClosureQueueRow = {
+  priority: string;
+  lane: "staging" | "ci" | "production" | "unknown";
+  rowStatus: "open" | "passed" | "unknown";
+  gate: string;
+  requiredEvidence: string;
+  validator: string;
+  generator: string;
+  currentBlocker: string;
+  dnlImpact: string;
+};
+
+export type Stage1EvidenceClosureQueueParallelBlocker = {
+  blockerId: string;
+  lane: string;
+  status: string;
+  releaseGateImpact: string;
+  sourceRefs: string[];
+  currentBlocker: string;
+  nextAction: string;
+  operatorCommand: string;
+  transportLane: string;
+  transportNextAction: string;
+  runCommandNextRepairLane: string;
+  runCommandInputPresent: boolean;
+  canClearStage1StagingRuntimeGate: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+};
+
+export type Stage1EvidenceClosureQueueOperatorActionPacketItem = {
+  order: number;
+  itemId: string;
+  owner: string;
+  status: string;
+  requiresExternalInput: boolean;
+  requiredReturnArtifact: string;
+  agentCommandAfterReturn: string;
+  validationAfterReturn: string;
+  evidenceRef: string;
+  gateImpact: string;
+  canClearStage1StagingRuntimeGate: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+};
+
+export type Stage1EvidenceClosureQueueOperatorActionPacketSummary = {
+  sourcePath: string;
+  sourceSchemaVersion: string;
+  status: string;
+  releaseGateDecision: string;
+  canonicalPassPath: boolean;
+  total: number;
+  blocked: number;
+  requiresExternalInput: number;
+  ownerCounts: Record<string, number>;
+  gateImpactCounts: Record<string, number>;
+  sourceGateFlagsAllFalse: boolean;
+  items: Stage1EvidenceClosureQueueOperatorActionPacketItem[];
+  canClearStage1StagingRuntimeGate: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+};
+
+export type Stage1EvidenceClosureQueue = {
+  schemaVersion: string;
+  kind: string;
+  sourcePath: string;
+  evidencePresent: boolean;
+  status: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  total: number;
+  open: number;
+  completed: number;
+  completionPercent: number;
+  p0: number;
+  p1: number;
+  p2: number;
+  staging: number;
+  ci: number;
+  production: number;
+  openGates: string[];
+  queue: Stage1EvidenceClosureQueueRow[];
+  parallelOperationalBlockers: Stage1EvidenceClosureQueueParallelBlocker[];
+  parallelOperationalBlockerCount: number;
+  operatorActionPacketSummary: Stage1EvidenceClosureQueueOperatorActionPacketSummary;
+  operatorActionPacketItems: number;
+};
+
+export type Stage1ProductionProofInputCoverageGroup = {
+  groupId: string;
+  requiredTotal: number;
+  requiredConfigured: number;
+  requiredMissing: number;
+  requiredInvalid: number;
+};
+
+export type Stage1ProductionProofInputCoverage = {
+  schemaVersion: string;
+  valueRedaction: "variable_names_only" | string;
+  requiredTotal: number;
+  requiredConfigured: number;
+  requiredMissing: number;
+  requiredInvalid: number;
+  requiredCompletionPercent: number;
+  blockingInputCount: number;
+  firstMissingOrInvalidInputs: string[];
+  groups: Stage1ProductionProofInputCoverageGroup[];
+};
+
+export type Stage1ProductionBlockerAuditClosureSummary = {
+  status: string;
+  releaseGateDecision: string;
+  path: string;
+  total: number;
+  completed: number;
+  open: number;
+  completionPercent: number;
+  openGates: string[];
+};
+
+export type Stage1ProductionBlockerAuditDnsReadiness = {
+  status: string;
+  releaseGateDecision: string;
+  path: string;
+  productionWebUrl: string;
+  publicDnsAStatus: string;
+  publicDnsAaaaStatus: string;
+  systemResolverStatus: string;
+  firstBlocker: string;
+};
+
+export type Stage1ProductionDnsProbeRow = {
+  probeId: string;
+  status: string;
+  host: string;
+  rrtype: string;
+  addresses: string[];
+  records: string[];
+  httpStatus: number | null;
+  url: string;
+  error: string;
+};
+
+export type Stage1ProductionDnsCutoverCloudflareZone = {
+  zoneIdConfigured: boolean;
+  apiTokenConfigured: boolean;
+  proxied: boolean;
+};
+
+export type Stage1ProductionDnsCutoverTarget = {
+  status: string;
+  targetKind: string;
+  targetHint: string;
+  stagingControlCandidate: string;
+};
+
+export type Stage1ProductionDnsEvidenceOutputs = {
+  cutoverPlan: string;
+  dnsReadiness: string;
+  legalSupportOperatorPacket: string;
+  dnsRepairPacket?: string;
+};
+
+export type Stage1ProductionDnsRepairPacketSummary = {
+  dnsBlockerCount: number;
+  requiredInputCount: number;
+  productionSystemResolverStatus: string;
+  stagingControlResolverStatus: string;
+  productionAStatus: string;
+  productionAaaaStatus: string;
+  stagingAStatus: string;
+  cloudflareZoneIdConfigured: boolean;
+  cloudflareApiTokenConfigured: boolean;
+  productionDnsTargetStatus: string;
+  sourceRunbookStepId: string;
+  sourceRunbookBlockingInputCount: number;
+};
+
+export type Stage1ProductionDnsRecommendedRecord = {
+  host: string;
+  type: string;
+  name: string;
+  content: string;
+  proxied: boolean;
+  ttl: string;
+  requiredWhen: string;
+  currentStatus: string;
+};
+
+export type Stage1ProductionDnsPrivateEnvTemplate = {
+  pathPlaceholder: string;
+  gitignoreRequired: boolean;
+  blankValuesOnly: boolean;
+  allowedVariableNames: string[];
+  templateLines: string[];
+};
+
+export type Stage1ProductionDnsOperatorCommand = {
+  stepId: string;
+  command: string;
+  sideEffect: string;
+  mayWriteDns: boolean;
+  requiresReview: boolean;
+};
+
+export type Stage1ProductionDnsRepairPacket = {
+  sourcePath: string;
+  evidencePresent: boolean;
+  schemaVersion: string;
+  status: string;
+  releaseGateDecision: string;
+  nonClearingRepairPacket: boolean;
+  canApplyDnsChanges: boolean;
+  summary: Stage1ProductionDnsRepairPacketSummary;
+  recommendedRecords: Stage1ProductionDnsRecommendedRecord[];
+  cloudflareUiSteps: string[];
+  cloudflareApiPlan: string[];
+  privateEnvTemplate: Stage1ProductionDnsPrivateEnvTemplate;
+  verificationCommands: string[];
+  requiredInputs: string[];
+  blockedChecks: string[];
+  commandsAfterInputs: string[];
+  operatorCommandPacket: Stage1ProductionDnsOperatorCommand[];
+  operatorNextActions: string[];
+};
+
+export type Stage1ProductionDnsDetail = {
+  schemaVersion: string;
+  kind: string;
+  readinessPath: string;
+  cutoverPlanPath: string;
+  readinessPresent: boolean;
+  cutoverPlanPresent: boolean;
+  status: string;
+  cutoverStatus: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  productionWebUrl: string;
+  stagingControlUrl: string;
+  nonClearingCutoverPlan: boolean;
+  canonicalPassPath: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canClearProductionLegalSupportPolicy: boolean;
+  canCloseDoNotLaunch: boolean;
+  dnsSplitBrainObserved: boolean;
+  cloudflareZone: Stage1ProductionDnsCutoverCloudflareZone;
+  target: Stage1ProductionDnsCutoverTarget;
+  requiredHosts: string[];
+  blockedChecks: string[];
+  operatorNextActions: string[];
+  currentRecords: Stage1ProductionDnsProbeRow[];
+  authoritativePublicDnsProbe: Stage1ProductionDnsProbeRow[];
+  systemResolver: Stage1ProductionDnsProbeRow[];
+  httpsProbe: Stage1ProductionDnsProbeRow[];
+  applyResults: Stage1ProductionDnsProbeRow[];
+  evidenceOutputs: Stage1ProductionDnsEvidenceOutputs;
+  repairPacket: Stage1ProductionDnsRepairPacket;
+};
+
+export type Stage1ProductionBlockerAuditSourceRow = {
+  probeId: string;
+  status: string;
+  missingInput: string;
+  firstBlocker: string;
+  operatorAction: string;
+  sourcePath: string;
+  sourceProbeExists: boolean;
+  strictValidationSummary: string;
+};
+
+export type Stage1ProductionBlockerAudit = {
+  schemaVersion: string;
+  kind: string;
+  sourcePath: string;
+  evidencePresent: boolean;
+  status: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  finalBlockerCount: number;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+  nonClearingAudit: boolean;
+  canonicalPassPath: boolean;
+  closureSummary: Stage1ProductionBlockerAuditClosureSummary;
+  productionDnsReadiness: Stage1ProductionBlockerAuditDnsReadiness;
+  proofBundlePath: string;
+  proofBundleStatus: string;
+  proofBundleReleaseGateDecision: string;
+  proofStatuses: Record<string, string>;
+  proofInputCoverage: Stage1ProductionProofInputCoverage;
+  productionSourceAudit: Stage1ProductionBlockerAuditSourceRow[];
+  openSourceProbeIds: string[];
+  liveSourceInputsNeeded: string[];
+  stagingIsNotCurrentBlocker: boolean;
+  stripeSandboxIsNotCurrentBlocker: boolean;
+};
+
+export type Stage1ProductionLaunchOperatorBriefSummary = {
+  stage1GatesCompleted: number;
+  stage1GatesTotal: number;
+  stage1CompletionPercent: number;
+  openGateCount: number;
+  finalBlockerCount: number;
+  productionInputsConfigured: number;
+  productionInputsTotal: number;
+  productionInputsCompletionPercent: number;
+  productionInputsMissing: number;
+  productionInputsInvalid: number;
+  blockingInputCount: number;
+};
+
+export type Stage1ProductionLaunchOperatorBriefDiagnostic = {
+  path: string;
+  exists: boolean;
+  status: string;
+  schemaVersion: string;
+  firstBlocker: string;
+  canonicalSourceWritten: boolean;
+};
+
+export type Stage1ProductionLaunchOperatorBriefMatrixRow = {
+  blockerId: string;
+  title: string;
+  status: string;
+  coverageGroup: string;
+  gateIds: string[];
+  requiredConfigured: number;
+  requiredTotal: number;
+  requiredMissing: number;
+  requiredInvalid: number;
+  blockingInputCount: number;
+  completionPercent: number;
+  firstBlocker: string;
+  firstMissingRequiredInputs: string[];
+  invalidRequiredInputs: string[];
+  diagnostic: Stage1ProductionLaunchOperatorBriefDiagnostic;
+  sourceRefs: Record<string, string>;
+  operatorNextActions: string[];
+};
+
+export type Stage1ProductionLaunchOperatorBrief = {
+  schemaVersion: string;
+  kind: string;
+  sourcePath: string;
+  evidencePresent: boolean;
+  status: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  nonClearingOperatorBrief: boolean;
+  canonicalPassPath: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+  valueRedaction: string;
+  sourceRefs: Record<string, string>;
+  summary: Stage1ProductionLaunchOperatorBriefSummary;
+  openGates: string[];
+  blockerMatrix: Stage1ProductionLaunchOperatorBriefMatrixRow[];
+  operatorNextActions: string[];
+};
+
+export type Stage1ProductionMissingInputChecklistSummary = {
+  requiredTotal: number;
+  requiredConfigured: number;
+  requiredMissing: number;
+  requiredInvalid: number;
+  blockingInputCount: number;
+  requiredCompletionPercent: number;
+};
+
+export type Stage1ProductionMissingInputChecklistItem = {
+  groupId: string;
+  requirementId: string;
+  displayName: string;
+  status: string;
+  acceptedVariableNames: string[];
+  configuredVariableName: string | null;
+  acceptableEvidenceSource: string;
+  disallowedSubstitutes: string[];
+  canBeSatisfiedByExistingSandboxOrStagingResources: boolean;
+  operatorAction: string;
+};
+
+export type Stage1ProductionMissingInputChecklistGroup = {
+  groupId: string;
+  title: string;
+  requiredTotal: number;
+  requiredConfigured: number;
+  requiredMissing: number;
+  requiredInvalid: number;
+  blockingInputCount: number;
+  completionPercent: number;
+  firstMissingRequiredInputs: string[];
+  invalidRequiredInputs: string[];
+  operatorNextAction: string;
+  items: Stage1ProductionMissingInputChecklistItem[];
+};
+
+export type Stage1ProductionMissingInputChecklist = {
+  schemaVersion: string;
+  kind: string;
+  sourcePath: string;
+  evidencePresent: boolean;
+  status: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  nonClearingChecklist: boolean;
+  canonicalPassPath: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+  valueRedaction: string;
+  sourceRefs: Record<string, string>;
+  summary: Stage1ProductionMissingInputChecklistSummary;
+  groups: Stage1ProductionMissingInputChecklistGroup[];
+  items: Stage1ProductionMissingInputChecklistItem[];
+  operatorNextActions: string[];
+};
+
+export type Stage1ProductionLaunchInputPacketSourceInput = {
+  probeId: string;
+  status: string;
+  sourceProbeExists: boolean;
+  sourcePath: string;
+  sourceSchemaVersion: string;
+  diagnosticPath: string;
+  missingInput: string;
+  firstBlocker: string;
+  currentBlocker: string;
+  proofTemplateRef: string | null;
+  sourceTemplateRef: string;
+  sourceProbeCommand: string;
+  evidenceGenerator: string;
+  strictValidator: string;
+  supportingDiagnostics: string[];
+};
+
+export type Stage1ProductionLaunchInputPacketCommandGroup = {
+  groupId: string;
+  commands: string[];
+};
+
+export type Stage1ProductionLaunchInputPacketEnvGroup = {
+  groupId: string;
+  variables: string[];
+};
+
+export type Stage1ProductionLaunchInputPacket = {
+  schemaVersion: string;
+  kind: string;
+  sourcePath: string;
+  evidencePresent: boolean;
+  status: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  nonClearingInputPacket: boolean;
+  canonicalPassPath: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+  productionDnsReadinessStatus: string;
+  productionDnsReadinessPath: string;
+  productionDnsReadinessFirstBlocker: string;
+  proofBundlePath: string;
+  proofBundleStatus: string;
+  proofBundleReleaseGateDecision: string;
+  proofBundleCanonicalSourcesRequested: boolean;
+  proofBundlePipelineStatus: string;
+  proofBundleFirstBlockers: string[];
+  proofInputCoverage: Stage1ProductionProofInputCoverage;
+  requiredEnvVariableGroups: Stage1ProductionLaunchInputPacketEnvGroup[];
+  sourceInputs: Stage1ProductionLaunchInputPacketSourceInput[];
+  executionOrder: Stage1ProductionLaunchInputPacketCommandGroup[];
+  missingVariables: string[];
+  canonicalWritePolicy: string;
+};
+
+export type Stage1ProductionOperatorPacketSourceProbe = {
+  canonicalSourcePath: string;
+  canonicalSourceExists: boolean;
+  sourceProbeCommand: string;
+  diagnosticPath: string;
+  diagnosticStatus: string;
+  firstBlocker: string;
+};
+
+export type Stage1ProductionOperatorPacketProof = {
+  candidatePath: string;
+  blockedDiagnosticPath: string;
+  blockedDiagnosticStatus: string;
+  firstBlocker: string;
+  proofGeneratorCommand: string;
+  proofValidatorCommand: string;
+};
+
+export type Stage1ProductionOperatorPacketRequirementGroup = {
+  groupId: string;
+  count: number;
+  summary: string;
+};
+
+export type Stage1ProductionBillingLiveArtifact = {
+  flag: string;
+  name: string;
+  prefix: string;
+  section: string;
+};
+
+export type Stage1ProductionBillingNumericControl = {
+  flag: string;
+  name: string;
+  rule: string;
+};
+
+export type Stage1ProductionBillingWebhookControl = {
+  controlId: string;
+  rule: string;
+};
+
+export type Stage1ProductionBillingPrivateEnvTemplate = {
+  pathPlaceholder: string;
+  gitignoreRequired: boolean;
+  blankValuesOnly: boolean;
+  allowedVariableNames: string[];
+  templateLines: string[];
+};
+
+export type Stage1ProductionBillingOperatorCommand = {
+  stepId: string;
+  command: string;
+  sideEffect: string;
+  mayWriteCanonicalSource: boolean;
+  requiresReview: boolean;
+};
+
+export type Stage1ProductionPrivateEnvTemplate = {
+  pathPlaceholder: string;
+  gitignoreRequired: boolean;
+  blankValuesOnly: boolean;
+  allowedVariableNames: string[];
+  templateLines: string[];
+};
+
+export type Stage1ProductionOperatorCommand = {
+  stepId: string;
+  command: string;
+  sideEffect: string;
+  mayWriteCanonicalSource: boolean;
+  mayApplyProductionDns: boolean;
+  requiresReview: boolean;
+};
+
+export type Stage1ProductionSecurityRuntimeRef = {
+  section: string;
+  flag: string;
+  requiredRuntimeAssertions: string;
+};
+
+export type Stage1ProductionLegalDnsRequirement = {
+  field: string;
+  value: string;
+};
+
+export type Stage1ProductionLegalPublicPath = {
+  group: string;
+  pageId: string;
+  method: string;
+  path: string;
+  expectedHttpStatus: number;
+  visibility: string;
+  externalUserVisible: boolean;
+  adminSessionRequired: boolean;
+  requiredTokens: string[];
+};
+
+export type Stage1ProductionLegalHttpsProbe = {
+  path: string;
+  status: string;
+  httpStatus: string;
+  errorSummary: string;
+};
+
+export type Stage1ProductionGovernanceComponent = {
+  component: string;
+  releaseGateCheckId: string;
+  runtimeFlag: string;
+  auditFlag: string;
+  sectionRefCount: number;
+  requiredIdCount: number;
+};
+
+export type Stage1ProductionGovernanceSectionRef = {
+  component: string;
+  section: string;
+  flag: string;
+  requiredAssertions: string;
+};
+
+export type Stage1ProductionGovernanceRequiredId = {
+  component: string;
+  field: string;
+  flag: string;
+  rule: string;
+};
+
+export type Stage1ProductionOperatorPacket = {
+  packetId: "billing" | "security" | "legal_support" | "governance" | "unknown";
+  schemaVersion: string;
+  kind: string;
+  sourcePath: string;
+  evidencePresent: boolean;
+  status: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  releaseGateCheckId: string;
+  nonClearingOperatorPacket: boolean;
+  canonicalPassPath: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+  blockedUntil: string[];
+  evidenceOutputs: Record<string, string>;
+  sourceProbe: Stage1ProductionOperatorPacketSourceProbe;
+  proof: Stage1ProductionOperatorPacketProof;
+  requirementGroups: Stage1ProductionOperatorPacketRequirementGroup[];
+  billingEnvClassification: Record<string, string>;
+  billingLiveArtifacts: Stage1ProductionBillingLiveArtifact[];
+  billingNumericControls: Stage1ProductionBillingNumericControl[];
+  billingWebhookControls: Stage1ProductionBillingWebhookControl[];
+  billingAuditRefs: string[];
+  billingExecutionOrder: string[];
+  billingPrivateEnvTemplate: Stage1ProductionBillingPrivateEnvTemplate;
+  billingOperatorCommandPacket: Stage1ProductionBillingOperatorCommand[];
+  securityRuntimeRefs: Stage1ProductionSecurityRuntimeRef[];
+  securityExecutionOrder: string[];
+  securityPrivateEnvTemplate: Stage1ProductionPrivateEnvTemplate;
+  securityOperatorCommandPacket: Stage1ProductionOperatorCommand[];
+  legalDnsRequirements: Stage1ProductionLegalDnsRequirement[];
+  legalPublicPaths: Stage1ProductionLegalPublicPath[];
+  legalHttpsProbes: Stage1ProductionLegalHttpsProbe[];
+  legalOperatorNextActions: string[];
+  legalExecutionOrder: string[];
+  legalOperatorCommandPacket: Stage1ProductionOperatorCommand[];
+  governanceComponents: Stage1ProductionGovernanceComponent[];
+  governanceSectionRefs: Stage1ProductionGovernanceSectionRef[];
+  governanceRequiredIds: Stage1ProductionGovernanceRequiredId[];
+  governanceExecutionOrder: string[];
+  governancePrivateEnvTemplate: Stage1ProductionPrivateEnvTemplate;
+  governanceOperatorCommandPacket: Stage1ProductionOperatorCommand[];
+};
+
+export type Stage1ProductionLaunchSourcePipelineStep = {
+  stepId: string;
+  status: string;
+  exitCode: number;
+  expectedExit: boolean;
+  command: string;
+  outputSummary: string;
+};
+
+export type Stage1ProductionLaunchSourcePipelineProofReadiness = {
+  proofId: string;
+  path: string;
+  exists: boolean;
+  required: boolean;
+};
+
+export type Stage1ProductionLaunchSourcePipeline = {
+  schemaVersion: string;
+  kind: string;
+  sourcePath: string;
+  evidencePresent: boolean;
+  status: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  releaseSha: string;
+  productionWebUrl: string;
+  nonClearingPipelineSummary: boolean;
+  canonicalSourcesRequested: boolean;
+  canonicalSourcesMayBeWritten: boolean;
+  aggregateAttempted: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  preservedDoNotLaunchCondition: string;
+  strictValidator: string;
+  blockedChecks: string[];
+  proofReadiness: Stage1ProductionLaunchSourcePipelineProofReadiness[];
+  steps: Stage1ProductionLaunchSourcePipelineStep[];
+};
+
+export type Stage1ProductionSourceProbeRunbookSummary = {
+  runbookStepCount: number;
+  readyToExecuteCount: number;
+  blockedStepCount: number;
+  blockingInputCount: number;
+  productionInputsConfigured: number;
+  productionInputsTotal: number;
+  productionInputsMissing: number;
+  productionInputsInvalid: number;
+  productionInputsCompletionPercent: number;
+  stage1GatesCompleted: number;
+  stage1GatesTotal: number;
+  stage1CompletionPercent: number;
+};
+
+export type Stage1ProductionSourceProbeRunbookPipelineState = {
+  status: string;
+  releaseGateDecision: string;
+  canonicalSourcesRequested: boolean;
+  canonicalSourcesMayBeWritten: boolean;
+  aggregateAttempted: boolean;
+  blockedChecks: string[];
+};
+
+export type Stage1ProductionSourceProbeRunbookStep = {
+  stepId: string;
+  order: number;
+  coverageGroup: string;
+  probeId: string;
+  gateIds: string[];
+  status: string;
+  readyToExecute: boolean;
+  blockingInputCount: number;
+  requiredTotal: number;
+  requiredConfigured: number;
+  completionPercent: number;
+  requiredBefore: string[];
+  sourceProbeCommand: string;
+  sourceOutputPath: string;
+  diagnosticPath: string;
+  strictValidator: string;
+  evidenceGenerator: string;
+  operatorPacketRef: string;
+  sourceTemplateRef: string | null;
+  proofTemplateRef: string | null;
+  firstBlocker: string;
+  missingOrInvalidInputs: string[];
+  acceptableEvidenceSources: string[];
+  disallowedSubstitutes: string[];
+  canBeSatisfiedByExistingSandboxOrStagingResources: boolean;
+  blockedUntil: string[];
+  operatorNextAction: string;
+};
+
+export type Stage1ProductionSourceProbeRunbook = {
+  schemaVersion: string;
+  kind: string;
+  sourcePath: string;
+  evidencePresent: boolean;
+  status: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  nonClearingRunbook: boolean;
+  canonicalPassPath: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+  valueRedaction: string;
+  sourceRefs: Record<string, string>;
+  summary: Stage1ProductionSourceProbeRunbookSummary;
+  pipelineState: Stage1ProductionSourceProbeRunbookPipelineState;
+  steps: Stage1ProductionSourceProbeRunbookStep[];
+  operatorNextActions: string[];
+};
+
+export type Stage1ProductionProofBundleProof = {
+  proofId: string;
+  status: string;
+  path: string;
+  schemaVersion: string;
+  firstBlocker: string;
+};
+
+export type Stage1ProductionProofBundleStep = {
+  stepId: string;
+  status: string;
+  exitCode: number;
+  expectedExit: boolean;
+  command: string;
+  outputSummary: string;
+};
+
+export type Stage1ProductionProofBundleRequirement = {
+  groupId: string;
+  requirementId: string;
+  displayName: string;
+  status: "configured" | "missing" | "invalid" | "unknown";
+  configuredVariableName: string | null;
+  acceptedVariableNames: string[];
+};
+
+export type Stage1ProductionProofBundleInputGroup = {
+  groupId: string;
+  requiredTotal: number;
+  requiredConfigured: number;
+  requiredMissing: number;
+  requiredInvalid: number;
+  configuredVariableNames: string[];
+  missingRequiredInputs: string[];
+  invalidRequiredInputs: string[];
+  optionalOrDefaultedConfigured: number;
+  optionalOrDefaultedTotal: number;
+  optionalOrDefaultedConfiguredVariableNames: string[];
+  requirements: Stage1ProductionProofBundleRequirement[];
+};
+
+export type Stage1ProductionProofBundle = {
+  schemaVersion: string;
+  kind: string;
+  sourcePath: string;
+  evidencePresent: boolean;
+  status: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  releaseSha: string;
+  productionWebUrl: string;
+  nonClearingBundle: boolean;
+  canonicalSourcesRequested: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  strictValidator: string;
+  configuredInputVariableNames: Record<string, string[]>;
+  inputCoverage: Stage1ProductionProofInputCoverage;
+  inputGroups: Stage1ProductionProofBundleInputGroup[];
+  proofs: Stage1ProductionProofBundleProof[];
+  steps: Stage1ProductionProofBundleStep[];
+  blockedChecks: string[];
+};
+
+export type Stage1ProductionProofDiagnosticFlag = {
+  flag: string;
+  persisted: boolean;
+};
+
+export type Stage1ProductionProofDiagnostic = {
+  proofId: "billing" | "security" | "governance";
+  schemaVersion: string;
+  kind: string;
+  sourcePath: string;
+  evidencePresent: boolean;
+  status: string;
+  generatedAt: string;
+  releaseSha: string;
+  environment: string;
+  canonicalSourceWritten: boolean;
+  operatorNextCommandAfterPass: string;
+  blockedChecks: string[];
+  safetyFlags: Stage1ProductionProofDiagnosticFlag[];
+};
+
+export type Stage1ProductionProofDiagnostics = {
+  status: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  diagnostics: Stage1ProductionProofDiagnostic[];
+  blockedDiagnosticCount: number;
+  canonicalSourcesWritten: number;
+  safeProjectionReady: boolean;
+  firstBlockers: string[];
+};
+
+export type Stage1ProductionBlockerChecklistSection = {
+  title: string;
+  lineNumber: number;
+};
+
+export type Stage1ProductionBlockerChecklist = {
+  sourcePath: string;
+  evidencePresent: boolean;
+  generatedAt: string;
+  lineCount: number;
+  releaseGateDecision: string;
+  stage1GatesCompleted: number;
+  stage1GatesTotal: number;
+  stage1CompletionPercent: number;
+  productionInputsConfigured: number;
+  productionInputsTotal: number;
+  productionInputsCompletionPercent: number;
+  productionInputsMissing: number;
+  productionInputsInvalid: number;
+  blockingProductionInputs: number;
+  productionSourceProbesReady: number;
+  productionSourceProbesTotal: number;
+  productionSourceProbesBlocked: number;
+  sourceProbeBlockingInputCount: number;
+  sections: Stage1ProductionBlockerChecklistSection[];
+  firstBlockingRows: string[];
+  commandCount: number;
+  validatorCommand: string;
+  generatorCommand: string;
+  nonClearingChecklist: boolean;
+  canClearStage1ProductionLaunchGate: false;
+  canCloseDoNotLaunch: false;
+};
+
+export type Stage1ProductionActionMatrixLane = {
+  laneId: string;
+  order: number;
+  title: string;
+  status: string;
+  owner: string;
+  helpKind: string;
+  blockingInputCount: number;
+  completionPercent: number;
+  requiredConfigured: number;
+  requiredTotal: number;
+  firstBlocker: string;
+  immediateAction: string;
+  agentActionAfterInputs: string;
+  agentCanExecuteNow: boolean;
+  agentCanExecuteAfterInputs: boolean;
+  requiredUserMaterial: string[];
+  blockedUntil: string[];
+  automationCommands: string[];
+  sourceProbeCommand: string;
+  evidenceGenerator: string;
+  strictValidator: string;
+  operatorPacketRef: string;
+  sourceOutputPath: string;
+};
+
+export type Stage1ProductionActionMatrixHelpItem = {
+  rank: number;
+  laneId: string;
+  blockingInputCount: number;
+  ask: string;
+  firstRequiredMaterial: string[];
+};
+
+export type Stage1ProductionActionMatrix = {
+  sourcePath: string;
+  markdownPath: string;
+  evidencePresent: boolean;
+  markdownPresent: boolean;
+  schemaVersion: string;
+  kind: string;
+  environment: string;
+  generatedAt: string;
+  status: string;
+  releaseGateDecision: string;
+  nonClearingActionMatrix: boolean;
+  canonicalPassPath: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+  stage1GatesCompleted: number;
+  stage1GatesTotal: number;
+  stage1CompletionPercent: number;
+  productionInputsConfigured: number;
+  productionInputsTotal: number;
+  productionInputsCompletionPercent: number;
+  productionInputsMissing: number;
+  productionInputsInvalid: number;
+  blockingInputCount: number;
+  sourceProbesReady: number;
+  sourceProbesTotal: number;
+  sourceProbesBlocked: number;
+  lanes: Stage1ProductionActionMatrixLane[];
+  immediateHelpQueue: Stage1ProductionActionMatrixHelpItem[];
+  notCurrentBlockers: string[];
+  markdownLineCount: number;
+  commandCount: number;
+  generatorCommand: string;
+  validatorCommand: string;
+};
+
+export type Stage1ProductionInputTemplateGroup = {
+  groupId: string;
+  title: string;
+  requiredRequirementCount: number;
+  requiredTemplateVariableCount: number;
+  requiredTemplateVariables: string[];
+  optionalOrDefaultedCount: number;
+  optionalOrDefaultedVariables: string[];
+  notes: string[];
+};
+
+export type Stage1ProductionInputTemplate = {
+  sourcePath: string;
+  manifestPath: string;
+  evidencePresent: boolean;
+  templatePresent: boolean;
+  schemaVersion: string;
+  kind: string;
+  environment: string;
+  generatedAt: string;
+  status: string;
+  releaseGateDecision: string;
+  templatePath: string;
+  nonClearingTemplate: boolean;
+  canonicalPassPath: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+  valuePolicy: string;
+  templateVariableCount: number;
+  requiredRequirementCount: number;
+  requiredTemplateVariableCount: number;
+  optionalOrDefaultedVariableCount: number;
+  templateLineCount: number;
+  commandCount: number;
+  groups: Stage1ProductionInputTemplateGroup[];
+  commandsAfterFill: string[];
+  generatorCommand: string;
+  validatorCommand: string;
+};
+
+export type Stage1ProductionNonClearingRefreshStepSummary = {
+  total: number;
+  passed: number;
+  blocked: number;
+  failed: number;
+  unexpectedExitCount: number;
+};
+
+export type Stage1ProductionNonClearingRefreshProgressStage1 = {
+  completed: number;
+  total: number;
+  completionPercent: number;
+  releaseGateDecision: string;
+};
+
+export type Stage1ProductionNonClearingRefreshExternalResources = {
+  ready: number;
+  total: number;
+  readyPercent: number;
+};
+
+export type Stage1ProductionNonClearingRefreshProductionInputs = {
+  configured: number;
+  total: number;
+  completionPercent: number;
+  missing: number;
+  invalid: number;
+  blockingInputCount: number;
+};
+
+export type Stage1ProductionNonClearingRefreshSourceProbes = {
+  ready: number;
+  total: number;
+  blocked: number;
+  blockingInputCount: number;
+};
+
+export type Stage1ProductionNonClearingRefreshActionLane = {
+  laneId: string;
+  blockingInputCount: number;
+  completionPercent: number;
+  firstBlocker: string;
+};
+
+export type Stage1ProductionNonClearingRefreshProgress = {
+  stage1: Stage1ProductionNonClearingRefreshProgressStage1;
+  externalResources: Stage1ProductionNonClearingRefreshExternalResources;
+  productionInputs: Stage1ProductionNonClearingRefreshProductionInputs;
+  productionSourceProbes: Stage1ProductionNonClearingRefreshSourceProbes;
+  productionActionLanes: Stage1ProductionNonClearingRefreshActionLane[];
+};
+
+export type Stage1ProductionNonClearingRefreshStep = {
+  stepId: string;
+  status: string;
+  exitCode: number;
+  expectedExit: boolean;
+  command: string;
+  outputSummary: string;
+};
+
+export type Stage1ProductionNonClearingRefresh = {
+  sourcePath: string;
+  evidencePresent: boolean;
+  schemaVersion: string;
+  kind: string;
+  environment: string;
+  status: string;
+  releaseGateDecision: string;
+  generatedAt: string;
+  productionWebUrl: string;
+  stagingWebUrl: string;
+  envFile: string;
+  nonClearingRefresh: boolean;
+  canonicalSourcesRequested: boolean;
+  dnsApplyRequested: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+  stepSummary: Stage1ProductionNonClearingRefreshStepSummary;
+  progress: Stage1ProductionNonClearingRefreshProgress;
+  steps: Stage1ProductionNonClearingRefreshStep[];
+  blockedChecks: string[];
+  outputRefs: Record<string, string>;
+  nonClearingEvidenceOnly: boolean;
+  preservedDoNotLaunchCondition: string;
+  canonicalSourceWriteCommand: string;
+  strictLaunchValidator: string;
+  generatorCommand: string;
+  validatorCommand: string;
+};
+
+export type Stage1NextBlockersStage1 = {
+  completed: number;
+  total: number;
+  completionPercent: number;
+  open: number;
+  openGates: string[];
+};
+
+export type Stage1NextBlockersProductionInputs = {
+  configured: number;
+  total: number;
+  completionPercent: number;
+  missing: number;
+  invalid: number;
+  blockingInputCount: number;
+};
+
+export type Stage1NextBlockersSourceProbes = {
+  ready: number;
+  total: number;
+  blocked: number;
+  blockingInputCount: number;
+};
+
+export type Stage1NextBlockersNonClearingRefresh = {
+  passed: number;
+  total: number;
+  blocked: number;
+  failed: number;
+};
+
+export type Stage1NextBlockersAzureOrigin = {
+  status: string;
+  releaseGateDecision: string;
+  blockedChecks: string[];
+  httpPassed: number;
+  httpTotal: number;
+  httpFailureCategories: string[];
+  tcpPassed: number;
+  tcpTotal: number;
+  sshStatus: string;
+  sshReason: string;
+  azureCliStatus: string;
+  azureCliReason: string;
+  transportLane: string;
+  transportNextAction: string;
+  transportSummary: string;
+  transportBlockedReasons: string[];
+  sshTransportPhase: string;
+  sshPasswordKeyRepairViable: boolean;
+  azurePortalRunCommandRequired: boolean;
+  httpResponseStarted: boolean;
+  repairCommandCount: number;
+  repairCommands: string[];
+};
+
+export type Stage1NextBlockersRunCommandDiagnosis = {
+  status: string;
+  sourceStatus: string;
+  supersededBy: string;
+  findings: string[];
+  sourceFindings: string[];
+  sshRepairStatus: string;
+  originRuntimeStatus: string;
+  nextRepairLane: string;
+  inputPresent: boolean;
+  rawOutputPersisted: boolean;
+  originSummary: Record<string, string>;
+  outputPath: string;
+};
+
+export type Stage1NextBlockersProductionLane = {
+  laneId: string;
+  blockingInputCount: number;
+  completionPercent: number;
+  firstBlocker: string;
+};
+
+export type Stage1NextBlockersTopPriorityAction = {
+  actionId: string;
+  lane: string;
+  status: string;
+  why: string;
+  command: string;
+  requiresExternalInput: boolean;
+  externalInput: string;
+};
+
+export type Stage1NextBlockersOperatorShortlistItem = {
+  order: number;
+  itemId: string;
+  lane: string;
+  status: string;
+  requiresExternalInput: boolean;
+  currentBlocker: string;
+  operatorAction: string;
+  agentActionAfterInput: string;
+  command: string;
+  evidenceRef: string;
+  gateImpact: string;
+  canClearStage1StagingRuntimeGate: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+};
+
+export type Stage1NextBlockersOperatorActionPacketItem = {
+  order: number;
+  itemId: string;
+  owner: string;
+  status: string;
+  requiresExternalInput: boolean;
+  requiredReturnArtifact: string;
+  agentCommandAfterReturn: string;
+  validationAfterReturn: string;
+  blindHandoffNote: string;
+  evidenceRef: string;
+  gateImpact: string;
+  canClearStage1StagingRuntimeGate: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+};
+
+export type Stage1NextBlockersSummary = {
+  sourcePath: string;
+  evidencePresent: boolean;
+  schemaVersion: string;
+  kind: string;
+  environment: string;
+  generatedAt: string;
+  status: string;
+  releaseGateDecision: string;
+  canonicalPassPath: boolean;
+  canClearStage1StagingRuntimeGate: boolean;
+  canClearStage1ProductionLaunchGate: boolean;
+  canCloseDoNotLaunch: boolean;
+  stage1: Stage1NextBlockersStage1;
+  productionInputs: Stage1NextBlockersProductionInputs;
+  productionSourceProbes: Stage1NextBlockersSourceProbes;
+  nonClearingRefresh: Stage1NextBlockersNonClearingRefresh;
+  azureOrigin: Stage1NextBlockersAzureOrigin;
+  azureRunCommandDiagnosis: Stage1NextBlockersRunCommandDiagnosis;
+  productionLanes: Stage1NextBlockersProductionLane[];
+  operatorShortlist: Stage1NextBlockersOperatorShortlistItem[];
+  operatorActionPacket: Stage1NextBlockersOperatorActionPacketItem[];
+  topPriorityAction: Stage1NextBlockersTopPriorityAction;
+  evidenceRefs: Record<string, string>;
+  secretMaterialPersisted: boolean;
+  rawPromptPersisted: boolean;
+  rawProviderPayloadPersisted: boolean;
+  rawStripePayloadPersisted: boolean;
+  rawSupportBodyProjected: boolean;
+  signedUrlPersisted: boolean;
+  authorizationHeaderPersisted: boolean;
+  cookiePersisted: boolean;
+  rawRunCommandOutputPersisted: boolean;
+};
+
+export type Stage1ReleaseReadinessContractAnchor = {
+  id:
+    | "staging_runtime"
+    | "production_launch"
+    | "release_evidence_closure_queue"
+    | "external_resource_readiness"
+    | "r2_bucket_readiness";
+  contractPath: string;
+  evidencePath: string;
+  resultsPath: string;
+  contractValidatorCommand: string;
+  strictValidatorCommand: string;
+  preflightValidatorCommand?: string;
+  generatorCommand: string;
+  gatePolicy: string;
+};
+
+export type Stage1ReleaseReadinessSummary = {
+  gateId: string;
+  path: string;
+  status: string;
+  blockerCount: number;
+  activeDoNotLaunchCount: number;
+};
+
+export type Stage1ReleaseReadinessSnapshot = {
+  generatedAt: string;
+  decisionSource: "validator_evidence_only";
+  manualGoControlsEnabled: false;
+  staging: Stage1AggregateEvidence;
+  production: Stage1AggregateEvidence;
+  resourceReadiness: Stage1ExternalResourceReadiness;
+  azureOriginReadiness: Stage1AzureOriginReadiness;
+  closureQueue: Stage1EvidenceClosureQueue;
+  productionBlockerAudit: Stage1ProductionBlockerAudit;
+  productionLaunchOperatorBrief: Stage1ProductionLaunchOperatorBrief;
+  productionMissingInputChecklist: Stage1ProductionMissingInputChecklist;
+  productionDnsDetail: Stage1ProductionDnsDetail;
+  productionLaunchInputPacket: Stage1ProductionLaunchInputPacket;
+  productionOperatorPackets: Stage1ProductionOperatorPacket[];
+  productionLaunchSourcePipeline: Stage1ProductionLaunchSourcePipeline;
+  productionSourceProbeRunbook: Stage1ProductionSourceProbeRunbook;
+  productionProofBundle: Stage1ProductionProofBundle;
+  productionProofDiagnostics: Stage1ProductionProofDiagnostics;
+  productionBlockerChecklist: Stage1ProductionBlockerChecklist;
+  productionActionMatrix: Stage1ProductionActionMatrix;
+  productionInputTemplate: Stage1ProductionInputTemplate;
+  productionNonClearingRefresh: Stage1ProductionNonClearingRefresh;
+  nextBlockersSummary: Stage1NextBlockersSummary;
+  contractAnchors: Stage1ReleaseReadinessContractAnchor[];
+  releaseGateSummary: Stage1ReleaseReadinessSummary[];
+  nextOperatorActions: string[];
 };
 
 export type IncidentLog = {

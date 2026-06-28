@@ -1,0 +1,42 @@
+{
+  "allow_local_devport_evidence": false,
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "ops/evidence/non_clearing/templates/production-source-probes/billing-paid-lifecycle-source.template.json status is not pass/passed"
+  ],
+  "blocked_runtime_summary": "Production billing lifecycle remains blocked until live Stripe proof covers checkout, subscription active state, cancellation, past_due invoice handling, team seat quantity sync, and invoice receipt visibility.",
+  "canonical_pass_path": false,
+  "cookie_persisted": false,
+  "dry_run": false,
+  "environment": "production",
+  "gate_impact": {
+    "can_clear_billing_lifecycle_subitem": false,
+    "can_clear_refund_credit_webhook_subitem": false,
+    "preserved_release_gate_check_id": "production_paid_billing_lifecycle",
+    "remaining_blockers": [
+      "ops/evidence/non_clearing/templates/production-source-probes/billing-paid-lifecycle-source.template.json status is not pass/passed"
+    ]
+  },
+  "generated_at": "2026-06-28T17:48:17+00:00",
+  "invite_comp_only_substitute": false,
+  "kind": "production_billing_lifecycle",
+  "local_devport_debug": false,
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_paid_billing_lifecycle",
+  "release_sha": "0123456789abcdef0123456789abcdef01234567",
+  "required_runtime_semantics": [
+    "checkout",
+    "subscription",
+    "cancellation",
+    "past_due",
+    "team seat quantity sync",
+    "invoice receipt visibility"
+  ],
+  "schema_version": "stage1.production_billing_lifecycle.blocked.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "blocked"
+}

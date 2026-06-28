@@ -1,0 +1,77 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "created_at": "20260624T100925Z",
+  "run_id": "20260624T100913Z-all-92780-worker_generation",
+  "kind": "load",
+  "environment": "local",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "mode": "worker_generation",
+  "status": "passed",
+  "base_url": "https://staging.zenari.ai",
+  "requests": 20,
+  "concurrency": 4,
+  "paths": ["/readyz", "/api/v1/tasks/load-smoke", "/api/v1/agent-tasks/load-smoke"],
+  "expected_statuses": ["/readyz:200", "/api/v1/tasks/load-smoke:401", "/api/v1/tasks/load-smoke:501", "/api/v1/agent-tasks/load-smoke:404"],
+  "results_path": "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.ndjson",
+  "summary": {"failure_count": 0, "max_ms": 1007, "p50_ms": 793, "p95_ms": 859, "request_count": 20, "statuses": {"/api/v1/agent-tasks/load-smoke:404": 6, "/api/v1/tasks/load-smoke:401": 7, "/readyz:200": 7}},
+  "checks": [
+    {
+      "check_id": "chat_task",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.json",
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.ndjson"
+      ]
+    },
+    {
+      "check_id": "worker_generation",
+      "status": "passed",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.json",
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.ndjson"
+      ]
+    },
+    {
+      "check_id": "zip_export",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.json",
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.ndjson"
+      ]
+    },
+    {
+      "check_id": "signed_download",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.json",
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.ndjson"
+      ]
+    },
+    {
+      "check_id": "crawler_throttle",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.json",
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.ndjson"
+      ]
+    },
+    {
+      "check_id": "quota_contention",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.json",
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.ndjson"
+      ]
+    },
+    {
+      "check_id": "workspace_rendering",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.json",
+        "ops/evidence/staging/20260624T100913Z-all-92780-worker_generation.ndjson"
+      ]
+    }
+  ],
+  "production_gate": "open_until_runtime_thresholds_and_full_staging_load_results_exist"
+}

@@ -160,7 +160,7 @@ def render(audience: str, operations: list[Operation], digest: str) -> str:
 
   private assertSameSiteBaseUrl(baseUrl: string) {
     if (baseUrl.startsWith("//")) {
-      throw new Error("ZenArtApiClient baseUrl must not be protocol-relative for same-site CSRF protection");
+      throw new Error("ZenariApiClient baseUrl must not be protocol-relative for same-site CSRF protection");
     }
     if (!baseUrl || baseUrl.startsWith("/")) {
       return;
@@ -168,17 +168,17 @@ def render(audience: str, operations: list[Operation], digest: str) -> str:
 
     const parsed = new URL(baseUrl);
     if (typeof window === "undefined") {
-      throw new Error("ZenArtApiClient absolute baseUrl requires a browser origin for same-site CSRF protection");
+      throw new Error("ZenariApiClient absolute baseUrl requires a browser origin for same-site CSRF protection");
     }
     if (parsed.username || parsed.password) {
-      throw new Error("ZenArtApiClient baseUrl must not include credentials for same-site CSRF protection");
+      throw new Error("ZenariApiClient baseUrl must not include credentials for same-site CSRF protection");
     }
     if (parsed.search || parsed.hash) {
-      throw new Error("ZenArtApiClient baseUrl must not include query or fragment material for same-site CSRF protection");
+      throw new Error("ZenariApiClient baseUrl must not include query or fragment material for same-site CSRF protection");
     }
     const currentOrigin = window.location.origin;
     if (parsed.origin !== currentOrigin) {
-      throw new Error("ZenArtApiClient baseUrl must be same-origin for same-site CSRF protection");
+      throw new Error("ZenariApiClient baseUrl must be same-origin for same-site CSRF protection");
     }
   }
 
@@ -212,6 +212,25 @@ export type ErrorEnvelope = {{
   code: string;
   message: string;
   request_id: string;
+  taxonomy: {{
+    category:
+      | "validation"
+      | "auth"
+      | "forbidden"
+      | "not_found"
+      | "conflict"
+      | "retryable"
+      | "blocked"
+      | "quota_insufficient"
+      | "provider_unavailable"
+      | "review_required"
+      | "internal";
+    retryable: boolean;
+    blocked: boolean;
+    user_actionable: boolean;
+  }};
+  retryable: boolean;
+  blocked: boolean;
   details: Record<string, unknown>;
   field_errors: FieldError[];
 }};
@@ -274,7 +293,7 @@ export class ApiError extends Error {{
   }}
 }}
 
-export class ZenArtApiClient {{
+export class ZenariApiClient {{
   constructor(
     private readonly baseUrl = "",
     private readonly defaultHeaders: Record<string, string> = {{}}

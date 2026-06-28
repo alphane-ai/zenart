@@ -1,0 +1,20 @@
+{
+  "blocking_reasons": [
+    "strict_staging_backup_restore_evidence_missing",
+    "postgres_restore_runtime_evidence_missing",
+    "object_restore_runtime_evidence_missing"
+  ],
+  "can_clear_stage1_production_launch_gate": false,
+  "can_clear_stage1_staging_runtime_gate": false,
+  "environment": "staging_metadata_draft",
+  "kind": "backup_restore",
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "required_strict_components": [
+    "postgres_restore",
+    "object_restore"
+  ],
+  "schema_version": "stage1.release_candidate_backup_restore_draft.v1",
+  "slot": "backup_restore_evidence",
+  "status": "blocked",
+  "strict_usable": false
+}

@@ -1,0 +1,81 @@
+{
+  "schema_version": "stage1.security_scan.contract.v1",
+  "kind": "security_scan_local_contract",
+  "blueprint_source": "Docs/Stage1_20260621_blueprint.md",
+  "blueprint_items": ["BE-2", "BE-11", "QA-8", "OP-13"],
+  "scan_script": "scripts/security_scan_smoke.sh",
+  "required_scan_patterns": [
+    "openai_key_shape",
+    "zai_key_shape",
+    "stripe_key_shape",
+    "stripe_publishable_key_shape",
+    "stripe_webhook_secret_shape",
+    "github_token_shape"
+  ],
+  "stage1_security_coverage": {
+    "provider": "backend/internal/provider and provider adapters reject raw secrets and suppress raw provider payload projection",
+    "stripe": "backend/internal/billing Stripe adapter separates test/live mode, verifies webhook signatures, and keeps lifecycle reconciliation secret projection false",
+    "batch": "backend/internal/task redacts provider failures, stores result projections only, and marks raw provider payload persistence false",
+    "assets": "backend/internal/assets rejects signed URLs, secret-like storage refs, and raw provider payload lineage",
+    "support": "backend/internal/support redacts ticket body and metadata while requiring project/task/batch/trace/asset/export/quota/billing links",
+    "export": "backend/internal/export rejects signed object keys and secret-like manifest fields while fail-closing downloads",
+    "trace": "backend/internal/trace forbids raw prompt/provider/safety payload and secret projection",
+    "rate_limit": "Stage 1 rate-limit/spend-cap contract preserves raw_secret_projection=false",
+    "toolchain": "backend Go and Docker builds pin to Go 1.26.4 so govulncheck uses the standard library with called-symbol fixes for GO-2026-5039/5037/4971/4947/4946/4918/4870/4866"
+  },
+  "required_go_toolchain": "go1.26.4",
+  "required_backend_tests": [
+    "TestRedactStringHandlesProviderKeysAndInlineAssignments",
+    "TestRedactStringCoversRawJSONPayloads",
+    "TestRedactStringCoversLaunchProviderAndCommerceTokens",
+    "TestRedactValueCoversHeadersAndStringSlices",
+    "TestRedactValueCoversLaunchMetadataContainers",
+    "TestClassifyValueCoversLaunchMetadataContainers",
+    "TestBuildTraceProjectionRejectsSecretsAndForbiddenFields",
+    "TestValidateManifestRejectsSignedURLAndSecretLikeFields",
+    "TestVisualAssetRejectsUnsafeStorageRefsSecretsAndRawPayload",
+    "TestNormalizeAndRedactCoversProjectTaskBatchAssetExportBillingAndSecrets",
+    "TestOpenAICompatibleProviderHTTPErrorDoesNotLeakSecretOrBody",
+    "TestStripeHandleWebhookRejectsInvalidSignature",
+    "TestStripeHandleWebhookRejectsLiveModeEventInTestMode"
+  ],
+  "report_contract": {
+    "kind": "security_scan",
+    "checks": ["dependency_scan", "image_scan", "secret_scan"],
+    "dependency_audit": {
+      "npm_audit_level": "moderate",
+      "required_npm_audit_projects": ["web", "admin"]
+    },
+    "image_scan": {
+      "required_image_set": ["zenari-stage0-backend", "zenari-stage0-web", "zenari-stage0-admin"],
+      "default_scanned_images": [
+        "zenari-stage0-backend:local-security-scan",
+        "zenari-stage0-web:local-security-scan",
+        "zenari-stage0-admin:local-security-scan"
+      ],
+      "allows_cached_trivy_db_for_local_evidence": true,
+      "strict_production_requires_fresh_trivy_db": true
+    },
+    "required_fields": [
+      "stage1_security_coverage",
+      "stage1_secret_scan_patterns",
+      "scan_contract.dependency_scan.npm_audit_level",
+      "scan_contract.dependency_scan.required_npm_audit_projects",
+      "scan_contract.docker_image_scan.required_image_set",
+      "scan_contract.docker_image_scan.scanned_images",
+      "scan_contract.docker_image_scan.trivy_skip_db_update",
+      "scan_contract.docker_image_scan.trivy_db_updated_at",
+      "scan_contract.secret_scan.pattern_ids",
+      "scan_contract.secret_scan.allowlisted_test_fixture_paths",
+      "production_gate"
+    ],
+    "production_gate": "open_until_production_release_security_launch_checks_attach_strict_secret_rbac_csrf_csp_rate_limit_provider_stripe_evidence"
+  },
+  "non_launch_status": {
+    "local_security_scan_contract": "pass",
+    "strict_staging_security_scan_evidence": "open",
+    "production_security_launch_checks": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_launch_gate": false
+  }
+}

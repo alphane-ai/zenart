@@ -1,0 +1,100 @@
+{
+  "items": [
+    {
+      "id": "audit_fbe16ac43aacfa44f806a650",
+      "audit_ref": "audit_fbe16ac43aacfa44f806a650",
+      "tenant_id": "tenant_local",
+      "actor_id": "local_admin_zenari.ai",
+      "action": "export.cleanup.preview.requested",
+      "resource": "object_storage_cleanup",
+      "metadata": {
+        "dry_run": true,
+        "high_risk": false,
+        "limit": 25,
+        "mode": "orphan_cleanup",
+        "rationale": "stage0 retention cleanup smoke orphan_cleanup",
+        "request_id": "stage0-object-retention-cleanup-orphan_cleanup",
+        "second_review_rationale": "",
+        "second_review_required": false,
+        "second_reviewer_id": "",
+        "second_reviewer_role": ""
+      },
+      "created_at": "2026-06-28T11:18:30.515479Z"
+    },
+    {
+      "id": "audit_06a3cc50ea91896f05301ecf",
+      "audit_ref": "audit_06a3cc50ea91896f05301ecf",
+      "tenant_id": "tenant_local",
+      "actor_id": "local_admin_zenari.ai",
+      "action": "export.cleanup.preview",
+      "resource": "object_storage_cleanup",
+      "metadata": {
+        "cleanup_status": "preview",
+        "deleted_objects": 0,
+        "dry_run": true,
+        "expired_exports": 0,
+        "failed_objects": 0,
+        "high_risk": false,
+        "limit": 25,
+        "mode": "orphan_cleanup",
+        "orphaned_objects": 0,
+        "preview_objects": 0,
+        "rationale": "stage0 retention cleanup smoke orphan_cleanup",
+        "request_id": "stage0-object-retention-cleanup-orphan_cleanup",
+        "second_review_rationale": "",
+        "second_review_required": false,
+        "second_reviewer_id": "",
+        "second_reviewer_role": ""
+      },
+      "created_at": "2026-06-28T11:18:30.515479Z"
+    },
+    {
+      "id": "audit_fd7eed6e0058a24a0e86f7b9",
+      "audit_ref": "audit_fd7eed6e0058a24a0e86f7b9",
+      "tenant_id": "tenant_local",
+      "actor_id": "local_admin_zenari.ai",
+      "action": "export.cleanup.preview",
+      "resource": "object_storage_cleanup",
+      "metadata": {
+        "cleanup_status": "preview",
+        "deleted_objects": 0,
+        "dry_run": true,
+        "expired_exports": 0,
+        "failed_objects": 0,
+        "high_risk": false,
+        "limit": 25,
+        "mode": "expired_export_cleanup",
+        "orphaned_objects": 0,
+        "preview_objects": 0,
+        "rationale": "stage0 retention cleanup smoke expired_export_cleanup",
+        "request_id": "stage0-object-retention-cleanup-expired_export_cleanup",
+        "second_review_rationale": "",
+        "second_review_required": false,
+        "second_reviewer_id": "",
+        "second_reviewer_role": ""
+      },
+      "created_at": "2026-06-28T11:18:28.454064Z"
+    },
+    {
+      "id": "audit_f6e1252a2046bcbe22d5f552",
+      "audit_ref": "audit_f6e1252a2046bcbe22d5f552",
+      "tenant_id": "tenant_local",
+      "actor_id": "local_admin_zenari.ai",
+      "action": "export.cleanup.preview.requested",
+      "resource": "object_storage_cleanup",
+      "metadata": {
+        "dry_run": true,
+        "high_risk": false,
+        "limit": 25,
+        "mode": "expired_export_cleanup",
+        "rationale": "stage0 retention cleanup smoke expired_export_cleanup",
+        "request_id": "stage0-object-retention-cleanup-expired_export_cleanup",
+        "second_review_rationale": "",
+        "second_review_required": false,
+        "second_reviewer_id": "",
+        "second_reviewer_role": ""
+      },
+      "created_at": "2026-06-28T11:18:28.454064Z"
+    }
+  ]
+}

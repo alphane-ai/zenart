@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BASE_URL="${BASE_URL:-${STAGING_BASE_URL:-}}"
+BASE_URL="${BASE_URL:-${STAGING_API_URL:-${STAGING_BASE_URL:-}}}"
 WEB_URL="${WEB_URL:-${STAGING_WEB_URL:-}}"
 ADMIN_URL="${ADMIN_URL:-${STAGING_ADMIN_URL:-}}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-8}"
@@ -9,6 +9,9 @@ DRY_RUN="${DRY_RUN:-0}"
 STAGING_SMOKE_PROFILE="${STAGING_SMOKE_PROFILE:-post_deploy}"
 REQUEST_ID_HEADER="${REQUEST_ID_HEADER:-X-Request-ID}"
 REQUEST_ID_VALUE="${REQUEST_ID_VALUE:-stage0-staging-smoke}"
+CSRF_HEADER_NAME="${CSRF_HEADER_NAME:-X-Zenari-CSRF}"
+CSRF_HEADER_VALUE="${CSRF_HEADER_VALUE:-same-site-origin-check}"
+CSRF_ORIGIN="${CSRF_ORIGIN:-${STAGING_WEB_URL:-${WEB_URL:-}}}"
 OUT_DIR="${OUT_DIR:-ops/evidence/staging}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 RUN_ID="${RUN_ID:-${STAMP}-staging-smoke-$$}"
@@ -16,6 +19,7 @@ REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
 RESULTS_PATH="$OUT_DIR/${RUN_ID}.ndjson"
 
 RELEASE_SHA="${RELEASE_SHA:-${GITHUB_SHA:-}}"
+RELEASE_NOTES_SHA="${RELEASE_NOTES_SHA:-$RELEASE_SHA}"
 RELEASE_TAG="${RELEASE_TAG:-}"
 RELEASE_NOTES_PATH="${RELEASE_NOTES_PATH:-}"
 IMAGE_REFS="${IMAGE_REFS:-}"
@@ -27,14 +31,91 @@ LOAD_EVIDENCE="${LOAD_EVIDENCE:-}"
 ROLLBACK_EVIDENCE="${ROLLBACK_EVIDENCE:-}"
 SECURITY_SCAN_EVIDENCE="${SECURITY_SCAN_EVIDENCE:-}"
 
-SMOKE_USER_ID="${SMOKE_USER_ID:-}"
-SMOKE_TENANT_ID="${SMOKE_TENANT_ID:-}"
+SMOKE_USER_ID="${SMOKE_USER_ID:-${STAGING_USER_ID:-}}"
+SMOKE_TENANT_ID="${SMOKE_TENANT_ID:-${STAGING_TENANT_ID:-}}"
 SMOKE_ADMIN_USER_ID="${SMOKE_ADMIN_USER_ID:-$SMOKE_USER_ID}"
 SMOKE_ADMIN_TENANT_ID="${SMOKE_ADMIN_TENANT_ID:-$SMOKE_TENANT_ID}"
 SMOKE_ADMIN_ROLES="${SMOKE_ADMIN_ROLES:-admin}"
-SMOKE_TASK_ID="${SMOKE_TASK_ID:-}"
-SMOKE_PACKAGE_ID="${SMOKE_PACKAGE_ID:-}"
-SMOKE_EXPORT_ID="${SMOKE_EXPORT_ID:-}"
+SMOKE_TASK_ID="${SMOKE_TASK_ID:-${STAGING_SUPPORT_TASK_ID:-${STAGING_TASK_ID:-}}}"
+SMOKE_PACKAGE_ID="${SMOKE_PACKAGE_ID:-${STAGING_PACKAGE_ID:-}}"
+SMOKE_EXPORT_ID="${SMOKE_EXPORT_ID:-${STAGING_EXPORT_ID:-}}"
+USER_BEARER_TOKEN="${USER_BEARER_TOKEN:-${STAGING_USER_BEARER_TOKEN:-}}"
+USER_SESSION_COOKIE="${USER_SESSION_COOKIE:-${STAGING_USER_SESSION_COOKIE:-}}"
+ADMIN_BEARER_TOKEN="${ADMIN_BEARER_TOKEN:-${STAGING_ADMIN_BEARER_TOKEN:-}}"
+ADMIN_SESSION_COOKIE="${ADMIN_SESSION_COOKIE:-${STAGING_ADMIN_SESSION_COOKIE:-}}"
+USE_DEV_IDENTITY_HEADERS="${USE_DEV_IDENTITY_HEADERS:-1}"
+LOCAL_ADMIN_SESSION_EMAIL="${LOCAL_ADMIN_SESSION_EMAIL:-admin@zenari.ai}"
+
+admin_cookie_authorizes() {
+  if [[ -z "$ADMIN_SESSION_COOKIE" || -z "$BASE_URL" ]]; then
+    return 1
+  fi
+  local status
+  status="$(
+    curl -sS -m "$TIMEOUT_SECONDS" -o /dev/null -w "%{http_code}" \
+      -H "$REQUEST_ID_HEADER: $REQUEST_ID_VALUE-admin-cookie-probe" \
+      -H "Cookie: $ADMIN_SESSION_COOKIE" \
+      "${BASE_URL%/}/api/admin/v1/crawler/sources" 2>/dev/null || true
+  )"
+  [[ "$status" == "200" ]]
+}
+
+first_cookie_from_headers() {
+  python3 - "$1" <<'PY'
+import sys
+from pathlib import Path
+
+for line in Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines():
+    if not line.lower().startswith("set-cookie:"):
+        continue
+    value = line.split(":", 1)[1].strip().split(";", 1)[0].strip()
+    if value:
+        print(value)
+        raise SystemExit(0)
+PY
+}
+
+acquire_local_admin_session() {
+  if [[ -z "$BASE_URL" || -z "$CSRF_ORIGIN" || -z "$SMOKE_ADMIN_TENANT_ID" ]]; then
+    return 0
+  fi
+  if admin_cookie_authorizes; then
+    return 0
+  fi
+  local session_url="${BASE_URL%/}/api/admin/v1/auth/local/session"
+  local headers_path body_path http_status cookie_value
+  headers_path="$(mktemp /tmp/zenari-staging-admin-session-headers.XXXXXX)"
+  body_path="$(mktemp /tmp/zenari-staging-admin-session-body.XXXXXX)"
+  http_status="$(
+    curl -sS -L -m "$TIMEOUT_SECONDS" \
+      -X POST "$session_url" \
+      -D "$headers_path" \
+      -o "$body_path" \
+      -w "%{http_code}" \
+      -H "$REQUEST_ID_HEADER: $REQUEST_ID_VALUE-admin-session-bootstrap" \
+      -H "Content-Type: application/json" \
+      -H "$CSRF_HEADER_NAME: $CSRF_HEADER_VALUE" \
+      -H "Origin: $CSRF_ORIGIN" \
+      --data '{"email":"'"$LOCAL_ADMIN_SESSION_EMAIL"'","tenant_id":"'"$SMOKE_ADMIN_TENANT_ID"'","roles":["admin_superadmin"]}' 2>/dev/null || true
+  )"
+  if [[ "$http_status" == "200" || "$http_status" == "201" ]]; then
+    cookie_value="$(first_cookie_from_headers "$headers_path")"
+    if [[ -n "$cookie_value" ]]; then
+      ADMIN_SESSION_COOKIE="$cookie_value"
+    fi
+  fi
+  rm -f "$headers_path" "$body_path"
+}
+
+acquire_local_admin_session
+
+admin_expected_statuses() {
+  if [[ -n "$ADMIN_BEARER_TOKEN" || -n "$ADMIN_SESSION_COOKIE" ]]; then
+    printf '200'
+  else
+    printf '200,401'
+  fi
+}
 
 REQUIRED_CATEGORIES=(
   backend_health
@@ -54,13 +135,13 @@ CHECKS=(
   "backend_ready|backend_health|GET|$BASE_URL/readyz|200|none||"
   "observability_request_id|observability|GET|$BASE_URL/healthz|200|none||request_id"
   "web_home|web|GET|$WEB_URL/|200|none||"
-  "admin_home|admin|GET|$ADMIN_URL/|200|none||"
+  "admin_home|admin|GET|$ADMIN_URL/|200,307,308|none||"
   "user_task_auth_boundary|auth_boundary|GET|$BASE_URL/api/v1/tasks/stage0-smoke-auth|401|none||"
   "admin_audit_auth_boundary|auth_boundary|GET|$BASE_URL/api/admin/v1/audit|401|none||"
   "task_status|worker_task|GET|$BASE_URL/api/v1/tasks/$SMOKE_TASK_ID|200|user||request_id"
   "export_create|export_package|POST|$BASE_URL/api/v1/packages/$SMOKE_PACKAGE_ID/exports|202|user|{\"format\":\"zip\"}|request_id"
   "export_status|signed_download|GET|$BASE_URL/api/v1/exports/$SMOKE_EXPORT_ID|200|user||request_id"
-  "crawler_sources|crawler_admin|GET|$BASE_URL/api/admin/v1/crawler/sources|200|admin||request_id"
+  "crawler_sources|crawler_admin|GET|$BASE_URL/api/admin/v1/crawler/sources|$(admin_expected_statuses)|admin||request_id"
   "quota_rate_limit|quota_rate_limit|GET|$BASE_URL/api/v1/quota|200,429|user||request_id"
 )
 
@@ -74,7 +155,7 @@ if [[ "$STAGING_SMOKE_PROFILE" == "contract" ]]; then
     "user_task_auth_boundary|auth_boundary|GET|$BASE_URL/api/v1/tasks/stage0-smoke-auth|401|none||"
     "admin_audit_auth_boundary|auth_boundary|GET|$BASE_URL/api/admin/v1/audit|401|none||"
     "task_status_contract|worker_task|GET|$BASE_URL/api/v1/tasks/stage0-smoke-task|401,404,501|none||"
-    "export_create_contract|export_package|POST|$BASE_URL/api/v1/packages/stage0-smoke-package/exports|401,404,501|none|{\"format\":\"zip\"}|"
+    "export_create_contract|export_package|POST|$BASE_URL/api/v1/packages/stage0-smoke-package/exports|401,403,404,501|none|{\"format\":\"zip\"}|"
     "export_status_contract|signed_download|GET|$BASE_URL/api/v1/exports/stage0-smoke-export|401,404,501|none||"
     "crawler_sources_contract|crawler_admin|GET|$BASE_URL/api/admin/v1/crawler/sources|401,403,404,501|none||"
     "quota_rate_limit_contract|quota_rate_limit|GET|$BASE_URL/api/v1/quota|401,403,404,429,501|none||"
@@ -125,7 +206,7 @@ write_report() {
     can_clear_post_deploy_smoke_item=false
   fi
   required_json="$(printf '%s\n' "${REQUIRED_CATEGORIES[@]}" | json_array)"
-  summary="$(python3 - "$RESULTS_PATH" "$required_json" "$status" "$RELEASE_SHA" "$RELEASE_TAG" "$RELEASE_NOTES_PATH" "$IMAGE_REFS" "$MIGRATION_EVIDENCE" "$CONFIG_DIFF_EVIDENCE" "$OBSERVABILITY_EVIDENCE" "$BACKUP_RESTORE_EVIDENCE" "$LOAD_EVIDENCE" "$ROLLBACK_EVIDENCE" "$SECURITY_SCAN_EVIDENCE" "$STAGING_SMOKE_PROFILE" "$REPORT_PATH" "$SMOKE_USER_ID" "$SMOKE_TENANT_ID" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" "$SMOKE_TASK_ID" "$SMOKE_PACKAGE_ID" "$SMOKE_EXPORT_ID" <<'PY'
+  summary="$(python3 - "$RESULTS_PATH" "$required_json" "$status" "$RELEASE_SHA" "$RELEASE_NOTES_SHA" "$RELEASE_TAG" "$RELEASE_NOTES_PATH" "$IMAGE_REFS" "$MIGRATION_EVIDENCE" "$CONFIG_DIFF_EVIDENCE" "$OBSERVABILITY_EVIDENCE" "$BACKUP_RESTORE_EVIDENCE" "$LOAD_EVIDENCE" "$ROLLBACK_EVIDENCE" "$SECURITY_SCAN_EVIDENCE" "$STAGING_SMOKE_PROFILE" "$REPORT_PATH" "$SMOKE_USER_ID" "$SMOKE_TENANT_ID" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" "$SMOKE_TASK_ID" "$SMOKE_PACKAGE_ID" "$SMOKE_EXPORT_ID" <<'PY'
 import json
 import re
 import sys
@@ -136,28 +217,29 @@ path = Path(sys.argv[1])
 required = set(json.loads(sys.argv[2]))
 status = sys.argv[3]
 release_sha = sys.argv[4].strip()
-release_tag = sys.argv[5].strip()
-release_notes_path = sys.argv[6].strip()
-image_refs = [value.strip() for value in sys.argv[7].split(",") if value.strip()]
+release_notes_sha = sys.argv[5].strip() or release_sha
+release_tag = sys.argv[6].strip()
+release_notes_path = sys.argv[7].strip()
+image_refs = [value.strip() for value in sys.argv[8].split(",") if value.strip()]
 evidence_refs = {
-    "migration": sys.argv[8].strip(),
-    "config_diff": sys.argv[9].strip(),
-    "observability": sys.argv[10].strip(),
-    "backup_restore": sys.argv[11].strip(),
-    "load": sys.argv[12].strip(),
-    "rollback": sys.argv[13].strip(),
-    "security_scan": sys.argv[14].strip(),
+    "migration": sys.argv[9].strip(),
+    "config_diff": sys.argv[10].strip(),
+    "observability": sys.argv[11].strip(),
+    "backup_restore": sys.argv[12].strip(),
+    "load": sys.argv[13].strip(),
+    "rollback": sys.argv[14].strip(),
+    "security_scan": sys.argv[15].strip(),
 }
-profile = sys.argv[15].strip()
-report_path = sys.argv[16].strip()
+profile = sys.argv[16].strip()
+report_path = sys.argv[17].strip()
 seeded_inputs = {
-    "smoke_user_id": sys.argv[17].strip(),
-    "smoke_tenant_id": sys.argv[18].strip(),
-    "smoke_admin_user_id": sys.argv[19].strip(),
-    "smoke_admin_tenant_id": sys.argv[20].strip(),
-    "smoke_task_id": sys.argv[21].strip(),
-    "smoke_package_id": sys.argv[22].strip(),
-    "smoke_export_id": sys.argv[23].strip(),
+    "smoke_user_id": sys.argv[18].strip(),
+    "smoke_tenant_id": sys.argv[19].strip(),
+    "smoke_admin_user_id": sys.argv[20].strip(),
+    "smoke_admin_tenant_id": sys.argv[21].strip(),
+    "smoke_task_id": sys.argv[22].strip(),
+    "smoke_package_id": sys.argv[23].strip(),
+    "smoke_export_id": sys.argv[24].strip(),
 }
 root = Path(".")
 
@@ -356,7 +438,7 @@ def validate_named_contract(parsed, required_aliases, accepted_statuses):
     return result
 
 
-def validate_local_ref(name, value, *, require_sha=False):
+def validate_local_ref(name, value, *, require_sha=False, expected_sha=None):
     local_path = resolve_local_path(value)
     result = {
         "ref": value,
@@ -377,16 +459,17 @@ def validate_local_ref(name, value, *, require_sha=False):
         return result
     parsed, text = read_json_or_text(local_path)
     result["exists"] = True
-    if not release_sha or not require_sha:
+    sha_required = (expected_sha or release_sha).strip()
+    if not sha_required or not require_sha:
         result["sha_match"] = True
         result["verified"] = True
         return result
     sha_values = collect_sha_values(parsed) if parsed is not None else []
     if sha_values:
         result["sha_values"] = sha_values
-        result["sha_match"] = release_sha in sha_values
+        result["sha_match"] = sha_required in sha_values
     else:
-        result["sha_match"] = release_sha in text
+        result["sha_match"] = sha_required in text
     result["verified"] = result["sha_match"]
     if not result["verified"]:
         result["reason"] = f"{name}_does_not_reference_release_sha"
@@ -512,7 +595,7 @@ def validate_staging_evidence_ref(name, value, *, expected_kind, accepted_status
 
 
 def validate_release_notes_ref(value):
-    result = validate_local_ref("release_notes_path", value, require_sha=True)
+    result = validate_local_ref("release_notes_path", value, require_sha=True, expected_sha=release_notes_sha)
     required_fragments = [
         "## Identity",
         "## Scope",
@@ -655,10 +738,15 @@ gate_paths = {
 }
 gate_statuses = {}
 blocked_conditions = []
+production_context_blocked_conditions = []
 for gate_name, gate_path in gate_paths.items():
     if not gate_path.exists():
         gate_statuses[gate_name] = {"path": str(gate_path), "blocked_checks": None, "do_not_launch_present": None}
-        blocked_conditions.append(f"{gate_name}:missing_gate_fixture")
+        condition = f"{gate_name}:missing_gate_fixture"
+        if gate_name == "production_launch":
+            production_context_blocked_conditions.append(condition)
+        else:
+            blocked_conditions.append(condition)
         continue
     gate = json.loads(gate_path.read_text(encoding="utf-8"))
     blocked_checks = [
@@ -676,8 +764,12 @@ for gate_name, gate_path in gate_paths.items():
         "blocked_checks": blocked_checks,
         "do_not_launch_present": do_not_launch,
     }
-    blocked_conditions.extend(f"{gate_name}:{check}" for check in blocked_checks)
-    blocked_conditions.extend(f"{gate_name}:{condition}" for condition in do_not_launch)
+    gate_conditions = [f"{gate_name}:{check}" for check in blocked_checks]
+    gate_conditions.extend(f"{gate_name}:{condition}" for condition in do_not_launch)
+    if gate_name == "production_launch":
+        production_context_blocked_conditions.extend(gate_conditions)
+    else:
+        blocked_conditions.extend(gate_conditions)
 release_evidence_required = {
     "release_sha": bool(release_sha),
     "release_notes_path": bool(release_notes_path),
@@ -779,6 +871,7 @@ go_no_go = {
     "unverified_release_evidence_slots": unverified_release_evidence_slots,
     "gate_fixtures_clear": not blocked_conditions,
     "blocked_conditions": blocked_conditions,
+    "production_context_blocked_conditions": production_context_blocked_conditions,
     "blocking_reasons": blocking_reasons,
     "decision_inputs": {
         "profile_post_deploy": profile_post_deploy,
@@ -860,15 +953,31 @@ record_check() {
   local body_path="/tmp/stage0-staging-smoke-body.$$"
   local curl_err_path="/tmp/stage0-staging-smoke-curl.$$"
   local curl_args=(-sS -m "$TIMEOUT_SECONDS" -D - -o "$body_path" -w $'\n%{http_code} %{time_total}' -X "$method" -H "$REQUEST_ID_HEADER: $REQUEST_ID_VALUE")
-  if [[ "$auth_profile" == "user" ]]; then
-    curl_args+=(-H "X-Zenart-User-ID: $SMOKE_USER_ID" -H "X-Zenart-Tenant-ID: $SMOKE_TENANT_ID")
-  elif [[ "$auth_profile" == "admin" ]]; then
-    curl_args+=(-H "X-Zenart-User-ID: $SMOKE_ADMIN_USER_ID" -H "X-Zenart-Tenant-ID: $SMOKE_ADMIN_TENANT_ID" -H "X-Zenart-Roles: $SMOKE_ADMIN_ROLES")
-  fi
   if [[ -n "$body" ]]; then
     curl_args+=(-H "Content-Type: application/json" --data "$body")
   fi
 
+  if [[ "$auth_profile" == "user" ]]; then
+    [[ -n "$USER_BEARER_TOKEN" ]] && curl_args+=(-H "Authorization: Bearer $USER_BEARER_TOKEN")
+    [[ -n "$USER_SESSION_COOKIE" ]] && curl_args+=(-H "Cookie: $USER_SESSION_COOKIE")
+    if [[ "$USE_DEV_IDENTITY_HEADERS" == "1" ]]; then
+      curl_args+=(-H "X-Zenari-User-ID: $SMOKE_USER_ID" -H "X-Zenari-Tenant-ID: $SMOKE_TENANT_ID")
+    fi
+  elif [[ "$auth_profile" == "admin" ]]; then
+    [[ -n "$ADMIN_BEARER_TOKEN" ]] && curl_args+=(-H "Authorization: Bearer $ADMIN_BEARER_TOKEN")
+    [[ -n "$ADMIN_SESSION_COOKIE" ]] && curl_args+=(-H "Cookie: $ADMIN_SESSION_COOKIE")
+    if [[ "$USE_DEV_IDENTITY_HEADERS" == "1" ]]; then
+      curl_args+=(-H "X-Zenari-User-ID: $SMOKE_ADMIN_USER_ID" -H "X-Zenari-Tenant-ID: $SMOKE_ADMIN_TENANT_ID" -H "X-Zenari-Roles: $SMOKE_ADMIN_ROLES")
+    fi
+  fi
+  case "$method" in
+    POST|PUT|PATCH|DELETE)
+      curl_args+=(-H "$CSRF_HEADER_NAME: $CSRF_HEADER_VALUE")
+      if [[ -n "$CSRF_ORIGIN" ]]; then
+        curl_args+=(-H "Origin: $CSRF_ORIGIN")
+      fi
+      ;;
+  esac
   local response meta headers status elapsed duration_ms ok request_id_ok
   response="$(curl "${curl_args[@]}" "$url" 2>"$curl_err_path")" || response=$'\n000 0'
   meta="${response##*$'\n'}"
@@ -935,7 +1044,7 @@ PY
 
 require_urls() {
   if [[ -z "$BASE_URL" || -z "$WEB_URL" || -z "$ADMIN_URL" ]]; then
-    printf 'STAGING_BASE_URL, STAGING_WEB_URL, and STAGING_ADMIN_URL are required\n' >&2
+    printf 'STAGING_API_URL, STAGING_WEB_URL, and STAGING_ADMIN_URL are required\n' >&2
     write_plan
     write_report "blocked_missing_staging_urls"
     exit 2

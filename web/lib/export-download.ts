@@ -8,13 +8,15 @@ import {
 
 export const buildExportPackageBlob = async (record: ExportRecord) => {
   if (record.format === "pdf-placeholder") {
+    const streamText =
+      "BT /F1 18 Tf 72 720 Td (zenari.ai PDF summary export) Tj 0 -28 Td (Manifest and QA are available in ZIP export.) Tj ET";
     const body = [
       "%PDF-1.4",
       "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
       "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj",
       "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >> endobj",
-      "4 0 obj << /Length 86 >> stream",
-      "BT /F1 18 Tf 72 720 Td (ZenArt PDF placeholder export) Tj 0 -28 Td (Manifest and QA are available in ZIP export.) Tj ET",
+      `4 0 obj << /Length ${streamText.length} >> stream`,
+      streamText,
       "endstream endobj",
       "xref",
       "0 5",

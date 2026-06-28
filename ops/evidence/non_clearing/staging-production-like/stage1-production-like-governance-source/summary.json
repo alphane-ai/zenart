@@ -1,0 +1,10 @@
+{
+  "abuse_evidence": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-governance-source/abuse-throttle-hold.json",
+  "activation_evidence": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-governance-source/activation-review-audit.json",
+  "does_not_clear_production_gate": true,
+  "environment": "staging_production_like",
+  "proof": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-governance-source/governance-proof.json",
+  "skill_evidence": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-governance-source/skill-release-eval-canary.json",
+  "source": "ops/evidence/non_clearing/staging-production-like/stage1-production-like-governance-source/production-governance-release-source.json",
+  "status": "pass"
+}

@@ -1,0 +1,343 @@
+name: Stage 0 Rev2 CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage0-rev2-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ZENART_ENV: local
+  PROVIDER_MODE: dev
+  CHECKOUT_PROVIDER: mock
+  STAGE0_ACCESS_MODE: local
+  DATABASE_URL: postgres://zenart:zenart@localhost:5432/zenart?sslmode=disable
+  REDIS_ADDR: localhost:6379
+  OBJECT_STORAGE_ENDPOINT: http://localhost:9000
+  OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:9000
+  OBJECT_STORAGE_BUCKET: zenart-ci
+  OBJECT_STORAGE_ACCESS_KEY: minioadmin
+  OBJECT_STORAGE_SECRET_KEY: minioadmin
+
+jobs:
+  repo-contracts:
+    name: Repo contracts and generated artifacts
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: zenart
+          POSTGRES_USER: zenart
+          POSTGRES_PASSWORD: zenart
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U zenart -d zenart"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Start MinIO service
+        run: |
+          docker run -d --name zenari-ci-minio \
+            -p 9000:9000 \
+            -e MINIO_ROOT_USER=minioadmin \
+            -e MINIO_ROOT_PASSWORD=minioadmin \
+            minio/minio:RELEASE.2025-04-22T22-12-26Z server /data
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs zenari-ci-minio
+          exit 1
+
+      - name: Validate compose and CI draft syntax
+        run: |
+          docker compose --env-file .env.example config --quiet
+          test -f .github/workflows/stage0-rev2-ci.yml
+          cmp -s ops/ci/stage0-rev2-ci.yml .github/workflows/stage0-rev2-ci.yml
+          ruby -e "require 'yaml'; %w[docker-compose.yml ops/ci/stage0-rev2-ci.yml .github/workflows/stage0-rev2-ci.yml].each { |path| YAML.safe_load(File.read(path), aliases: true, filename: path) }"
+
+      - name: Validate generated OpenAPI clients are current
+        run: python3 scripts/generate_openapi_clients.py --check
+
+      - name: Validate Stage 0 Rev2 contract evidence
+        run: python3 scripts/validate_stage0_rev2.py
+
+      - name: Backend fmt, vet, unit, integration, and build
+        working-directory: backend
+        run: |
+          test -z "$(gofmt -l $(find . -name '*.go' -not -path './vendor/*'))"
+          go test ./...
+          go vet ./...
+          go build ./cmd/server ./cmd/worker ./cmd/crawler ./cmd/migrate
+
+      - name: Web lint, typecheck, unit, and build
+        working-directory: web
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm run test
+          npm run build
+          npm run smoke:user-routes
+
+      - name: Admin lint, typecheck, unit, and build
+        working-directory: admin
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm run test
+          npm run build
+
+      - name: Script syntax validation
+        run: |
+          bash -n scripts/repo_validate.sh
+          bash -n scripts/load_smoke.sh
+          bash -n scripts/backup_restore_drill.sh
+          bash -n scripts/playwright_smoke.sh
+          bash -n scripts/docker_build_smoke.sh
+          bash -n scripts/staging_smoke.sh
+          bash -n scripts/observability_smoke.sh
+          bash -n scripts/staging_observability_backup_load_smoke.sh
+          bash -n scripts/staging_object_storage_signed_url_smoke.sh
+          bash -n scripts/staging_object_storage_retention_cleanup_smoke.sh
+          bash -n scripts/staging_legal_support_visibility_smoke.sh
+          bash -n scripts/security_scan_smoke.sh
+          DRY_RUN=1 scripts/playwright_smoke.sh
+          DRY_RUN=1 scripts/docker_build_smoke.sh
+          DRY_RUN=1 scripts/staging_smoke.sh
+          DRY_RUN=1 scripts/observability_smoke.sh
+          DRY_RUN=1 scripts/staging_observability_backup_load_smoke.sh || test "$?" = 2
+          RELEASE_SHA=d3b1107c33dc40b8936f28549e06553fbd7b104a RUN_ID=ci-object-storage-signed-url scripts/staging_object_storage_signed_url_smoke.sh
+          DRY_RUN=1 OUT_DIR="$(mktemp -d)" scripts/staging_object_storage_retention_cleanup_smoke.sh || test "$?" = 2
+          DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh || test "$?" = 2
+          DRY_RUN=1 scripts/security_scan_smoke.sh
+
+      - name: Secret scan smoke
+        run: SECRET_SCAN_ONLY=1 scripts/security_scan_smoke.sh
+
+      - name: Write PR/main exact CI evidence
+        run: |
+          python3 scripts/write_stage1_ci_pr_main_evidence.py \
+            --output ops/evidence/ci/stage0-rev2-pr-main-run.json
+
+      - name: Upload PR/main exact CI evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage0-rev2-pr-main-run
+          path: ops/evidence/ci/stage0-rev2-pr-main-run.json
+
+  docker-images:
+    name: Docker image build exact evidence
+    runs-on: ubuntu-latest
+    needs: repo-contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build SHA-tagged images and write exact CI evidence
+        run: |
+          set -euo pipefail
+          rm -rf ops/evidence/ci/docker-image-build-run
+          GIT_SHA="${GITHUB_SHA}" IMAGE_PREFIX=ghcr.io/alphane-ai/zenari OUT_DIR=ops/evidence/ci/docker-image-build-run scripts/docker_build_smoke.sh | tee /tmp/zenari-docker-build.out
+          DOCKER_REPORT="$(awk '/evidence written to / {print $NF}' /tmp/zenari-docker-build.out | tail -n 1)"
+          test -n "$DOCKER_REPORT"
+          python3 scripts/write_stage1_ci_docker_evidence.py \
+            --source "$DOCKER_REPORT" \
+            --output ops/evidence/ci/stage0-rev2-docker-image-build.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = Path("ops/evidence/ci/stage0-rev2-docker-image-build.json")
+          data = json.loads(report.read_text())
+          assert data["schema_version"] == "stage1.ci_docker_image_build.v1"
+          assert set(data["images"]) == {"web", "admin", "backend"}
+          assert all(row["digest"].startswith("sha256:") for row in data["images"].values())
+          PY
+
+      - name: Upload Docker exact CI evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage0-rev2-docker-image-build
+          path: |
+            ops/evidence/ci/stage0-rev2-docker-image-build.json
+            ops/evidence/ci/docker-image-build-run/
+
+  playwright-smoke:
+    name: Playwright smoke exact evidence
+    runs-on: ubuntu-latest
+    needs: repo-contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install web/admin dependencies and browser
+        run: |
+          (cd web && npm ci)
+          (cd admin && npm ci)
+          (cd web && npx playwright install --with-deps chromium)
+
+      - name: Start web and admin smoke servers
+        run: |
+          mkdir -p tmp/ci-playwright
+          (cd web && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:31080 npx next dev --hostname 127.0.0.1 --port 26080 >../tmp/ci-playwright/web.log 2>&1) &
+          echo $! >tmp/ci-playwright/web.pid
+          (cd admin && NEXT_PUBLIC_ADMIN_API_BASE_URL=http://127.0.0.1:31080 npx next dev --hostname 127.0.0.1 --port 26081 >../tmp/ci-playwright/admin.log 2>&1) &
+          echo $! >tmp/ci-playwright/admin.pid
+          for url in http://127.0.0.1:26080 http://127.0.0.1:26081; do
+            for attempt in $(seq 1 60); do
+              if curl -fsS "$url" >/dev/null; then
+                break
+              fi
+              if [ "$attempt" = 60 ]; then
+                printf 'Timed out waiting for %s\n' "$url" >&2
+                cat tmp/ci-playwright/web.log tmp/ci-playwright/admin.log >&2 || true
+                exit 1
+              fi
+              sleep 2
+            done
+          done
+
+      - name: Run Playwright smoke wrapper
+        run: |
+          set -euo pipefail
+          rm -rf ops/evidence/ci/playwright-smoke-run
+          OUT_DIR=ops/evidence/ci/playwright-smoke-run WEB_URL=http://127.0.0.1:26080 ADMIN_URL=http://127.0.0.1:26081 scripts/playwright_smoke.sh | tee /tmp/zenari-playwright-smoke.out
+          PLAYWRIGHT_REPORT="$(awk '/evidence written to / {print $NF}' /tmp/zenari-playwright-smoke.out | tail -n 1)"
+          test -n "$PLAYWRIGHT_REPORT"
+          python3 scripts/write_stage1_ci_playwright_evidence.py \
+            --source "$PLAYWRIGHT_REPORT" \
+            --output ops/evidence/ci/stage0-rev2-playwright-smoke.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = Path("ops/evidence/ci/stage0-rev2-playwright-smoke.json")
+          data = json.loads(report.read_text())
+          assert data["schema_version"] == "stage1.ci_playwright_smoke.v1"
+          assert data["coverage"]["billing"]["status"] == "pass"
+          assert data["coverage"]["workspace"]["status"] == "pass"
+          PY
+
+      - name: Upload Playwright exact CI evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage0-rev2-playwright-smoke
+          path: |
+            ops/evidence/ci/stage0-rev2-playwright-smoke.json
+            ops/evidence/ci/playwright-smoke-run/
+
+  ci-exact-evidence:
+    name: CI exact evidence aggregate validation
+    runs-on: ubuntu-latest
+    needs:
+      - repo-contracts
+      - docker-images
+      - playwright-smoke
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/zenari-ci-artifacts
+
+      - name: Validate exact CI evidence artifacts together
+        run: |
+          set -euo pipefail
+          mkdir -p ops/evidence/ci
+          copy_artifact() {
+            local artifact="$1"
+            local file="$2"
+            local source
+            source="$(find "/tmp/zenari-ci-artifacts/${artifact}" -type f -name "${file}" | head -n 1)"
+            test -n "${source}"
+            cp "${source}" "ops/evidence/ci/${file}"
+          }
+          copy_artifact stage0-rev2-pr-main-run stage0-rev2-pr-main-run.json
+          copy_artifact stage0-rev2-docker-image-build stage0-rev2-docker-image-build.json
+          copy_artifact stage0-rev2-playwright-smoke stage0-rev2-playwright-smoke.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          expected = {
+              "stage0-rev2-pr-main-run.json": "stage1.ci_pr_main_run.v1",
+              "stage0-rev2-docker-image-build.json": "stage1.ci_docker_image_build.v1",
+              "stage0-rev2-playwright-smoke.json": "stage1.ci_playwright_smoke.v1",
+          }
+          release_shas = set()
+          for filename, schema in expected.items():
+              data = json.loads(Path("ops/evidence/ci", filename).read_text())
+              assert data["schema_version"] == schema
+              assert data["environment"] == "ci"
+              assert data["status"] == "pass"
+              assert data["canonical_pass_path"] is True
+              release_shas.add(data["release_sha"])
+          assert len(release_shas) == 1
+          PY
+
+      - name: Upload CI exact evidence aggregate
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage1-ci-exact-evidence-aggregate
+          path: |
+            ops/evidence/ci/stage0-rev2-pr-main-run.json
+            ops/evidence/ci/stage0-rev2-playwright-smoke.json
+            ops/evidence/ci/stage0-rev2-docker-image-build.json
+
+  smoke-placeholders:
+    name: Deferred smoke gates
+    runs-on: ubuntu-latest
+    needs: repo-contracts
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Record installed workflow and deferred runtime smoke
+        run: |
+          test -f ops/evidence/stage0_environment_evidence.json
+          test -f .github/workflows/stage0-rev2-ci.yml
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path("ops/evidence/stage0_environment_evidence.json").read_text())
+          installed = [item for item in data["open_items"] if item["id"] == "install_github_actions_workflow"]
+          assert installed and installed[0]["status"] == "installed"
+          deferred = {item["id"] for item in data["open_items"]}
+          assert "playwright_smoke" in deferred
+          assert "runtime_load_drills" in deferred
+          PY

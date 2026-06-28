@@ -1,8 +1,143 @@
-# Stage 0 Rev2 Staging Deploy Draft
+# Stage 0 Rev2 / Stage 1 Staging Deploy Draft
 
-Authoritative source: `Docs/stage0_blueprint_rev2.md`.
+Authoritative sources: `Docs/stage0_blueprint_rev2.md` and `Docs/Stage1_20260621_blueprint.md`.
 
 This is an operations draft only. Private beta and production gates remain open until a release owner promotes SHA-tagged images into a real staging environment with production-like Postgres, Redis, object storage, observability, backups, and rollback controls.
+
+## Azure VM Bootstrap
+
+Current Stage 1 staging uses an Azure VM as the runtime host and Cloudflare R2 only as object storage. The VM target is configured through ignored local `.env` values:
+
+- `STAGING_SSH_TARGET`
+- `STAGING_SSH_KEY`
+- `STAGING_REMOTE_DIR`
+- `STAGING_API_URL`
+- `STAGING_WEB_URL`
+- `STAGING_ADMIN_URL`
+
+Before deploy, verify SSH and remote runtime tooling:
+
+```bash
+scripts/azure_staging_ssh_preflight.sh
+```
+
+If TCP 22 is reachable but the preflight reports `ssh_auth=failed`, check the
+failure reason before trying password repair. For `ssh_connect_timeout`,
+`ssh_server_not_responding`, or `ssh_auth_hard_timeout`, the VM accepted the TCP
+connection but SSH did not complete banner/auth. First generate the Run Command
+payload:
+
+```bash
+scripts/azure_staging_run_command_payload.sh --output /tmp/zenari-azure-run-command-ssh-repair.sh
+```
+
+The generated file is a paste-ready VM-internal script. It checks sshd status,
+recent ssh logs, VM resource pressure, port 22 listeners, Linux user state, sudo
+policy, `authorized_keys`, `ssh.socket`, `sshd -t`, `/run/sshd`, OpenSSH server
+installation, UFW/iptables/nft firewall summaries, Azure Linux Agent logs, and
+cloud-init logs, then reloads sshd. It contains the local public key only and
+must not contain `STAGING_SSH_PASSWORD`.
+
+This must be repaired inside the VM, not in Azure Cloud Shell. In Azure Portal,
+open:
+
+```text
+Virtual machines -> target VM -> Run command -> RunShellScript
+```
+
+Paste the contents of `/tmp/zenari-azure-run-command-ssh-repair.sh` into that
+RunShellScript form. After Azure finishes, keep these non-secret output sections
+for diagnosis and rerun `scripts/azure_staging_ssh_preflight.sh` locally:
+
+```text
+zenari_azure_run_command_payload=ssh_repair_v1
+ssh_service_status
+ssh_socket_status
+sshd_config_test_before
+sshd_config_test_after
+firewall_summary
+azure_agent_recent_logs
+cloud_init_recent_logs
+ssh_recent_logs
+listening_ssh
+listening_ssh_after
+zenari_azure_run_command_payload=complete
+```
+
+If this workstation has Azure CLI installed, is logged in, and the ignored local
+environment contains `AZURE_RESOURCE_GROUP` and `AZURE_VM_NAME`, the same payload
+can be invoked without the portal:
+
+```bash
+scripts/azure_staging_cli_preflight.sh
+RUN_AZURE_STAGING_RUN_COMMAND=1 scripts/azure_staging_run_command_invoke.sh
+```
+
+The optional local Azure CLI target variables are:
+
+```text
+AZURE_SUBSCRIPTION_ID=
+AZURE_TENANT_ID=
+AZURE_RESOURCE_GROUP=
+AZURE_VM_NAME=
+```
+
+Only `AZURE_RESOURCE_GROUP` and `AZURE_VM_NAME` are required when the VM is
+known. `AZURE_SUBSCRIPTION_ID` and `AZURE_TENANT_ID` are optional operator
+disambiguation fields. Keep these in the ignored local `.env`; `.env.example`
+must list them blank and must not contain Azure tokens.
+
+If `AZURE_RESOURCE_GROUP` and `AZURE_VM_NAME` are missing, the preflight tries to
+discover the VM by public IP `52.237.80.117`. The invoke wrapper refuses to run
+unless `RUN_AZURE_STAGING_RUN_COMMAND=1` is set.
+
+If SSH reaches auth but the key is still rejected, and only then, set
+`STAGING_SSH_PASSWORD` in the ignored local `.env` and run:
+
+```bash
+scripts/azure_staging_password_key_repair.sh
+```
+
+If repairing manually, append the public key printed by the preflight to the
+user's `authorized_keys`:
+
+```bash
+USER_NAME="<vm-linux-user>"
+PUBKEY="ssh-ed25519 <public-key-body> <comment>"
+
+sudo install -d -m 700 -o "$USER_NAME" -g "$USER_NAME" "/home/$USER_NAME/.ssh"
+printf '%s\n' "$PUBKEY" | sudo tee -a "/home/$USER_NAME/.ssh/authorized_keys" >/dev/null
+sudo chown "$USER_NAME:$USER_NAME" "/home/$USER_NAME/.ssh/authorized_keys"
+sudo chmod 600 "/home/$USER_NAME/.ssh/authorized_keys"
+```
+
+Use the actual Linux username you want Codex to SSH as and update `STAGING_SSH_TARGET` in the ignored local `.env` to match, for example `mac@<staging-ip>`.
+
+When SSH is authorized, bootstrap the VM runtime prerequisites:
+
+```bash
+scripts/azure_staging_bootstrap.sh
+```
+
+The bootstrap script verifies passwordless sudo, installs Docker and the Docker
+Compose plugin when missing, starts Docker, prepares `${STAGING_REMOTE_DIR:-/opt/zenari}/current`,
+and reports whether Docker is available to the login user or through sudo.
+
+Then deploy the current repo snapshot and ignored staging `.env` to the VM:
+
+```bash
+scripts/azure_staging_deploy.sh
+```
+
+The deploy script runs the bootstrap first, syncs the repository to `${STAGING_REMOTE_DIR:-/opt/zenari}/current`, copies the ignored `.env` to the remote release directory, starts `docker compose --profile frontend up -d --build`, runs `/app/migrate`, and checks `/healthz` through `STAGING_API_URL` when configured.
+
+The current staging admin smoke path does not require a production bearer token. Stage 1 staging can use local admin session bootstrap against the seeded admin identity:
+
+- email: `admin@zenari.ai`
+- user id: `user_local_admin`
+- tenant id: `tenant_local`
+
+That bootstrap is staging-only and must not be treated as production launch authentication.
 
 ## Preconditions
 
@@ -18,7 +153,7 @@ This is an operations draft only. Private beta and production gates remain open 
 1. Record the release SHA, image tags, migration list, config diff, feature flag diff, owner, rollback SHA, and expected smoke command in release notes.
 2. Drain or pause worker intake before migrations when a schema compatibility note requires it.
 3. Run forward-only migrations against staging.
-4. Deploy the SHA-tagged backend, worker, crawler, web, and admin images.
+4. Deploy the SHA-tagged backend, web, and admin release images. Start worker and crawler only as backend runtime entrypoints that reuse the backend image; do not publish them as standalone release images.
 5. Produce validator-resolvable staging JSON evidence for migration, config diff, observability, backup/restore, load, rollback, and security. Each evidence file must reference the release SHA, set `environment=staging`, set the required `kind`, and record an accepted pass/review status.
    - Observability evidence must include request-id propagation, structured JSON logs, OpenTelemetry traces, backend/worker/crawler metrics, dashboard import, and alert routes. Each entry must carry a trace, query, dashboard, alert, report, or evidence reference.
    - Backup/restore evidence must include both Postgres restore and exported package/object restore drill entries with report references.

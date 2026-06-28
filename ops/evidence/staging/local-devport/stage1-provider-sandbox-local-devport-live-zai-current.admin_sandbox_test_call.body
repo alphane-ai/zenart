@@ -1,0 +1,63 @@
+{
+  "id": "provider-test-02aac8daf98defc5",
+  "provider_id": "zenari-image-sandbox",
+  "model_id": "glm-4.5",
+  "tool_type": "generate",
+  "status": "succeeded",
+  "mode": "sandbox",
+  "capability": {
+    "provider_id": "zenari-image-sandbox",
+    "model_id": "glm-4.5",
+    "endpoints": [
+      "image.generate"
+    ],
+    "input_types": [
+      "prompt"
+    ],
+    "output_types": [
+      "image"
+    ],
+    "tool_types": [
+      "generate"
+    ],
+    "max_cost_units": 8,
+    "cost_currency": "USD",
+    "estimated_cost_cents": 12,
+    "supports_batch": true,
+    "max_batch_size": 20,
+    "supports_seed": true,
+    "supports_cancel": true,
+    "supported_aspect_ratios": [
+      "1:1",
+      "16:9",
+      "9:16"
+    ],
+    "supported_qualities": [
+      "draft",
+      "standard",
+      "high"
+    ]
+  },
+  "secret_ref": "secrets/provider/zenari-image-sandbox",
+  "secret_present": true,
+  "asset_persisted": false,
+  "user_visible": false,
+  "trace_id": "trace_provider_test_005c02c20442caa1",
+  "latency_ms": 420,
+  "estimated_cost_cents": 12,
+  "output_preview": {
+    "kind": "sandbox_preview",
+    "message": "sandbox test call validated provider capability without persisting user assets",
+    "prompt_hash": "7b6021c27145f530"
+  },
+  "routing_snapshot": {
+    "weight": 100,
+    "canary_percent": 0,
+    "max_concurrency": 4,
+    "fallback_provider_ids": [
+      "dev"
+    ],
+    "kill_switch": false
+  },
+  "created_at": "2026-06-22T21:50:54.520338Z"
+}
