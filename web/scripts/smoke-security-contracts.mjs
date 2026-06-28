@@ -75,7 +75,7 @@ if (
 if (
   generatedApiCsrfContract.status !== "pass" ||
   generatedApiCsrfContract.credentialMode !== "include" ||
-  generatedApiCsrfContract.csrfHeaderName !== "X-ZenArt-CSRF" ||
+  generatedApiCsrfContract.csrfHeaderName !== "X-Zenari-CSRF" ||
   generatedApiCsrfContract.csrfHeaderValue !== "same-site-origin-check" ||
   generatedApiCsrfContract.sameSiteRequirement !== "lax-or-strict" ||
   generatedApiCsrfContract.originPolicy !== "same-site-only" ||
@@ -109,9 +109,15 @@ const probePathParams = {
   chat_session_id: "chat-001",
   workspace_id: "workspace-001",
   task_id: "task-001",
+  batch_id: "batch-001",
+  child_id: "child-001",
   candidate_set_id: "candidate-set-001",
+  entry_id: "entry-001",
+  brand_kit_id: "brand-kit-001",
   package_id: "pkg-001",
-  export_id: "export-001"
+  export_id: "export-001",
+  team_id: "team-001",
+  invite_id: "invite-001"
 };
 const interpolateProbePath = (operationPath) =>
   operationPath.replace(/\{([^}]+)\}/g, (_match, key) => probePathParams[key] ?? "missing");
@@ -177,7 +183,7 @@ for (const contract of generatedApiCsrfContract.unsafeRequestContracts) {
     operation.path !== contract.path ||
     operation.idempotencyRequired !== contract.idempotencyHeaderRequired ||
     contract.credentials !== "include" ||
-    contract.csrfHeaderName !== "X-ZenArt-CSRF" ||
+    contract.csrfHeaderName !== "X-Zenari-CSRF" ||
     contract.csrfHeaderValue !== "same-site-origin-check"
   ) {
     fail(`unsafe request contract drifted for ${contract.operationId}`);
@@ -211,13 +217,13 @@ for (const requiredGeneratedClientSnippet of [
 
 for (const requiredRequestSecuritySnippet of [
   "same-site-origin-check",
-  "X-ZenArt-CSRF",
+  "X-Zenari-CSRF",
   "credentialMode: \"include\"",
   "originPolicy: \"same-site-only\"",
   "csrfProtectedMethods",
   "buildCsrfRequestHeaders",
   "stripCsrfHeaderAliases",
-  "headerName.toLowerCase() !== contract.headerName.toLowerCase()",
+  "normalized !== contract.headerName.toLowerCase()",
   "buildSessionSecurityContractEvidence",
   "buildGeneratedApiCsrfRequestContractEvidence",
   "cookieFailureReasons",
@@ -231,7 +237,7 @@ for (const requiredRequestSecuritySnippet of [
 }
 
 for (const requiredSessionSnippet of [
-  "__Host-zenart_session",
+  "__Host-zenari_session",
   "httpOnly: true",
   "secure: true",
   "sameSite: \"lax\"",
@@ -252,6 +258,15 @@ const generatedClientEvidence = securityEvidenceBySchema.get("stage0.rev2.genera
 if (!sessionEvidence || !generatedClientEvidence) {
   fail("user route smoke artifact is missing session or generated-client CSRF evidence");
 }
+
+const expectedGuardCount = sessionEvidence.unsafeActionGuard?.expectedGuardCount;
+const expectedExpiredBlockedControlCount = sessionEvidence.unsafeActionGuard?.expectedExpiredBlockedControlCount;
+const expectedSignedOutBlockedControlCount =
+  sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedSignedOutBlockedCount;
+const expectedSessionMatrixContract =
+  `authenticated:enabled=${expectedGuardCount}:blocked=0:recovery=none:alert=none|` +
+  `expired:enabled=1:blocked=${expectedExpiredBlockedControlCount}:recovery=Refresh Session:alert=Session expired. Refresh or sign in to continue.|` +
+  `signed_out:enabled=0:blocked=${expectedSignedOutBlockedControlCount}:recovery=none:alert=Signed out. Sign in to continue.`;
 
 if (
   sessionSecurityBrowserContract.cookieContract?.schemaVersion !== sessionEvidence.schemaVersion ||
@@ -414,15 +429,15 @@ for (const assertion of sessionSecurityBrowserContract.assertions ?? []) {
 if (
   sessionEvidence.route !== "/account" ||
   sessionEvidence.expectedStatus !== "pass" ||
-  sessionEvidence.cookie?.name !== "__Host-zenart_session" ||
+  sessionEvidence.cookie?.name !== "__Host-zenari_session" ||
   sessionEvidence.cookie?.expectedHttpOnly !== "true" ||
   sessionEvidence.cookie?.expectedSecure !== "true" ||
   sessionEvidence.cookie?.expectedSameSite !== "lax" ||
   sessionEvidence.cookie?.expectedPath !== "/" ||
   sessionEvidence.cookie?.expectedDomain !== "" ||
   sessionEvidence.cookie?.expectedHostOnly !== "true" ||
-  sessionEvidence.cookie?.expectedSetCookieContract !== "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly" ||
-  sessionEvidence.csrf?.expectedHeader !== "X-ZenArt-CSRF" ||
+  sessionEvidence.cookie?.expectedSetCookieContract !== "__Host-zenari_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly" ||
+  sessionEvidence.csrf?.expectedHeader !== "X-Zenari-CSRF" ||
   sessionEvidence.csrf?.expectedStrategy !== "same-site-origin-check" ||
   sessionEvidence.csrf?.expectedCredentialMode !== "include" ||
   sessionEvidence.csrf?.expectedSameSiteRequirement !== "lax-or-strict" ||
@@ -581,15 +596,15 @@ if (
 if (
   sessionEvidence.backendRuntimePairing?.expectedStatus !== "pass" ||
   !sessionEvidence.backendRuntimePairing?.expectedDigest?.startsWith(
-    "secure-cookie-same-site-csrf-runtime||__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly||POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict||"
+    "secure-cookie-same-site-csrf-runtime||__Host-zenari_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly||POST,PUT,PATCH,DELETE:X-Zenari-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict||"
   ) ||
   !sessionEvidence.backendRuntimePairing?.expectedDigest?.includes(
-    "createUpload:POST:/uploads:include:X-ZenArt-CSRF:same-site-origin-check:true"
+    "createUpload:POST:/uploads:include:X-Zenari-CSRF:same-site-origin-check:true"
   ) ||
   !sessionEvidence.backendRuntimePairing?.expectedDigest?.endsWith("||missing=none||cookie-failures=none||csrf-failures=none") ||
-  sessionEvidence.backendRuntimePairing?.expectedSetCookieContract !== "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly" ||
+  sessionEvidence.backendRuntimePairing?.expectedSetCookieContract !== "__Host-zenari_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly" ||
   sessionEvidence.backendRuntimePairing?.expectedCsrfValidationContract !==
-    "POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict" ||
+    "POST,PUT,PATCH,DELETE:X-Zenari-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict" ||
   sessionEvidence.backendRuntimePairing?.expectedUnsafeRequestContractCount !== String(generatedApiCsrfContract.unsafeOperationCount) ||
   sessionEvidence.backendRuntimePairing?.expectedMissingUnsafeOperationCount !== String(generatedApiCsrfContract.missingUnsafeOperationCount) ||
   sessionEvidence.backendRuntimePairing?.expectedCookieFailureCount !== "0" ||
@@ -713,7 +728,7 @@ if (
   canonicalHeaderGuard?.failureCount !== 0 ||
   canonicalHeaderGuard?.unitTest !== "web/lib/request-security.test.ts" ||
   canonicalHeaderGuard?.generatedClientUnitTest !== "web/lib/generated/zenart-api.test.ts" ||
-  !canonicalHeaderGuard?.rejectedCallerAliases?.includes("x-zenart-csrf") ||
+  !canonicalHeaderGuard?.rejectedCallerAliases?.includes("x-zenari-csrf") ||
   !canonicalHeaderGuard?.assertion?.includes("strips caller-supplied CSRF header aliases")
 ) {
   fail("generated API CSRF artifact missing canonical header alias stripping guard evidence");
@@ -863,7 +878,7 @@ for (const requiredMethodCoverageSnippet of [
 }
 
 for (const expectedAssertion of [
-  "Generated web API client strips caller-supplied CSRF header aliases before applying one canonical X-ZenArt-CSRF header.",
+  "Generated web API client strips caller-supplied CSRF header aliases before applying one canonical X-Zenari-CSRF header.",
   "Generated web API client strips caller-supplied CSRF header aliases from safe requests."
 ]) {
   if (!generatedApiCsrfContract.assertions?.includes(expectedAssertion)) {
@@ -873,7 +888,7 @@ for (const expectedAssertion of [
 
 for (const requiredCanonicalHeaderSnippet of [
   "stripCsrfHeaderAliases",
-  "headerName.toLowerCase() !== contract.headerName.toLowerCase()",
+  "normalized !== contract.headerName.toLowerCase()",
   "const sanitizedHeaders = stripCsrfHeaderAliases(headers, contract)",
   "...sanitizedHeaders"
 ]) {
@@ -935,7 +950,7 @@ for (const requiredControlSnippet of [
   "isCsrfProtectedMethod(operation.method)",
   "runGeneratedClientCsrfBrowserProbe",
   "const baseUrl = \"/api/probe\"",
-  "new ZenArtApiClient(baseUrl)",
+  "new ZenariApiClient(baseUrl)",
   "data-generated-api-csrf-browser-probe",
   "data-generated-api-csrf-browser-probe-status",
   "data-generated-api-csrf-browser-probe-base-url",
@@ -1005,27 +1020,26 @@ if (
   sessionStateMatrix?.schemaVersion !== "stage0.rev2.csrf-same-site-session-state-ux-matrix" ||
   sessionStateMatrix?.expectedStatus !== "pass" ||
   sessionStateMatrix?.expectedStates !== "authenticated,expired,signed_out" ||
-  sessionStateMatrix?.expectedContract !==
-    "authenticated:enabled=19:blocked=0:recovery=none:alert=none|expired:enabled=1:blocked=18:recovery=Refresh Session:alert=Session expired. Refresh or sign in to continue.|signed_out:enabled=0:blocked=19:recovery=none:alert=Signed out. Sign in to continue." ||
-  sessionStateMatrix?.expectedAuthenticatedEnabledCount !== "19" ||
+  sessionStateMatrix?.expectedContract !== expectedSessionMatrixContract ||
+  sessionStateMatrix?.expectedAuthenticatedEnabledCount !== expectedGuardCount ||
   sessionStateMatrix?.expectedAuthenticatedBlockedCount !== "0" ||
   sessionStateMatrix?.expectedExpiredEnabledCount !== "1" ||
-  sessionStateMatrix?.expectedExpiredBlockedCount !== "18" ||
+  sessionStateMatrix?.expectedExpiredBlockedCount !== expectedExpiredBlockedControlCount ||
   sessionStateMatrix?.expectedExpiredRecoveryLabels !== "Refresh Session" ||
   sessionStateMatrix?.expectedExpiredAlert !== "Session expired. Refresh or sign in to continue." ||
   sessionStateMatrix?.expectedSignedOutEnabledCount !== "0" ||
-  sessionStateMatrix?.expectedSignedOutBlockedCount !== "19" ||
+  sessionStateMatrix?.expectedSignedOutBlockedCount !== expectedSignedOutBlockedControlCount ||
   sessionStateMatrix?.expectedSignedOutRecoveryLabels !== "" ||
   sessionStateMatrix?.expectedSignedOutAlert !== "Signed out. Sign in to continue." ||
   sessionStateMatrix?.expectedTransitionContract !== "stage0.rev2.csrf-same-site-session-transition-ux" ||
   sessionStateMatrix?.expectedTransitionStatus !== "pass" ||
   sessionStateMatrix?.expectedTransitionCount !== "5" ||
-  !sessionStateMatrix?.expectedTransitionDigest?.includes("authenticated->expired:Expire Session:enabled=1:blocked=18:recovery=Refresh Session") ||
-  !sessionStateMatrix?.expectedTransitionDigest?.includes("authenticated->signed_out:Log Out:enabled=0:blocked=19:recovery=none") ||
+  !sessionStateMatrix?.expectedTransitionDigest?.includes(`authenticated->expired:Expire Session:enabled=1:blocked=${expectedExpiredBlockedControlCount}:recovery=Refresh Session`) ||
+  !sessionStateMatrix?.expectedTransitionDigest?.includes(`authenticated->signed_out:Log Out:enabled=0:blocked=${expectedSignedOutBlockedControlCount}:recovery=none`) ||
   sessionStateMatrix?.expectedTransitionExpiredRecoveryStatus !== "pass" ||
   sessionStateMatrix?.expectedTransitionSignedOutBlockStatus !== "pass" ||
   sessionStateMatrix?.expectedTransitionRequiredRecoveryAction !== "Refresh Session" ||
-  sessionStateMatrix?.expectedTransitionSignedOutBlockedCount !== "19"
+  sessionStateMatrix?.expectedTransitionSignedOutBlockedCount !== expectedSignedOutBlockedControlCount
 ) {
   fail("session UX matrix evidence must cover authenticated, expired, and signed-out same-site guard states");
 }
@@ -1200,33 +1214,34 @@ for (const requiredBrowserSnippet of [
 }
 
 if (
-  sessionEvidence.unsafeActionGuard?.expectedExpiredBlockedControlCount !== "18" ||
+  sessionEvidence.unsafeActionGuard?.expectedExpiredBlockedControlCount !== expectedExpiredBlockedControlCount ||
   sessionEvidence.unsafeActionGuard?.expectedExpiredRecoveryLabels !== "Refresh Session" ||
   !workspaceAppSource.includes("expiredSessionRecoveryActionLabels") ||
   !workspaceAppSource.includes("buildUnsafeActionControlSessionMatrix") ||
   !workspaceAppSource.includes("isExpiredSessionRecoveryAction") ||
   !workspaceAppSource.includes("generatedApiCsrfInventory.unsafeRequestContracts") ||
-  !workspaceSmokeTestSource.includes("data-generated-api-csrf-browser-probe-unsafe-operation-count\", \"15\"") ||
-  !workspaceSmokeTestSource.includes("data-generated-api-csrf-browser-probe-safe-operation-count\", \"17\"") ||
-  !sessionSecurityPlaywrightSpecSource.includes("data-generated-api-csrf-browser-probe-unsafe-operation-count\", \"15\"") ||
-  !sessionSecurityPlaywrightSpecSource.includes("data-generated-api-csrf-browser-probe-unsafe-credentialed-request-count\", \"15\"") ||
-  !sessionSecurityPlaywrightSpecSource.includes("data-generated-api-csrf-browser-probe-unsafe-csrf-header-count\", \"15\"") ||
-  !sessionSecurityPlaywrightSpecSource.includes("data-generated-api-csrf-browser-probe-unsafe-idempotency-header-count\", \"14\"") ||
-  !sessionSecurityPlaywrightSpecSource.includes("data-generated-api-csrf-browser-probe-safe-operation-count\", \"17\"") ||
-  !sessionSecurityPlaywrightSpecSource.includes("data-generated-api-csrf-browser-probe-safe-credentialed-request-count\", \"17\"") ||
-  !sessionSecurityPlaywrightSpecSource.includes("data-generated-api-csrf-browser-probe-safe-no-csrf-header-count\", \"17\"") ||
+  !workspaceSmokeTestSource.includes(`data-generated-api-csrf-browser-probe-unsafe-operation-count", "${generatedApiCsrfContract.unsafeOperationCount}"`) ||
+  !workspaceSmokeTestSource.includes(`data-generated-api-csrf-browser-probe-safe-operation-count", "${generatedApiCsrfContract.safeOperationCount}"`) ||
+  !sessionSecurityPlaywrightSpecSource.includes(`data-generated-api-csrf-browser-probe-unsafe-operation-count", "${generatedApiCsrfContract.unsafeOperationCount}"`) ||
+  !sessionSecurityPlaywrightSpecSource.includes(`data-generated-api-csrf-browser-probe-unsafe-credentialed-request-count", "${generatedApiCsrfContract.unsafeOperationCount}"`) ||
+  !sessionSecurityPlaywrightSpecSource.includes(`data-generated-api-csrf-browser-probe-unsafe-csrf-header-count", "${generatedApiCsrfContract.unsafeOperationCount}"`) ||
+  !sessionSecurityPlaywrightSpecSource.includes(`data-generated-api-csrf-browser-probe-unsafe-idempotency-header-count", "${generatedIdempotentUnsafeRequestCount}"`) ||
+  !sessionSecurityPlaywrightSpecSource.includes(`data-generated-api-csrf-browser-probe-safe-operation-count", "${generatedApiCsrfContract.safeOperationCount}"`) ||
+  !sessionSecurityPlaywrightSpecSource.includes(`data-generated-api-csrf-browser-probe-safe-credentialed-request-count", "${generatedApiCsrfContract.safeOperationCount}"`) ||
+  !sessionSecurityPlaywrightSpecSource.includes(`data-generated-api-csrf-browser-probe-safe-no-csrf-header-count", "${generatedApiCsrfContract.safeOperationCount}"`) ||
   !workspaceSmokeTestSource.includes(expectedUiSafeRequestContracts[0]) ||
   !workspaceSmokeTestSource.includes(expectedUiSafeRequestContracts.at(-1)) ||
   !sessionSecurityPlaywrightSpecSource.includes(expectedUiSafeRequestContracts[0]) ||
   !sessionSecurityPlaywrightSpecSource.includes(expectedUiSafeRequestContracts.at(-1)) ||
   !sessionSecurityPlaywrightSpecSource.includes("getSubscription:GET:include:not-required") ||
+  !sessionSecurityPlaywrightSpecSource.includes("csrf-probe-createCheckoutSession") ||
   !sessionSecurityPlaywrightSpecSource.includes("csrf-probe-createSupportTicket") ||
-  !workspaceSmokeTestSource.includes("data-session-unsafe-action-blocked-control-count\", \"18\"") ||
-  !workspaceSmokeTestSource.includes("data-session-unsafe-action-blocked-control-count\", \"19\"") ||
+  !workspaceSmokeTestSource.includes(`data-session-unsafe-action-blocked-control-count", "${expectedExpiredBlockedControlCount}"`) ||
+  !workspaceSmokeTestSource.includes(`data-session-unsafe-action-blocked-control-count", "${expectedSignedOutBlockedControlCount}"`) ||
   !workspaceSmokeTestSource.includes("data-session-ux-state-matrix-contract") ||
   !workspaceSmokeTestSource.includes("data-session-ux-transition-digest") ||
-  !workspaceSmokeTestSource.includes("authenticated->expired:Expire Session:enabled=1:blocked=18:recovery=Refresh Session") ||
-  !workspaceSmokeTestSource.includes("authenticated->signed_out:Log Out:enabled=0:blocked=19:recovery=none") ||
+  !workspaceSmokeTestSource.includes(`authenticated->expired:Expire Session:enabled=1:blocked=${expectedExpiredBlockedControlCount}:recovery=Refresh Session`) ||
+  !workspaceSmokeTestSource.includes(`authenticated->signed_out:Log Out:enabled=0:blocked=${expectedSignedOutBlockedControlCount}:recovery=none`) ||
   !workspaceSmokeTestSource.includes("data-session-ux-state-current\", \"signed_out\"") ||
   !workspaceSmokeTestSource.includes("authenticated:enabled:none|expired:blocked:authenticated-session-required|signed_out:blocked:authenticated-session-required") ||
   !workspaceSmokeTestSource.includes("authenticated:enabled:none|expired:enabled:none|signed_out:blocked:authenticated-session-required") ||
@@ -1236,12 +1251,12 @@ if (
   !workspaceSmokeTestSource.includes("expect(screen.getByRole(\"button\", { name: \"Refresh Session\" })).not.toBeDisabled()") ||
   !workspaceSmokeTestSource.includes("expect(screen.getByRole(\"button\", { name: \"Refresh Session\" })).toBeDisabled()") ||
   !workspaceSmokeTestSource.includes("expect(screen.getByRole(\"button\", { name: \"Log Out\" })).toBeDisabled()") ||
-  !sessionSecurityPlaywrightSpecSource.includes("data-session-unsafe-action-blocked-control-count\", \"18\"") ||
-  !sessionSecurityPlaywrightSpecSource.includes("data-session-unsafe-action-blocked-control-count\", \"19\"") ||
+  !sessionSecurityPlaywrightSpecSource.includes(`data-session-unsafe-action-blocked-control-count", "${expectedExpiredBlockedControlCount}"`) ||
+  !sessionSecurityPlaywrightSpecSource.includes(`data-session-unsafe-action-blocked-control-count", "${expectedSignedOutBlockedControlCount}"`) ||
   !sessionSecurityPlaywrightSpecSource.includes("data-session-ux-state-matrix-contract") ||
   !sessionSecurityPlaywrightSpecSource.includes("data-session-ux-transition-digest") ||
-  !sessionSecurityPlaywrightSpecSource.includes("authenticated->expired:Expire Session:enabled=1:blocked=18:recovery=Refresh Session") ||
-  !sessionSecurityPlaywrightSpecSource.includes("authenticated->signed_out:Log Out:enabled=0:blocked=19:recovery=none") ||
+  !sessionSecurityPlaywrightSpecSource.includes(`authenticated->expired:Expire Session:enabled=1:blocked=${expectedExpiredBlockedControlCount}:recovery=Refresh Session`) ||
+  !sessionSecurityPlaywrightSpecSource.includes(`authenticated->signed_out:Log Out:enabled=0:blocked=${expectedSignedOutBlockedControlCount}:recovery=none`) ||
   !sessionSecurityPlaywrightSpecSource.includes("data-session-ux-state-current\", \"signed_out\"") ||
   !sessionSecurityPlaywrightSpecSource.includes("authenticated:enabled:none|expired:blocked:authenticated-session-required|signed_out:blocked:authenticated-session-required") ||
   !sessionSecurityPlaywrightSpecSource.includes("authenticated:enabled:none|expired:enabled:none|signed_out:blocked:authenticated-session-required") ||

@@ -4,9 +4,9 @@ import JSZip from "jszip";
 
 test("reference upload browser smoke reaches ready export metadata and render budget evidence", async ({ page }) => {
   await page.addInitScript(() => {
-    if (!window.sessionStorage.getItem("zenart-reference-export-smoke-reset")) {
+    if (!window.sessionStorage.getItem("zenari-reference-export-smoke-reset")) {
       window.localStorage.clear();
-      window.sessionStorage.setItem("zenart-reference-export-smoke-reset", "true");
+      window.sessionStorage.setItem("zenari-reference-export-smoke-reset", "true");
     }
   });
 
@@ -71,7 +71,7 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-accepted-kind", "image");
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-upload-method", "POST");
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-upload-path", "/uploads");
-  await expect(referenceSmoke).toHaveAttribute("data-reference-latest-upload-csrf-header", "X-ZenArt-CSRF");
+  await expect(referenceSmoke).toHaveAttribute("data-reference-latest-upload-csrf-header", "X-Zenari-CSRF");
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-upload-idempotency-required", "true");
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-preview-scope", "tenant-scoped-dev-preview");
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-packaged", "true");
@@ -81,7 +81,7 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   await expect(uploadedReference).toHaveAttribute("data-reference-upload-operation", "createUpload");
   await expect(uploadedReference).toHaveAttribute("data-reference-upload-method", "POST");
   await expect(uploadedReference).toHaveAttribute("data-reference-upload-path", "/uploads");
-  await expect(uploadedReference).toHaveAttribute("data-reference-upload-csrf-header", "X-ZenArt-CSRF");
+  await expect(uploadedReference).toHaveAttribute("data-reference-upload-csrf-header", "X-Zenari-CSRF");
   await expect(uploadedReference).toHaveAttribute("data-reference-upload-idempotency-required", "true");
   await expect(uploadedReference).toHaveAttribute("data-reference-upload-preview-scope", "tenant-scoped-dev-preview");
 
@@ -91,7 +91,7 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   await expect(page.getByText("Studio System").nth(1)).toBeVisible();
 
   await page.getByTestId("export-download").click();
-  await expect(page.getByText("zenart-001.zip")).toBeVisible();
+  await expect(page.getByText("zenari-001.zip")).toBeVisible();
   await expect(referenceSmoke).toHaveAttribute("data-reference-upload-integration-status", "pass");
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-provenance-present", "true");
   await expect(referenceSmoke).toHaveAttribute("data-reference-latest-ppt-slide-present", "true");
@@ -225,7 +225,7 @@ test("reference upload browser smoke reaches ready export metadata and render bu
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download" }).click();
   const download = await downloadPromise;
-  expect(download.suggestedFilename()).toBe("zenart-001.zip");
+  expect(download.suggestedFilename()).toBe("zenari-001.zip");
   const downloadPath = await download.path();
   expect(downloadPath).toBeTruthy();
 

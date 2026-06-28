@@ -20,11 +20,11 @@ const requiredZipPayloads = [
   "provenance.json",
   "ai-content-disclaimer.json",
   "ppt-ready-metadata.json",
-  "assets/README.txt",
-  "assets/hero_product_ad.png",
-  "assets/square_social_ad.png",
-  "assets/story_variant.png",
-  "assets/marketplace_banner.png",
+  "assets/local-rendered-asset-manifest.json",
+  "assets/rendered/hero_product_ad-png.svg",
+  "assets/rendered/square_social_ad-png.svg",
+  "assets/rendered/story_variant-png.svg",
+  "assets/rendered/marketplace_banner-png.svg",
   "metadata.json",
   "qa_report.json",
   "trace_provenance.json"
@@ -69,11 +69,11 @@ const businessRequiredZipPayloads = [
   "provenance.json",
   "ai-content-disclaimer.json",
   "ppt-ready-metadata.json",
-  "assets/README.txt",
-  "assets/cover.png",
-  "assets/summary_page.png",
-  "assets/data_page.png",
-  "assets/recommendation_page.png",
+  "assets/local-rendered-asset-manifest.json",
+  "assets/rendered/cover-png.svg",
+  "assets/rendered/summary_page-png.svg",
+  "assets/rendered/data_page-png.svg",
+  "assets/rendered/recommendation_page-png.svg",
   "metadata.json",
   "qa_report.json",
   "trace_provenance.json"
@@ -89,11 +89,11 @@ const localMerchantRequiredZipPayloads = [
   "provenance.json",
   "ai-content-disclaimer.json",
   "ppt-ready-metadata.json",
-  "assets/README.txt",
-  "assets/wechat_moment.png",
-  "assets/xiaohongshu_post.png",
-  "assets/store_print_poster.pdf",
-  "assets/delivery_cover.png",
+  "assets/local-rendered-asset-manifest.json",
+  "assets/rendered/wechat_moment-png.svg",
+  "assets/rendered/xiaohongshu_post-png.svg",
+  "assets/rendered/store_print_poster-pdf.svg",
+  "assets/rendered/delivery_cover-png.svg",
   "metadata.json",
   "qa_report.json",
   "trace_provenance.json"
@@ -109,12 +109,12 @@ const characterIpRequiredZipPayloads = [
   "provenance.json",
   "ai-content-disclaimer.json",
   "ppt-ready-metadata.json",
-  "assets/README.txt",
-  "assets/avatar.png",
-  "assets/half_body.png",
-  "assets/costume_prop_variants.png",
-  "assets/expression_sheet.png",
-  "assets/promo_key_art.png",
+  "assets/local-rendered-asset-manifest.json",
+  "assets/rendered/avatar-png.svg",
+  "assets/rendered/half_body-png.svg",
+  "assets/rendered/costume_prop_variants-png.svg",
+  "assets/rendered/expression_sheet-png.svg",
+  "assets/rendered/promo_key_art-png.svg",
   "assets/character_bible.json",
   "metadata.json",
   "qa_report.json",
@@ -124,9 +124,9 @@ const characterIpRequiredZipPayloads = [
 test("writes ecommerce growth Local Alpha API, Playwright, and export ZIP runtime evidence", async ({ page, baseURL }) => {
   const startedAt = Date.now();
   await page.addInitScript(() => {
-    if (!window.sessionStorage.getItem("zenart-local-alpha-ecommerce-evidence-reset")) {
+    if (!window.sessionStorage.getItem("zenari-local-alpha-ecommerce-evidence-reset")) {
       window.localStorage.clear();
-      window.sessionStorage.setItem("zenart-local-alpha-ecommerce-evidence-reset", "true");
+      window.sessionStorage.setItem("zenari-local-alpha-ecommerce-evidence-reset", "true");
     }
   });
 
@@ -163,7 +163,7 @@ test("writes ecommerce growth Local Alpha API, Playwright, and export ZIP runtim
   }
 
   await page.getByTestId("export-download").click();
-  await expect(page.getByText("zenart-001.zip")).toBeVisible();
+  await expect(page.getByText("zenari-001.zip")).toBeVisible();
 
   const workflowSmoke = page.locator("[data-workflow-api-smoke='stage0.rev2.workflow-api-smoke']");
   await expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-status", "pass");
@@ -232,7 +232,7 @@ test("writes ecommerce growth Local Alpha API, Playwright, and export ZIP runtim
   const download = await downloadPromise;
   const downloadPath = await download.path();
   expect(downloadPath).toBeTruthy();
-  expect(download.suggestedFilename()).toBe("zenart-001.zip");
+  expect(download.suggestedFilename()).toBe("zenari-001.zip");
 
   const zipBuffer = await readFile(downloadPath as string);
   const zipHash = createHash("sha256").update(zipBuffer).digest("hex");
@@ -356,9 +356,9 @@ test("writes ecommerce growth Local Alpha API, Playwright, and export ZIP runtim
 test("writes character IP concept Local Alpha API, Playwright, and export ZIP runtime evidence", async ({ page, baseURL }) => {
   const startedAt = Date.now();
   await page.addInitScript(() => {
-    if (!window.sessionStorage.getItem("zenart-local-alpha-character-ip-evidence-reset")) {
+    if (!window.sessionStorage.getItem("zenari-local-alpha-character-ip-evidence-reset")) {
       window.localStorage.clear();
-      window.sessionStorage.setItem("zenart-local-alpha-character-ip-evidence-reset", "true");
+      window.sessionStorage.setItem("zenari-local-alpha-character-ip-evidence-reset", "true");
     }
   });
 
@@ -396,7 +396,7 @@ test("writes character IP concept Local Alpha API, Playwright, and export ZIP ru
   }
 
   await page.getByTestId("export-download").click();
-  await expect(page.getByText("zenart-001.zip")).toBeVisible();
+  await expect(page.getByText("zenari-001.zip")).toBeVisible();
 
   const workflowSmoke = page.locator("[data-workflow-api-smoke='stage0.rev2.workflow-api-smoke']");
   await expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-status", "pass");
@@ -475,7 +475,7 @@ test("writes character IP concept Local Alpha API, Playwright, and export ZIP ru
   const download = await downloadPromise;
   const downloadPath = await download.path();
   expect(downloadPath).toBeTruthy();
-  expect(download.suggestedFilename()).toBe("zenart-001.zip");
+  expect(download.suggestedFilename()).toBe("zenari-001.zip");
 
   const zipBuffer = await readFile(downloadPath as string);
   const zipHash = createHash("sha256").update(zipBuffer).digest("hex");
@@ -606,9 +606,9 @@ test("writes character IP concept Local Alpha API, Playwright, and export ZIP ru
 test("writes business visual document Local Alpha API, Playwright, and export ZIP runtime evidence", async ({ page, baseURL }) => {
   const startedAt = Date.now();
   await page.addInitScript(() => {
-    if (!window.sessionStorage.getItem("zenart-local-alpha-business-doc-evidence-reset")) {
+    if (!window.sessionStorage.getItem("zenari-local-alpha-business-doc-evidence-reset")) {
       window.localStorage.clear();
-      window.sessionStorage.setItem("zenart-local-alpha-business-doc-evidence-reset", "true");
+      window.sessionStorage.setItem("zenari-local-alpha-business-doc-evidence-reset", "true");
     }
   });
 
@@ -646,7 +646,7 @@ test("writes business visual document Local Alpha API, Playwright, and export ZI
   }
 
   await page.getByTestId("export-download").click();
-  await expect(page.getByText("zenart-001.zip")).toBeVisible();
+  await expect(page.getByText("zenari-001.zip")).toBeVisible();
 
   const workflowSmoke = page.locator("[data-workflow-api-smoke='stage0.rev2.workflow-api-smoke']");
   await expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-status", "pass");
@@ -725,7 +725,7 @@ test("writes business visual document Local Alpha API, Playwright, and export ZI
   const download = await downloadPromise;
   const downloadPath = await download.path();
   expect(downloadPath).toBeTruthy();
-  expect(download.suggestedFilename()).toBe("zenart-001.zip");
+  expect(download.suggestedFilename()).toBe("zenari-001.zip");
 
   const zipBuffer = await readFile(downloadPath as string);
   const zipHash = createHash("sha256").update(zipBuffer).digest("hex");
@@ -856,9 +856,9 @@ test("writes business visual document Local Alpha API, Playwright, and export ZI
 test("writes local merchant campaign Local Alpha API, Playwright, and export ZIP runtime evidence", async ({ page, baseURL }) => {
   const startedAt = Date.now();
   await page.addInitScript(() => {
-    if (!window.sessionStorage.getItem("zenart-local-alpha-local-merchant-evidence-reset")) {
+    if (!window.sessionStorage.getItem("zenari-local-alpha-local-merchant-evidence-reset")) {
       window.localStorage.clear();
-      window.sessionStorage.setItem("zenart-local-alpha-local-merchant-evidence-reset", "true");
+      window.sessionStorage.setItem("zenari-local-alpha-local-merchant-evidence-reset", "true");
     }
   });
 
@@ -896,7 +896,7 @@ test("writes local merchant campaign Local Alpha API, Playwright, and export ZIP
   }
 
   await page.getByTestId("export-download").click();
-  await expect(page.getByText("zenart-001.zip")).toBeVisible();
+  await expect(page.getByText("zenari-001.zip")).toBeVisible();
 
   const workflowSmoke = page.locator("[data-workflow-api-smoke='stage0.rev2.workflow-api-smoke']");
   await expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-status", "pass");
@@ -975,7 +975,7 @@ test("writes local merchant campaign Local Alpha API, Playwright, and export ZIP
   const download = await downloadPromise;
   const downloadPath = await download.path();
   expect(downloadPath).toBeTruthy();
-  expect(download.suggestedFilename()).toBe("zenart-001.zip");
+  expect(download.suggestedFilename()).toBe("zenari-001.zip");
 
   const zipBuffer = await readFile(downloadPath as string);
   const zipHash = createHash("sha256").update(zipBuffer).digest("hex");

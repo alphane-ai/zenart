@@ -1,0 +1,99 @@
+{
+  "schema_version": "stage1.release_metadata.contract.v1",
+  "fixture_id": "stage1_release_metadata_local_contract",
+  "kind": "release_metadata_contract",
+  "blueprint_items": ["OP-14", "VF-6", "VF-7", "VF-8"],
+  "canonical_evidence_path": "ops/evidence/release/staging/stage1-release-metadata-preflight.json",
+  "strict_schema_version": "stage1.release_metadata_preflight.v1",
+  "release_gate_status": "contract_ready_release_metadata_evidence_open",
+  "required_environment": "staging",
+  "required_slots": [
+    "release_sha",
+    "release_notes_path",
+    "image_refs",
+    "migration_evidence",
+    "config_diff_evidence",
+    "observability_evidence",
+    "backup_restore_evidence",
+    "load_evidence",
+    "rollback_evidence",
+    "security_scan_evidence"
+  ],
+  "required_image_names": ["backend", "web", "admin"],
+  "forbidden_release_image_names": ["manager", "worker", "crawler", "migrate"],
+  "required_release_notes_sections": [
+    "## Identity",
+    "## Scope",
+    "## Migration List",
+    "## Config Diff",
+    "## Feature Flags",
+    "## Smoke Plan",
+    "## Evidence",
+    "## Rollback Plan",
+    "## Known Risks",
+    "## Go/No-Go"
+  ],
+  "required_evidence_kinds": {
+    "migration_evidence": "migration",
+    "config_diff_evidence": "config_diff",
+    "observability_evidence": "observability",
+    "backup_restore_evidence": "backup_restore",
+    "load_evidence": "load",
+    "rollback_evidence": "rollback",
+    "security_scan_evidence": "security_scan"
+  },
+  "accepted_statuses_by_slot": {
+    "migration_evidence": ["passed", "compatible"],
+    "config_diff_evidence": ["passed", "reviewed", "no_diff"],
+    "observability_evidence": ["passed"],
+    "backup_restore_evidence": ["passed"],
+    "load_evidence": ["pass", "passed"],
+    "rollback_evidence": ["passed", "validated"],
+    "security_scan_evidence": ["passed"]
+  },
+  "required_stage1_anchors": [
+    "scripts/generate_stage1_release_candidate_metadata.py",
+    "scripts/generate_stage1_release_metadata_preflight.py",
+    "scripts/validate_stage1_release_metadata_contract.py",
+    "scripts/release_evidence_bundle_smoke.sh",
+    "scripts/staging_smoke.sh",
+    "ops/release/stage1_release_candidate_metadata_draft.md",
+    "ops/evidence/release/staging/stage1-release-candidate-metadata-draft.json",
+    "ops/evidence/release/staging/stage1-release-candidate-migration-draft.json",
+    "ops/evidence/release/staging/stage1-release-candidate-config-diff-draft.json",
+    "ops/evidence/release/staging/stage1-release-candidate-observability-draft.json",
+    "ops/evidence/release/staging/stage1-release-candidate-backup-restore-draft.json",
+    "ops/evidence/release/staging/stage1-release-candidate-load-draft.json",
+    "ops/evidence/release/staging/stage1-release-candidate-rollback-draft.json",
+    "ops/evidence/release/staging/stage1-release-candidate-security-scan-draft.json",
+    "ops/release/release_notes_template.md",
+    "ops/release/stage0_rev2_current_no_go_release_notes.md"
+  ],
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false
+  },
+  "strict_evidence_policy": {
+    "environment": "staging",
+    "kind": "stage1_release_metadata_preflight",
+    "status": "passed",
+    "metadata_complete": true,
+    "release_sha_required": true,
+    "all_slots_required": true,
+    "all_slots_verified": true,
+    "safe_projection_must_pass": true,
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_launch_gate": false
+  },
+  "remaining_release_evidence": [
+    "metadata preflight centralizes release bundle inputs but cannot clear staging, production, or Do-Not-Launch gates by itself",
+    "strict CI, staging runtime, and production exact evidence still own launch decisions",
+    "missing or unverified release metadata must keep release evidence bundle blocked/no-go"
+  ]
+}

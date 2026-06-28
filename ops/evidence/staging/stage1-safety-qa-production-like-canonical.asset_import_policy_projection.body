@@ -1,0 +1,11 @@
+{
+  "id": "safety_decision_7fd1a862f6e67890c5e143dd",
+  "tenant_id": "tenant_local",
+  "rule_id": "safety_stage0_runtime_allow_v1",
+  "subject_type": "asset",
+  "subject_id": "stage1_asset_import_probe",
+  "enforcement_point": "provider_response",
+  "decision": "allow",
+  "rationale": "active safety rule matched enforcement point",
+  "created_at": "2026-06-23T03:47:23.977483Z"
+}

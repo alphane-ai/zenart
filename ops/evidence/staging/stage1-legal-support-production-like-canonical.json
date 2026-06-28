@@ -1,0 +1,164 @@
+{
+  "allow_local_devport_evidence": false,
+  "blocked_checks": [],
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "coverage": [
+    {
+      "area": "legal_pages_visibility",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-legal-support-production-like-canonical.ndjson",
+        "ops/evidence/staging/stage1-legal-support-production-like-canonical.json"
+      ],
+      "expected_tokens": [
+        "AI Content Responsibility",
+        "Acceptable Use Policy",
+        "Enforcement",
+        "IP Complaint Flow",
+        "Local Alpha Generation",
+        "Local alpha previews",
+        "Privacy Policy",
+        "Prohibited Inputs",
+        "Support",
+        "Support Context",
+        "Telemetry",
+        "Terms of Service",
+        "legal@zenari.ai",
+        "support@zenari.ai"
+      ],
+      "external_user_evidence": "Staging external-user HTTP visibility probe over deployed web routes; source files alone do not satisfy this check.",
+      "routes": [
+        "/legal/terms",
+        "/legal/privacy",
+        "/legal/acceptable-use",
+        "/legal/ip-complaints",
+        "/support"
+      ],
+      "runtime_probe": "External-user staging probe verifies Terms, Privacy, Acceptable Use, AI/content responsibility disclaimer, and IP complaint flow visibility.",
+      "status": "pass"
+    },
+    {
+      "area": "support_contact_visibility",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-legal-support-production-like-canonical.ndjson",
+        "ops/evidence/staging/stage1-legal-support-production-like-canonical.json"
+      ],
+      "expected_tokens": [
+        "Billing",
+        "Cancellation",
+        "Report Problem",
+        "Submit Ticket",
+        "and Refund Policy",
+        "export",
+        "project",
+        "quota",
+        "support@zenari.ai",
+        "task",
+        "trace"
+      ],
+      "external_user_evidence": "Staging external-user HTTP visibility probe over deployed web routes; source files alone do not satisfy this check.",
+      "routes": [
+        "/support",
+        "/report-problem",
+        "/legal/billing-policy"
+      ],
+      "runtime_probe": "External-user staging probe verifies visible support contact, report-problem path, and support/billing policy visibility.",
+      "status": "pass"
+    }
+  ],
+  "do_not_launch_condition_id": "external_user_legal_pages_missing",
+  "environment": "staging",
+  "evidence_id": "stage1-legal-support-production-like-canonical",
+  "gate_impact": {
+    "can_clear_aggregate_item": false,
+    "can_clear_release_gate_check": true,
+    "check_level_items": [
+      "Private Beta/Staging legal/support external-user visibility runtime evidence \u901a\u8fc7\u3002",
+      "Private Beta/Staging legal pages external-user visibility evidence \u901a\u8fc7\uff1astaging evidence proves Terms\u3001Privacy\u3001Acceptable Use\u3001AI/content disclaimer\u3001IP complaint flow are externally visible under `ops/evidence/staging/`\u3002",
+      "Private Beta/Staging support contact external-user visibility evidence \u901a\u8fc7\uff1astaging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`\u3002"
+    ],
+    "preserved_do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
+    "preserved_release_gate_check_id": "staging_object_storage_signed_downloads",
+    "remaining_release_gate_blockers_after_pass": [
+      "staging_object_storage_signed_downloads"
+    ]
+  },
+  "input_readiness": {
+    "dry_run": false,
+    "external_probe_attempted": true,
+    "legal_pages_split_ready": true,
+    "support_contact_split_ready": true,
+    "web_url_ready": true
+  },
+  "kind": "legal_support_visibility",
+  "local_devport_debug": false,
+  "probe_contract": {
+    "blocked_without_runtime_inputs": true,
+    "canonical_legal_pages_report": "ops/evidence/staging/legal-pages-external-user.json",
+    "canonical_support_contact_report": "ops/evidence/staging/support-contact-external-user.json",
+    "contract_id": "legal_support_external_user_visibility_runtime_probe",
+    "do_not_launch_condition_id": "external_user_legal_pages_missing",
+    "environment": "staging",
+    "local_blocked_command": "DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh || test \"$?\" = 2",
+    "local_devport_debug_command": "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 WEB_URL=http://127.0.0.1:26080 scripts/staging_legal_support_visibility_smoke.sh || test \"$?\" = 2",
+    "release_gate_check_id": "staging_legal_external_user_pages",
+    "required_env": [
+      "STAGING_WEB_URL or WEB_URL"
+    ],
+    "required_routes": [
+      "/legal/terms",
+      "/legal/privacy",
+      "/legal/acceptable-use",
+      "/legal/ip-complaints",
+      "/support",
+      "/report-problem",
+      "/legal/billing-policy"
+    ],
+    "results_path": "ops/evidence/staging/stage1-legal-support-production-like-canonical.ndjson",
+    "schema_version": "stage0.rev2.staging.probe_contract",
+    "staging_pass_command": "STAGING_WEB_URL=https://<staging-web> scripts/staging_legal_support_visibility_smoke.sh",
+    "success_criteria": [
+      "all required external-user routes return HTTP 200",
+      "legal pages expose Terms, Privacy, Acceptable Use, AI/content disclaimer, and IP complaint tokens",
+      "support routes expose support contact, report-problem, and billing/support policy tokens",
+      "canonical split reports are written under ops/evidence/staging/"
+    ]
+  },
+  "release_gate_check_id": "staging_legal_external_user_pages",
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "required_routes": [
+    "/legal/terms",
+    "/legal/privacy",
+    "/legal/acceptable-use",
+    "/legal/ip-complaints",
+    "/support",
+    "/report-problem",
+    "/legal/billing-policy"
+  ],
+  "results_path": "ops/evidence/staging/stage1-legal-support-production-like-canonical.ndjson",
+  "runtime_checks_status": "passed",
+  "runtime_input_requirements": {
+    "required_exact_split_reports": {
+      "legal_pages_external_user": "ops/evidence/staging/legal-pages-external-user.json",
+      "support_contact_external_user": "ops/evidence/staging/support-contact-external-user.json"
+    },
+    "required_probe_mode": "external-user HTTP GET probes must load deployed routes; DRY_RUN only records blocked/planned evidence",
+    "required_routes": {
+      "acceptable_use": "/legal/acceptable-use",
+      "ai_content_disclaimer": "/support",
+      "billing_policy": "/legal/billing-policy",
+      "ip_complaint": "/legal/ip-complaints",
+      "privacy": "/legal/privacy",
+      "report_problem": "/report-problem",
+      "support_contact": "/support",
+      "terms": "/legal/terms"
+    },
+    "required_web_url": "STAGING_WEB_URL or WEB_URL pointing at the deployed staging web surface",
+    "source_file_policy": "web source files or checked-in policy text alone cannot satisfy staging legal/support visibility; the pass report requires deployed external-user HTTP probe results."
+  },
+  "schema_version": "stage0.rev2.staging.legal_support_visibility",
+  "status": "pass",
+  "validated_by_role": "external_user_smoke",
+  "web_url": "https://zenari-staging.example.test:56528"
+}

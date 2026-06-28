@@ -1,0 +1,115 @@
+{
+  "claims_audit_refs": [
+    "web/lib/legal-policies.ts",
+    "web/app/support/page.tsx",
+    "admin/app/providers/page.tsx"
+  ],
+  "claims_runtime_request_ids": [
+    "stage1-legal-support-production-like-canonical.legal_pages",
+    "stage1-provider-sandbox.admin_registry"
+  ],
+  "environment": "production",
+  "launch_mode": "invite_comp_only",
+  "monitoring_cost": {
+    "alert_route_id": "ops/observability/alerts/stage0_rev2_alerts.json#provider-routing-safety",
+    "cost_meter_ref": "backend/internal/billing/provider_cost_reconcile.go",
+    "dashboard_id": "ops/observability/dashboards/stage0_rev2_overview.json#provider-mode-invite-comp-only",
+    "provider_usage_log_ref": "ops/evidence/staging/stage1-provider-sandbox.json",
+    "spend_cap_ref": "ops/evidence/staging/20260527T2015Z-quota-rate-limit-spend-cap.json"
+  },
+  "provider_audit_refs": [
+    "ops/evidence/staging/stage1-provider-sandbox.json",
+    "admin/app/providers/page.tsx",
+    "backend/internal/provider/registry.go"
+  ],
+  "provider_contract": {
+    "provider_id": null,
+    "request_response_schema_verified": false,
+    "safety_policy_verified": false,
+    "secret_ref": null,
+    "staging_verification_id": null,
+    "status": "not_required_invite_comp_only"
+  },
+  "provider_mode": {
+    "dev_provider_public_routing": false,
+    "invite_comp_only": true,
+    "paid_generation_enabled": false,
+    "production_provider_id": null,
+    "silent_fallback_enabled": false
+  },
+  "provider_runtime_request_ids": [
+    "stage1-provider-sandbox.admin_registry",
+    "stage1-provider-sandbox.adapter_health_probe"
+  ],
+  "public_claims": {
+    "audit_refs": [
+      "web/lib/legal-policies.ts",
+      "web/app/support/page.tsx",
+      "admin/app/providers/page.tsx"
+    ],
+    "dev_provider_claim_denial": {
+      "dev_provider_presented_as_production": false,
+      "development_only_label_visible": true,
+      "silent_fallback_claim": false
+    },
+    "paid_real_generation_claims": {
+      "claims_backed_by_provider_evidence": false,
+      "invite_comp_only_disclosed": true,
+      "mock_checkout_readiness_claim": false,
+      "paid_claims_enabled": false,
+      "real_generation_claims_enabled": false,
+      "unsupported_real_generation_claim": false
+    },
+    "public_claim_probes": [
+      {
+        "http_status": 200,
+        "required_tokens": [
+          "invite-only",
+          "comp-only",
+          "no paid public claim",
+          "no real-generation production claim"
+        ],
+        "status": "pass",
+        "surface": "public_home",
+        "visibility": "public"
+      },
+      {
+        "http_status": 200,
+        "required_tokens": [
+          "billing policy",
+          "no paid launch claim",
+          "refund policy",
+          "support contact"
+        ],
+        "status": "pass",
+        "surface": "billing_policy",
+        "visibility": "public"
+      },
+      {
+        "http_status": 200,
+        "required_tokens": [
+          "provider strategy group",
+          "invite comp-only",
+          "fallback explicit",
+          "kill switch"
+        ],
+        "status": "pass",
+        "surface": "admin_provider_health",
+        "visibility": "public"
+      }
+    ],
+    "runtime_request_ids": [
+      "stage1-legal-support-production-like-canonical.legal_pages",
+      "stage1-provider-sandbox.admin_registry"
+    ]
+  },
+  "release_gate_check_id": "production_provider_or_comp_only_mode",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "routing_safety": {
+    "fallback_policy_explicit": true,
+    "kill_switch_ready": true,
+    "strategy_group_audited": true
+  },
+  "schema_version": "stage1.production_provider_claims_source.v1",
+  "status": "pass"
+}

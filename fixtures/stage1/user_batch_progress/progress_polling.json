@@ -1,0 +1,82 @@
+{
+  "fixture_id": "user_batch_progress_polling",
+  "contract_version": 1,
+  "release_gate_status": "contract_ready_staging_playwright_sse_evidence_open",
+  "api_operations": [
+    {
+      "operation_id": "getBatchGeneration",
+      "method": "GET",
+      "path": "/batch-generations/{batch_id}",
+      "credentials": "include",
+      "csrf_header": "not-required",
+      "idempotency_required": false
+    },
+    {
+      "operation_id": "listBatchGenerationChildren",
+      "method": "GET",
+      "path": "/batch-generations/{batch_id}/children",
+      "credentials": "include",
+      "csrf_header": "not-required",
+      "idempotency_required": false
+    },
+    {
+      "operation_id": "getBatchGenerationProgress",
+      "method": "GET",
+      "path": "/batch-generations/{batch_id}/progress",
+      "credentials": "include",
+      "csrf_header": "not-required",
+      "idempotency_required": false
+    }
+  ],
+  "polling_contract": {
+    "surface": "web/components/workspace-app.tsx",
+    "trigger": "authenticated workspace view with latest queued or running batch",
+    "strategy": "single timeout rescheduled by state changes",
+    "interval_ms": 750,
+    "manual_unsafe_action_added": false,
+    "sync_statuses": ["local", "api", "unavailable"]
+  },
+  "api_projection": {
+    "batch_id": "batch-001",
+    "status": "partial_succeeded",
+    "requested_count": 4,
+    "progress_percent": 100,
+    "queued": 0,
+    "running": 0,
+    "succeeded": 2,
+    "failed": 1,
+    "cancelled": 1,
+    "blocked": 0,
+    "retryable": 1,
+    "result_asset_id": "asset-batch-001-01",
+    "result_canvas_object_id": "canvas-batch-001-01"
+  },
+  "ui_contract_attributes": [
+    "data-batch-generation-progress-sync-status",
+    "data-batch-generation-progress-synced-at",
+    "data-batch-generation-progress-polling",
+    "data-batch-generation-progress-operations",
+    "data-batch-generation-result-asset-id",
+    "data-batch-generation-result-canvas-object-id"
+  ],
+  "local_browser_workflow": {
+    "spec": "web/tests/stage1-batch-generation.spec.ts",
+    "script": "npm --prefix web run smoke:stage1-batch-generation-playwright",
+    "surface": "/workspace",
+    "coverage": [
+      "Create Batch CSRF-guarded browser action",
+      "local progress panel status/count/progress attributes",
+      "Retry Child CSRF-guarded browser action",
+      "Cancel Batch CSRF-guarded browser action",
+      "progressbar and child-row visibility"
+    ],
+    "evidence_classification": "local_browser_contract_only"
+  },
+  "remaining_staging_evidence": [
+    "Playwright create/progress/cancel/retry workflow against deployed backend",
+    "SSE or production-grade polling cadence evidence",
+    "real provider-generated result asset and canvas object visibility",
+    "staging worker-to-user progress latency evidence"
+  ],
+  "release_note": "Local user batch progress polling contract and local browser workflow coverage exist; deployed-backend staging Playwright workflow, SSE/production polling evidence, and real generated result visibility remain required before paid batch launch."
+}

@@ -136,9 +136,9 @@
       },
       "docker_image_scan": {
         "image_set": [
-          "zenart-stage0-backend",
-          "zenart-stage0-web",
-          "zenart-stage0-admin"
+          "zenari-stage0-backend",
+          "zenari-stage0-web",
+          "zenari-stage0-admin"
         ],
         "trivy_installed": true,
         "trivy_output": "ops/evidence/security/local/20260526T142040Z-security-scan-smoke-65314.trivy-image.txt"

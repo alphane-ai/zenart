@@ -1,107 +1,45 @@
 {
-  "schema_version": "stage0.rev2",
-  "evidence_id": "production_public_support_billing_policy_20260527T1900Z",
+  "allow_local_devport_evidence": false,
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "source_probe_missing: ops/evidence/production/production-legal-support-source.json"
+  ],
+  "canonical_pass_path": false,
+  "check_level_only": false,
+  "cookie_persisted": false,
+  "dry_run": false,
   "environment": "production",
-  "status": "pass",
-  "validated_at": "2026-05-27T19:00:00Z",
-  "validated_by_role": "admin_superadmin",
-  "release_gate_check_id": "production_legal_support_policy",
-  "do_not_launch_condition_id": "public_legal_support_policy_not_deployed",
-  "summary": "Production public probes verified visible support contact, report-problem entry, and billing/cancellation/refund policy visibility while preserving separate production billing lifecycle runtime evidence.",
-  "runtime_request_ids": [
-    "production-legal-support-policy-20260527T1900Z-support-contact",
-    "production-legal-support-policy-20260527T1900Z-billing-policy",
-    "production-legal-support-policy-20260527T1900Z-gate-preservation"
-  ],
-  "audit_refs": ["au-020"],
-  "page_probes": [
-    {
-      "page_id": "support_contact",
-      "path": "/support",
-      "http_status": 200,
-      "visibility": "public",
-      "required_tokens": ["support contact", "report problem", "privacy redaction", "escalation"]
-    },
-    {
-      "page_id": "report_problem",
-      "path": "/report-problem",
-      "http_status": 200,
-      "visibility": "public",
-      "required_tokens": ["project", "task", "trace", "export", "quota"]
-    },
-    {
-      "page_id": "billing_policy",
-      "path": "/billing-policy",
-      "http_status": 200,
-      "visibility": "public",
-      "required_tokens": ["billing", "cancellation", "refund", "credit", "quota reset", "past_due"]
-    }
-  ],
-  "coverage": [
-    {
-      "area": "public_support_contact",
-      "status": "pass",
-      "runtime_probe": "Production support visibility probe loaded public support and report-problem entry points, verified visible support contact, user-safe ticket context copy, privacy redaction notice, and IP complaint handoff without requiring admin session state.",
-      "deployment_evidence": "ops/evidence/production/public-support-billing-policy.json records production /support and /report-problem probes with support contact, escalation copy, ticket context tokens, and user-visible reporting path evidence.",
-      "policy_audit_evidence": "Support contact deployment links support tickets sup-2201 and sup-2212, immutable audit au-020, and support console evidence so public users can report billing, abuse, export, crawler, and legal issues.",
-      "linked_admin_artifacts": [
-        "admin/app/support/page.tsx",
-        "admin/lib/fixtures.ts:supportTickets",
-        "admin/tests/admin-governance.test.mjs"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/public-support-billing-policy.json",
-        "ops/evidence/production/public-legal-policy.json",
-        "sup-2201",
-        "sup-2212",
-        "au-020"
-      ]
-    },
-    {
-      "area": "billing_policy_visibility",
-      "status": "pass",
-      "runtime_probe": "Production billing policy probe verified billing, cancellation, and refund policy visibility; policy copy states paid billing lifecycle remains separately blocked while Stripe is deferred and avoids standalone readiness claims.",
-      "deployment_evidence": "ops/evidence/production/public-support-billing-policy.json records production billing policy tokens for cancellation, refund/credit, past_due support path, quota reset support path, comp-only/paid-mode caveat visibility, and paid billing lifecycle remains separately blocked wording.",
-      "policy_audit_evidence": "Billing policy visibility links immutable audit au-020 and production billing audit au-022 so deployed policy pages remain aligned with deferred checkout, subscription, cancellation, past_due, refund, credit, quota reset, and webhook idempotency runtime evidence.",
-      "linked_admin_artifacts": [
-        "admin/app/operations/page.tsx",
-        "admin/app/quota/page.tsx",
-        "admin/lib/fixtures.ts:productionLegalSupportPolicyEvidence"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/public-support-billing-policy.json",
-        "ops/evidence/production/public-legal-policy.json",
-        "au-020",
-        "au-022"
-      ]
-    },
-    {
-      "area": "gate_blocker_preservation",
-      "status": "pass",
-      "runtime_probe": "Production release-gate replay cleared production_legal_support_policy and public_legal_support_policy_not_deployed while preserving paid billing, backup rollback, plus upstream CI and staging blockers.",
-      "deployment_evidence": "The production gate fixture cites both exact production legal/support policy evidence files, clears only the legal/support policy check, and keeps aggregate no-go status because unrelated paid billing, production backup, and upstream evidence remains absent.",
-      "policy_audit_evidence": "Gate preservation links immutable audit au-020, release evidence eg-005, production gate fixture state, and the still-blocked paid billing plus backup/rollback checks without implying global production launch readiness.",
-      "linked_admin_artifacts": [
-        "admin/app/operations/page.tsx",
-        "admin/app/audit/page.tsx",
-        "admin/tests/admin-governance.test.mjs"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/public-legal-policy.json",
-        "ops/evidence/production/public-support-billing-policy.json",
-        "au-020",
-        "eg-005",
-        "production_paid_billing_lifecycle",
-        "production_backup_rollback_incident"
-      ]
-    }
-  ],
   "gate_impact": {
-    "can_clear_support_billing_policy_subitem": true,
     "can_clear_aggregate_production_gate": false,
+    "can_clear_public_legal_subitem": false,
+    "can_clear_support_billing_policy_subitem": false,
+    "preserved_release_gate_check_id": "production_legal_support_policy",
     "remaining_blockers": [
-      "production_paid_billing_lifecycle",
-      "production_backup_rollback_incident"
+      "source_probe_missing: ops/evidence/production/production-legal-support-source.json"
     ]
-  }
+  },
+  "generated_at": "2026-06-26T01:44:00+00:00",
+  "kind": "production_public_support_billing_policy",
+  "local_devport_debug": false,
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_legal_support_policy",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "schema_version": "stage1.production_public_support_billing_policy.blocked.v1",
+  "secret_material_persisted": false,
+  "semantic_tokens": [
+    "terms",
+    "privacy",
+    "acceptable use",
+    "ai/content",
+    "ip complaint",
+    "support",
+    "billing",
+    "cancellation",
+    "refund"
+  ],
+  "signed_url_persisted": false,
+  "status": "blocked"
 }

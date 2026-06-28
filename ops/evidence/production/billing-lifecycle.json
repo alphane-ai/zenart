@@ -1,96 +1,42 @@
 {
-  "schema_version": "stage0.rev2",
-  "evidence_id": "production_billing_lifecycle_20260527T1945Z",
+  "allow_local_devport_evidence": false,
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "source_probe_missing: ops/evidence/production/billing-paid-lifecycle-source.json"
+  ],
+  "blocked_runtime_summary": "Production billing lifecycle remains blocked until live Stripe proof covers checkout, subscription active state, cancellation, past_due invoice handling, team seat quantity sync, and invoice receipt visibility.",
+  "canonical_pass_path": false,
+  "cookie_persisted": false,
+  "dry_run": false,
   "environment": "production",
-  "status": "blocked",
-  "validated_at": "2026-05-27T19:45:00Z",
-  "validated_by_role": "admin_superadmin",
-  "release_gate_check_id": "production_paid_billing_lifecycle",
-  "do_not_launch_condition_id": "paid_billing_or_comp_only_mode_missing",
-  "summary": "Stripe/payment provider integration is deferred. Production remains invite/comp-only with paid checkout disabled, so checkout, active subscription, cancellation, and past_due lifecycle probes are recorded as blocked no-go evidence rather than paid launch proof.",
-  "runtime_request_ids": [
-    "production-paid-billing-20260527T1945Z-checkout",
-    "production-paid-billing-20260527T1945Z-active-subscription",
-    "production-paid-billing-20260527T1945Z-cancellation",
-    "production-paid-billing-20260527T1945Z-past-due"
-  ],
-  "checkout_provider": "stripe_deferred_comp_only",
-  "lifecycle_probes": [
-    {
-      "probe_id": "checkout",
-      "status": "blocked",
-      "request_id": "production-paid-billing-20260527T1945Z-checkout",
-      "assertions": [
-        "stripe_not_configured",
-        "checkout_hidden_for_invite_comp_only",
-        "no_mock_checkout_public_claim"
-      ]
-    },
-    {
-      "probe_id": "active_subscription",
-      "status": "blocked",
-      "request_id": "production-paid-billing-20260527T1945Z-active-subscription",
-      "assertions": [
-        "subscription_requires_stripe_evidence",
-        "comp_entitlement_only",
-        "paid_entitlement_not_created"
-      ]
-    },
-    {
-      "probe_id": "cancellation",
-      "status": "blocked",
-      "request_id": "production-paid-billing-20260527T1945Z-cancellation",
-      "assertions": [
-        "cancellation_requires_stripe_subscription",
-        "support_policy_visible",
-        "audit_ref_attached"
-      ]
-    },
-    {
-      "probe_id": "past_due",
-      "status": "blocked",
-      "request_id": "production-paid-billing-20260527T1945Z-past-due",
-      "assertions": [
-        "past_due_requires_stripe_invoice",
-        "paid_entitlement_not_enabled",
-        "quota_consuming_paid_task_denied"
-      ]
-    }
-  ],
-  "coverage": [
-    {
-      "area": "checkout_subscription_cancellation_past_due",
-      "status": "blocked",
-      "runtime_probe": "Production billing replay verified Stripe is deferred, checkout is hidden for invite/comp-only mode, active paid subscriptions cannot be created, cancellation requires real Stripe subscription evidence, past_due requires real Stripe invoice evidence, and paid lifecycle rows remain open.",
-      "deployment_evidence": "ops/evidence/production/billing-lifecycle.json records blocked checkout_request_id, active_subscription_probe, cancellation_probe, past_due_probe, entitlement_denial_probe, and tenant-scoped billing responses for production comp-only mode.",
-      "billing_audit_evidence": "Billing lifecycle evidence links audit au-022, support ticket sup-2209, quota account usr-318, and public billing policy evidence so deferred Stripe state is visible without clearing paid billing, backup, or upstream launch blockers.",
-      "linked_admin_artifacts": [
-        "admin/app/quota/page.tsx",
-        "admin/app/support/page.tsx",
-        "admin/lib/fixtures.ts:productionPaidBillingLifecycleEvidence"
-      ],
-      "evidence_refs": [
-        "ops/evidence/production/billing-lifecycle.json",
-        "ops/evidence/production/billing-refund-credit-webhook.json",
-        "sup-2209",
-        "usr-318",
-        "au-022"
-      ]
-    }
-  ],
-  "audit_refs": [
-    "au-022"
-  ],
   "gate_impact": {
-    "can_clear_aggregate_production_gate": false,
-    "aggregate_production_gate_status": "blocked_by_other_production_runtime_items",
-    "can_clear_checkout_subscription_subitem": false,
-    "checklist_items": [
-      "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。"
-    ],
+    "can_clear_billing_lifecycle_subitem": false,
+    "can_clear_refund_credit_webhook_subitem": false,
+    "preserved_release_gate_check_id": "production_paid_billing_lifecycle",
     "remaining_blockers": [
-      "production_paid_billing_lifecycle",
-      "production_backup_rollback_incident"
+      "source_probe_missing: ops/evidence/production/billing-paid-lifecycle-source.json"
     ]
-  }
+  },
+  "generated_at": "2026-06-24T12:03:49+00:00",
+  "invite_comp_only_substitute": false,
+  "kind": "production_billing_lifecycle",
+  "local_devport_debug": false,
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_paid_billing_lifecycle",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "required_runtime_semantics": [
+    "checkout",
+    "subscription",
+    "cancellation",
+    "past_due",
+    "team seat quantity sync",
+    "invoice receipt visibility"
+  ],
+  "schema_version": "stage1.production_billing_lifecycle.blocked.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "blocked"
 }

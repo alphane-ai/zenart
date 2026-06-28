@@ -1,0 +1,77 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "created_at": "20260622T203145Z",
+  "run_id": "stage1-load-local-devport-current2-workspace_rendering",
+  "kind": "load",
+  "environment": "local",
+  "release_sha": "",
+  "mode": "workspace_rendering",
+  "status": "passed",
+  "base_url": "http://127.0.0.1:26080",
+  "requests": 20,
+  "concurrency": 4,
+  "paths": ["/"],
+  "expected_statuses": ["/:200", "/:307", "/:308"],
+  "results_path": "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.ndjson",
+  "summary": {"failure_count": 0, "max_ms": 55, "p50_ms": 50, "p95_ms": 55, "request_count": 20, "statuses": {"/:200": 20}},
+  "checks": [
+    {
+      "check_id": "chat_task",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.json",
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.ndjson"
+      ]
+    },
+    {
+      "check_id": "worker_generation",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.json",
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.ndjson"
+      ]
+    },
+    {
+      "check_id": "zip_export",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.json",
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.ndjson"
+      ]
+    },
+    {
+      "check_id": "signed_download",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.json",
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.ndjson"
+      ]
+    },
+    {
+      "check_id": "crawler_throttle",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.json",
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.ndjson"
+      ]
+    },
+    {
+      "check_id": "quota_contention",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.json",
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.ndjson"
+      ]
+    },
+    {
+      "check_id": "workspace_rendering",
+      "status": "passed",
+      "evidence_refs": [
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.json",
+        "ops/evidence/staging/local-devport/stage1-load-local-devport-current2-workspace_rendering.ndjson"
+      ]
+    }
+  ],
+  "production_gate": "open_until_runtime_thresholds_and_full_staging_load_results_exist"
+}

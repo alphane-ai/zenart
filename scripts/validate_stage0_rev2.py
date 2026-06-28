@@ -72,12 +72,13 @@ PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_CHECKLIST_ITEM = (
     "and cannot close production backup/rollback launch readiness until upstream CI/Staging gates and exact split files pass。"
 )
 PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT_CHECKLIST_ITEM = (
-    "Production backup/rollback split preflight blocked evidence recorded but launch blocker preserved: "
-    "`ops/evidence/production/backup-rollback-split.blocked.json` has `status=blocked_by_upstream_gates`, "
-    "records exact missing split files `ops/evidence/production/backup-restore.json` and "
-    "`ops/evidence/production/rollback-incident-post-deploy-smoke.json`, requires CI and Private Beta/Staging "
-    "gate fixtures to compute `go`, and cannot close production backup/rollback, post-deploy, aggregate "
-    "Production, or Do-Not-Launch readiness。"
+    "Production backup/rollback split preflight exact-ready evidence recorded but aggregate launch blocker preserved: "
+    "`ops/evidence/production/backup-rollback-split.blocked.json` has "
+    "`status=exact_split_ready_blocked_by_other_production_runtime_items`, records passed exact split files "
+    "`ops/evidence/production/backup-restore.json` and "
+    "`ops/evidence/production/rollback-incident-post-deploy-smoke.json`, proves rollback exact evidence uses backend image "
+    "runtime-worker target with `/app/worker` entrypoint, and preserves unrelated Production Launch / Do-Not-Launch "
+    "blockers until provider、billing、skill、activation、abuse、security、legal/support production evidence pass。"
 )
 PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM = (
     "Production post-deploy launch-clearing smoke evidence 通过：exact production split evidence exists at "
@@ -456,6 +457,26 @@ SPLIT_EVIDENCE_STALE_ABSENT_TERMS = tuple(
     term for term in SPLIT_EVIDENCE_ABSENT_TERMS if term != "not present"
 )
 
+
+def split_artifact_description_is_current(
+    path: Path,
+    path_context: str,
+    *,
+    allow_non_closure: bool = False,
+) -> bool:
+    if any(term in path_context for term in SPLIT_EVIDENCE_PRESENT_TERMS):
+        return True
+    if not allow_non_closure:
+        return False
+    rel_path = rel(path)
+    if rel_path in {
+        "ops/evidence/staging/legal-pages-external-user.json",
+        "ops/evidence/staging/support-contact-external-user.json",
+    }:
+        return "diagnostic" in path_context and "status=blocked" in path_context and "missing_staging_web_url" in path_context
+    return "blocked" in path_context and not any(term in path_context for term in SPLIT_EVIDENCE_STALE_ABSENT_TERMS)
+
+
 RELEASE_GATE_REQUIRED_CHECKS = {
     "local_alpha": {
         "workflow_fixture_coverage",
@@ -541,24 +562,25 @@ RELEASE_GATE_EVIDENCE_FILES = {
 }
 
 RELEASE_GATE_EVIDENCE_IDS = {
-    "local_alpha": "gate_local_alpha_fixture_baseline",
-    "ci": "gate_ci_draft_blocked",
-    "private_beta_staging": "gate_private_beta_staging_blocked",
-    "production_launch": "gate_production_launch_blocked",
+    "local_alpha": {"gate_local_alpha_fixture_baseline"},
+    "ci": {"gate_ci_installed_runtime_blocked", "gate_ci_installed_runtime_go"},
+    "private_beta_staging": {"gate_private_beta_staging_blocked"},
+    "production_launch": {"gate_production_launch_blocked"},
 }
 
 RELEASE_GATE_BACKFILL_CHECKED_ITEMS = {
     "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
-    "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
+    "Backfill CI draft/no-go evidence: ops CI draft coverage passes and installed `.github/workflows` runtime evidence remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
+    "CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。",
     "Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。",
     "Backfill Production Launch no-go evidence: provider/billing/skill/activation/abuse/security/backup/legal blockers remain active in `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`。",
 }
 
 README_LAUNCH_READINESS_CHECKLIST_ITEM = (
-    "README launch-readiness snapshot guard 通过：README states Local Alpha is go, keeps CI、Private Beta/Staging、"
-    "Production Launch、and Do-Not-Launch no-go with exact blocked check IDs, active Do-Not-Launch condition IDs, "
-    "missing/present runtime artifact paths, and validator rejects README prose that implies those gates are "
-    "launch-ready before release fixtures compute `go`。"
+    "README launch-readiness snapshot guard 通过：README states Local Alpha and Private Beta/Staging are go, "
+    "keeps CI、Production Launch、and Do-Not-Launch no-go/open with exact blocked check IDs, active Do-Not-Launch "
+    "condition IDs, missing/present runtime artifact paths, and validator rejects README prose that implies blocked "
+    "gates are launch-ready before release fixtures compute `go`。"
 )
 
 RUNTIME_PASS_EXACT_FILE_GUARD_CHECKLIST_ITEM = (
@@ -660,10 +682,11 @@ README_GATE_SNAPSHOT_REQUIREMENTS = {
     "Private Beta/Staging Gate": {
         "expected_status": "no-go",
         "tokens": [
-            "staging_object_storage_signed_downloads",
-            "object_storage_signed_retention_runtime_missing",
+            "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json gate_decision.status=no_go",
             "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json",
             "ops/evidence/staging/object-storage-retention-cleanup.json",
+            "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
+            "object_storage_signed_retention_runtime_missing",
         ],
     },
     "Production Launch Gate": {
@@ -687,25 +710,74 @@ README_GATE_SNAPSHOT_REQUIREMENTS = {
             "fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=no_go",
             "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json gate_decision.status=no_go",
             "fixtures/stage0/rev2/release_gate_evidence.production_launch.json gate_decision.status=no_go",
-            "ci_workflow_not_installed",
+            "ci_gate_not_executed_on_main",
             "object_storage_signed_retention_runtime_missing",
             "ci_staging_gates_not_passed",
         ],
     },
 }
 
+
+def readme_expected_tokens(label: str, evidence: dict[str, dict[str, Any]]) -> list[str]:
+    base_tokens = list(README_GATE_SNAPSHOT_REQUIREMENTS[label]["tokens"])
+    if label == "CI Gate":
+        return [
+            ".github/workflows/stage0-rev2-ci.yml",
+            "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+            "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+            "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+            f"{rel(RELEASE_GATE_EVIDENCE_FILES['ci'])} gate_decision.status={evidence['ci']['gate_decision']['status']}",
+        ]
+    if label == "Private Beta/Staging Gate":
+        status = evidence["private_beta_staging"]["gate_decision"]["status"]
+        tokens = [
+            f"{rel(RELEASE_GATE_EVIDENCE_FILES['private_beta_staging'])} gate_decision.status={status}",
+        ]
+        if status == "go":
+            tokens.extend(["object storage retention cleanup", "legal/support visibility"])
+        else:
+            tokens.extend(base_tokens[1:])
+        return tokens
+    if label == "Production Launch Gate":
+        production = evidence["production_launch"]
+        tokens = [
+            f"{rel(RELEASE_GATE_EVIDENCE_FILES['production_launch'])} gate_decision.status={production['gate_decision']['status']}",
+            "production_paid_billing_lifecycle",
+            "production_backup_rollback_incident",
+            "paid_billing_or_comp_only_mode_missing",
+            "backup_restore_rollback_smoke_missing",
+            "production_deploy_rollback_smoke_missing",
+            f"{rel(RELEASE_GATE_EVIDENCE_FILES['ci'])} gate_decision.status={evidence['ci']['gate_decision']['status']}",
+            f"{rel(RELEASE_GATE_EVIDENCE_FILES['private_beta_staging'])} gate_decision.status={evidence['private_beta_staging']['gate_decision']['status']}",
+            "ops/evidence/production/backup-restore.json",
+            "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+        ]
+        for condition in production.get("do_not_launch_checks", []):
+            if condition["condition_id"] == "ci_staging_gates_not_passed" and condition["is_present"]:
+                tokens.append("ci_staging_gates_not_passed")
+        return tokens
+    if label == "Do-Not-Launch Conditions":
+        active_conditions = [
+            condition["condition_id"]
+            for gate in ("local_alpha", "ci", "private_beta_staging", "production_launch")
+            for condition in evidence[gate].get("do_not_launch_checks", [])
+            if condition["is_present"]
+        ]
+        tokens = [f"{rel(path)} gate_decision.status={evidence[gate]['gate_decision']['status']}" for gate, path in RELEASE_GATE_EVIDENCE_FILES.items()]
+        tokens.extend(active_conditions)
+        return tokens
+    return base_tokens
+
 RELEASE_GATE_RUNTIME_OPEN_ITEMS = {
     "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。",
     "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
-    "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。",
     "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
 }
 
-CI_INSTALLED_WORKFLOW_FILE_ITEM = (
-    "CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。"
-)
-
 CI_RUNTIME_OPEN_CHECK_ITEMS = {
+    "CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。": {
+        "ci_installed_workflow",
+    },
     "CI PR/main workflow run evidence 通过：已安装 workflow 的 PR/main run 结果写入 `ops/evidence/ci/`。": {
         "ci_gate_runtime_execution",
     },
@@ -726,9 +798,10 @@ CI_RUNTIME_OPEN_CHECK_ITEMS = {
     },
 }
 
-CI_CHECK_ITEMS = {
-    CI_INSTALLED_WORKFLOW_FILE_ITEM: {"ci_installed_workflow"},
-    **CI_RUNTIME_OPEN_CHECK_ITEMS,
+CI_RUNTIME_AGGREGATE_OPEN_CHECK_ITEMS = {
+    item: check_ids
+    for item, check_ids in CI_RUNTIME_OPEN_CHECK_ITEMS.items()
+    if "installed workflow file evidence" not in item
 }
 
 CI_BROAD_RUNTIME_TO_EXACT_CHECKLIST_ITEMS = {
@@ -816,7 +889,7 @@ RUNTIME_PASS_REQUIREMENTS = {
     },
     ("ci", "ci_gate_runtime_execution"): {
         "path_patterns": (r"ops/evidence/ci/",),
-        "tokens": ("pr/main", "run"),
+        "tokens": ("workflow_run", "refs/heads/main"),
     },
     ("ci", "ci_playwright_smoke"): {
         "path_patterns": (r"ops/evidence/ci/",),
@@ -907,7 +980,7 @@ RUNTIME_BLOCKED_EVIDENCE_REQUIREMENTS = {
     },
     ("ci", "ci_gate_runtime_execution"): {
         "path_patterns": (r"\.github/workflows/", r"ops/evidence/ci/"),
-        "tokens": ("pr/main", "run"),
+        "tokens": ("workflow_run", "refs/heads/main"),
     },
     ("ci", "ci_playwright_smoke"): {
         "path_patterns": (r"ops/evidence/ci/",),
@@ -944,6 +1017,22 @@ RUNTIME_BLOCKED_EVIDENCE_REQUIREMENTS = {
     ("production_launch", "production_paid_billing_lifecycle"): {
         "path_patterns": (r"ops/evidence/production/",),
         "tokens": ("production", "billing", "lifecycle"),
+    },
+    ("production_launch", "production_skill_release_eval_canary"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production", "skill", "release", "canary"),
+    },
+    ("production_launch", "production_activation_review_audit"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production", "activation", "review", "audit"),
+    },
+    ("production_launch", "production_abuse_throttle_hold"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production", "abuse", "throttle"),
+    },
+    ("production_launch", "production_security_launch_checks"): {
+        "path_patterns": (r"ops/evidence/production/",),
+        "tokens": ("production", "security", "privacy"),
     },
     ("production_launch", "production_backup_rollback_incident"): {
         "path_patterns": (r"ops/evidence/production/",),
@@ -1086,7 +1175,7 @@ RUNTIME_EVIDENCE_CHECKLIST_ITEMS = {
     },
     ("production_launch", "production_backup_rollback_incident"): {
         "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。",
-        "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
+        "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
     },
     ("production_launch", "production_legal_support_policy"): {
         "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。",
@@ -1101,6 +1190,7 @@ GATE_IMPACT_KEY_CHECKLIST_ITEMS = {
     "can_clear_signed_url_checklist_item": "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
     "can_clear_provider_mode_subitem": "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。",
     "can_clear_public_paid_real_generation_claims_subitem": "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。",
+    "can_clear_billing_lifecycle_subitem": "Production paid billing lifecycle runtime/deployment evidence 通过。",
     "can_clear_checkout_subscription_subitem": "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。",
     "can_clear_refund_credit_webhook_subitem": "Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。",
     "can_clear_public_legal_subitem": "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。",
@@ -1127,7 +1217,26 @@ GATE_IMPACT_ALLOWED_CLEARANCE_FLAGS = set(GATE_IMPACT_KEY_CHECKLIST_ITEMS) | {
     "can_clear_retention_cleanup_checklist_item",
 }
 
+GATE_IMPACT_STAGE1_CONTEXT_FLAGS = {
+    "can_clear_abuse_throttle_hold_component",
+    "can_clear_activation_review_audit_component",
+    "can_clear_backup_restore_split",
+    "can_clear_object_retention_gate",
+    "can_clear_provider_sandbox_gate",
+    "can_clear_rollback_incident_post_deploy_split",
+    "can_clear_security_launch_check",
+    "can_clear_skill_release_eval_canary_component",
+    "can_clear_skill_release_eval_canary_gate",
+    "can_clear_stage1_staging_runtime_gate",
+    "can_clear_stage1_production_launch_gate",
+    "can_clear_stage1_production_security_gate",
+    "can_clear_stage1_safety_qa_gate",
+    "can_clear_stripe_staging_gate",
+    "can_clear_ci_gate_check",
+}
+
 GATE_IMPACT_ALLOWED_KEYS = GATE_IMPACT_ALLOWED_CLEARANCE_FLAGS | {
+    *GATE_IMPACT_STAGE1_CONTEXT_FLAGS,
     "aggregate_checklist_item",
     "aggregate_ci_gate_status",
     "aggregate_local_alpha_gate_status",
@@ -1347,14 +1456,6 @@ SPLIT_CHECKLIST_ITEM_EVIDENCE = {
         "allow_preserved_blockers": False,
         "tokens": ("retention", "expired export cleanup", "orphan cleanup", "audit"),
     },
-    "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。": {
-        "gate": "private_beta_staging",
-        "check_id": "staging_legal_external_user_pages",
-        "path": STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE,
-        "allowed_statuses": {"pass", "passed"},
-        "allow_preserved_blockers": False,
-        "tokens": ("terms", "privacy", "acceptable use", "ai/content", "ip complaint"),
-    },
     "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。": {
         "gate": "private_beta_staging",
         "check_id": "staging_legal_external_user_pages",
@@ -1376,7 +1477,7 @@ SPLIT_CHECKLIST_ITEM_EVIDENCE = {
         "check_id": "production_provider_or_comp_only_mode",
         "path": PRODUCTION_PROVIDER_MODE_EVIDENCE,
         "allowed_statuses": {"pass", "passed"},
-        "allow_preserved_blockers": True,
+        "allow_preserved_blockers": False,
         "tokens": ("production", "provider", "mode"),
     },
     "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。": {
@@ -1384,7 +1485,7 @@ SPLIT_CHECKLIST_ITEM_EVIDENCE = {
         "check_id": "production_provider_or_comp_only_mode",
         "path": PRODUCTION_CLAIMS_ALIGNMENT_EVIDENCE,
         "allowed_statuses": {"pass", "passed"},
-        "allow_preserved_blockers": True,
+        "allow_preserved_blockers": False,
         "tokens": ("paid", "real-generation", "claims"),
     },
     "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。": {
@@ -1419,21 +1520,21 @@ SPLIT_CHECKLIST_ITEM_EVIDENCE = {
         "allow_preserved_blockers": False,
         "tokens": ("backup", "postgres restore", "object restore", "rpo", "rto"),
     },
-    "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。": {
+    "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。": {
         "gate": "production_launch",
         "check_id": "production_backup_rollback_incident",
         "path": PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE,
         "allowed_statuses": {"pass", "passed"},
         "allow_preserved_blockers": False,
-        "tokens": ("rollback", "incident", "migration compatibility", "post-deploy smoke"),
+        "tokens": ("rollback", "runtime-worker", "backend_runtime_worker_rollback", "incident", "migration compatibility", "post-deploy smoke"),
     },
-    "Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, rollback drill, incident/alert path, migration compatibility, post-deploy smoke, passing CI/Private Beta/Staging gate dependencies, and no preserved blockers。": {
+    "Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, post-deploy smoke, passing CI/Private Beta/Staging gate dependencies, and no preserved blockers。": {
         "gate": "production_launch",
         "check_id": "production_backup_rollback_incident",
         "path": PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE,
         "allowed_statuses": {"pass", "passed"},
         "allow_preserved_blockers": False,
-        "tokens": ("rollback", "incident", "migration compatibility", "post-deploy smoke"),
+        "tokens": ("rollback", "runtime-worker", "backend_runtime_worker_rollback", "incident", "migration compatibility", "post-deploy smoke"),
     },
     "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。": {
         "gate": "production_launch",
@@ -1644,20 +1745,17 @@ ACTIVE_CONDITION_SPLIT_EVIDENCE_PATHS = {
         CI_WORKFLOW: ("workflow",),
     },
     ("ci", "ci_gate_not_executed_on_main"): {
-        CI_WORKFLOW: ("workflow",),
         CI_PR_MAIN_RUN_EVIDENCE: (
-            "pr/main",
-            "run",
+            "workflow_run",
+            "refs/heads/main",
         ),
     },
     ("ci", "ci_playwright_smoke_missing"): {
-        CI_WORKFLOW: ("workflow",),
         CI_PLAYWRIGHT_SMOKE_EVIDENCE: (
             "playwright",
         ),
     },
     ("ci", "ci_docker_image_build_missing"): {
-        CI_WORKFLOW: ("workflow",),
         CI_DOCKER_IMAGE_BUILD_EVIDENCE: (
             "docker",
         ),
@@ -1847,6 +1945,8 @@ RELEASE_GATE_EVIDENCE_REF_ALLOWED_PATHS = {
         "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
     },
     ("production_launch", "check", "production_backup_rollback_incident"): {
+        "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+        "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
         "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
         "ops/evidence/production/backup-restore.json",
         "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
@@ -1955,6 +2055,7 @@ RELEASE_GATE_EVIDENCE_REF_ALLOWED_PATHS = {
     ("private_beta_staging", "condition", "external_user_legal_pages_missing"): {
         "ops/evidence/staging/legal-pages-external-user.json",
         "ops/evidence/staging/support-contact-external-user.json",
+        "scripts/staging_legal_support_visibility_smoke.sh",
     },
     ("production_launch", "condition", "dev_mock_provider_public_claims_unresolved"): {
         "ops/evidence/production/provider-mode.json",
@@ -2049,12 +2150,18 @@ RELEASE_GATE_DECISION_ALLOWED_PATHS = {
         "fixtures/stage0/rev2/release_gate_evidence.ci.json",
         "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
         "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
+        "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+        "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
+        "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+        "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
         "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
         "ops/evidence/production/backup-restore.json",
         "ops/evidence/production/billing-lifecycle.json",
         "ops/evidence/production/billing-refund-credit-webhook.json",
         "ops/evidence/production/provider-mode.json",
+        "ops/evidence/production/public-legal-policy.json",
         "ops/evidence/production/public-paid-real-generation-claims.json",
+        "ops/evidence/production/public-support-billing-policy.json",
         "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
     },
 }
@@ -2156,10 +2263,10 @@ PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS = {
     "Production backup/restore exact evidence file 通过：`ops/evidence/production/backup-restore.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, backup schedule, Postgres restore, object restore, RPO/RTO, audit refs, and no preserved blockers。": {
         "production_backup_rollback_incident",
     },
-    "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。": {
+    "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。": {
         "production_backup_rollback_incident",
     },
-    "Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, rollback drill, incident/alert path, migration compatibility, post-deploy smoke, passing CI/Private Beta/Staging gate dependencies, and no preserved blockers。": {
+    "Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, post-deploy smoke, passing CI/Private Beta/Staging gate dependencies, and no preserved blockers。": {
         "production_backup_rollback_incident",
     },
     PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM: {
@@ -2177,13 +2284,7 @@ PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS = {
 }
 
 RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS = {
-    **CI_RUNTIME_OPEN_CHECK_ITEMS,
-    **PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS,
-    **PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS,
-}
-
-RELEASE_GATE_CHECK_LEVEL_ITEMS = {
-    **CI_CHECK_ITEMS,
+    **CI_RUNTIME_AGGREGATE_OPEN_CHECK_ITEMS,
     **PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS,
     **PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS,
 }
@@ -2298,7 +2399,7 @@ RELEASE_GATE_AGGREGATE_REQUIREMENTS = {
         ),
     },
     "ci": {
-        CI_AGGREGATE_RUNTIME_ITEM: set(CI_RUNTIME_OPEN_CHECK_ITEMS),
+        CI_AGGREGATE_RUNTIME_ITEM: set(CI_RUNTIME_AGGREGATE_OPEN_CHECK_ITEMS),
     },
     "private_beta_staging": {
         PRIVATE_BETA_STAGING_AGGREGATE_RUNTIME_ITEM: set(PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS),
@@ -2449,16 +2550,16 @@ CONCRETE_EVIDENCE_PATH_RE = re.compile(
     r"(?<![A-Za-z0-9_./-])"
     r"("
     r"\.env\.example|"
-    r"\.github(?:/[A-Za-z0-9._{}*,-]+)*|"
-    r"admin(?:/[A-Za-z0-9._{}*,-]+)*|"
-    r"backend(?:/[A-Za-z0-9._{}*,-]+)*|"
+    r"\.github(?:/[A-Za-z0-9._{}*,-]+)+|"
+    r"admin(?:/[A-Za-z0-9._{}*,-]+)+|"
+    r"backend(?:/[A-Za-z0-9._{}*,-]+)+|"
     r"docker-compose\.yml|"
-    r"fixtures(?:/[A-Za-z0-9._{}*,-]+)*|"
-    r"openapi(?:/[A-Za-z0-9._{}*,-]+)*|"
-    r"ops(?:/[A-Za-z0-9._{}*,-]+)*|"
-    r"schemas(?:/[A-Za-z0-9._{}*,-]+)*|"
-    r"scripts(?:/[A-Za-z0-9._{}*,-]+)*|"
-    r"web(?:/[A-Za-z0-9._{}*,-]+)*"
+    r"fixtures(?:/[A-Za-z0-9._{}*,-]+)+|"
+    r"openapi(?:/[A-Za-z0-9._{}*,-]+)+|"
+    r"ops(?:/[A-Za-z0-9._{}*,-]+)+|"
+    r"schemas(?:/[A-Za-z0-9._{}*,-]+)+|"
+    r"scripts(?:/[A-Za-z0-9._{}*,-]+)+|"
+    r"web(?:/[A-Za-z0-9._{}*,-]+)+"
     r")"
     r"(?![A-Za-z0-9_./-])"
 )
@@ -2509,7 +2610,7 @@ RELEASE_GATE_PASS_BLOCKED_BY_OPEN_ITEMS = {
         "角色/IP 概念包 export ZIP evidence 通过：`ops/evidence/local_alpha/character_ip_concept_pack.export_zip.json` proves manifest、QA report、safety report、provenance、metadata、AI disclaimer、trace payloads and four-option taxonomy。",
     },
     "ci": {
-        "添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）",
+        "添加 PR/main CI 到 `.github/workflows` 并安装 Stage 0 Rev2 + Stage 1 baseline workflow。",
         "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
         "CI 在已安装 PR/main workflow 中 build Docker images。",
     },
@@ -2555,7 +2656,7 @@ RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS = {
         },
     },
     "ci": {
-        "添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）": {
+        "添加 PR/main CI 到 `.github/workflows` 并安装 Stage 0 Rev2 + Stage 1 baseline workflow。": {
             "ci_installed_workflow",
             "ci_gate_runtime_execution",
         },
@@ -2618,8 +2719,8 @@ RELEASE_GATE_OPEN_ITEM_GUARD_CHECKS = {
 
 ACTIVE_CONDITION_CHECKLIST_BLOCKER_ITEMS = {
     ("ci", "ci_workflow_not_installed"): {
-        "添加 PR/main CI 到 `.github/workflows`：installed workflow exists at `.github/workflows/stage0-rev2-ci.yml` and matches `ops/ci/stage0-rev2-ci.yml`; runtime PR/main evidence remains open under `ops/evidence/ci/`。",
-        CI_INSTALLED_WORKFLOW_FILE_ITEM,
+        "添加 PR/main CI 到 `.github/workflows` 并安装 Stage 0 Rev2 + Stage 1 baseline workflow。",
+        "CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。",
     },
     ("ci", "ci_gate_not_executed_on_main"): {
         "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
@@ -2639,6 +2740,12 @@ ACTIVE_CONDITION_CHECKLIST_BLOCKER_ITEMS = {
         "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。",
         "Private Beta/Staging object retention/cleanup exact evidence file 通过：`ops/evidence/staging/object-storage-retention-cleanup.json` exists, declares `environment=staging`, `release_gate_check_id=staging_object_storage_signed_downloads`, passing status, retention policy, expired export cleanup, orphan cleanup, audit refs, and no preserved blockers。",
     },
+    ("private_beta_staging", "external_user_legal_pages_missing"): {
+        "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。",
+        "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
+        "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
+        "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
+    },
     ("production_launch", "dev_mock_provider_public_claims_unresolved"): {
         "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
         "Production provider-or-comp-only runtime/deployment evidence 通过。",
@@ -2657,6 +2764,30 @@ ACTIVE_CONDITION_CHECKLIST_BLOCKER_ITEMS = {
         "Production checkout/subscription/cancellation/past_due runtime evidence 通过 under `ops/evidence/production/`。",
         "Production refund/credit/quota reset/webhook idempotency runtime evidence 通过 under `ops/evidence/production/`。",
     },
+    ("production_launch", "skill_release_eval_canary_missing"): {
+        "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+        "Production skill release/eval/canary runtime/deployment evidence 通过。",
+    },
+    ("production_launch", "activation_eval_review_audit_runtime_missing"): {
+        "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+        "Production activation review/audit runtime/deployment evidence 通过。",
+    },
+    ("production_launch", "admin_high_risk_review_runtime_missing"): {
+        "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+        "Production activation review/audit runtime/deployment evidence 通过。",
+    },
+    ("production_launch", "abuse_throttle_hold_missing"): {
+        "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+        "Production abuse throttle/hold runtime/deployment evidence 通过。",
+    },
+    ("production_launch", "security_privacy_legal_incomplete"): {
+        "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+        "Production security launch-check runtime/deployment evidence 通过。",
+    },
+    ("production_launch", "secret_exposure_runtime_not_verified"): {
+        "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+        "Production security launch-check runtime/deployment evidence 通过。",
+    },
     ("production_launch", "backup_restore_rollback_smoke_missing"): {
         "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
         "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。",
@@ -2666,13 +2797,18 @@ ACTIVE_CONDITION_CHECKLIST_BLOCKER_ITEMS = {
     ("production_launch", "production_deploy_rollback_smoke_missing"): {
         "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
         "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。",
-        "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
-        "Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, rollback drill, incident/alert path, migration compatibility, post-deploy smoke, passing CI/Private Beta/Staging gate dependencies, and no preserved blockers。",
+        "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
+        "Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, post-deploy smoke, passing CI/Private Beta/Staging gate dependencies, and no preserved blockers。",
         PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM,
+    },
+    ("production_launch", "public_legal_support_policy_not_deployed"): {
+        "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+        "Production legal/support policy deployment evidence 通过。",
+        "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。",
+        "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。",
     },
     ("production_launch", "ci_staging_gates_not_passed"): {
         "CI Gate 全部通过。",
-        "Private Beta/Staging Gate 全部通过。",
         "Production Launch Gate 全部通过。",
         "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
         "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。",
@@ -2832,7 +2968,7 @@ CHECKED_ITEMS = {
     RELEASE_GATE_FIXTURE_DEPENDENCY_STATUS_TOKEN_GUARD_CHECKLIST_ITEM,
     BROAD_RUNTIME_EVIDENCE_DIRECTORY_GUARD_CHECKLIST_ITEM,
     "Backfill Local Alpha release gate fixture evidence: workflow/eval/crawler/schema/service/runtime-stack checks pass in `fixtures/stage0/rev2/release_gate_evidence.local_alpha.json`。",
-    "Backfill CI draft/no-go evidence: ops CI draft coverage passes while installed `.github/workflows` runtime remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
+    "Backfill CI draft/no-go evidence: ops CI draft coverage passes and installed `.github/workflows` runtime evidence remains blocked in `fixtures/stage0/rev2/release_gate_evidence.ci.json`。",
     "Backfill Private Beta/Staging no-go evidence: contract/fixture evidence is separated from external-user staging runtime blockers in `fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json`。",
     "Backfill Production Launch no-go evidence: provider/billing/skill/activation/abuse/security/backup/legal blockers remain active in `fixtures/stage0/rev2/release_gate_evidence.production_launch.json`。",
 }
@@ -2854,7 +2990,6 @@ FORBIDDEN_CHECKED_ITEMS = {
 REQUIRED_OPEN_ITEMS = {
     "Local Alpha workflow API/Playwright end-to-end smoke evidence 通过并写入 release gate fixture。",
     "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
-    "Private Beta/Staging external-user runtime evidence 通过：auth/RBAC/tenant、storage、quota/rate limit、support/abuse、safety/QA/crawler、observability/backup/load、legal visibility 均有 staging evidence。",
     "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
     "电商增长包 API smoke test 通过。",
     "电商增长包 Playwright happy path 通过。",
@@ -2879,7 +3014,7 @@ REQUIRED_OPEN_ITEMS = {
     "Staging post-deploy smoke tests 通过。",
     PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM,
 }
-REQUIRED_OPEN_ITEMS |= set(CI_RUNTIME_OPEN_CHECK_ITEMS)
+REQUIRED_OPEN_ITEMS |= set(CI_RUNTIME_AGGREGATE_OPEN_CHECK_ITEMS)
 CLOSED_CHECK_LEVEL_RUNTIME_ITEMS = {
     "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
     "Private Beta/Staging brief/upload/confirmation runtime evidence 通过。",
@@ -2887,13 +3022,16 @@ CLOSED_CHECK_LEVEL_RUNTIME_ITEMS = {
     "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
     "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
     "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
-    "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
-    "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
-    "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
     "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
+    "Private Beta/Staging object storage signed download/retention runtime evidence 通过。",
+    "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。",
+    "Private Beta/Staging object retention/cleanup exact evidence file 通过：`ops/evidence/staging/object-storage-retention-cleanup.json` exists, declares `environment=staging`, `release_gate_check_id=staging_object_storage_signed_downloads`, passing status, retention policy, expired export cleanup, orphan cleanup, audit refs, and no preserved blockers。",
     "Private Beta/Staging observability/backup/load runtime evidence 通过。",
     "Private Beta/Staging backup/restore runtime evidence 通过：staging evidence proves Postgres restore and object restore entries required by `staging_observability_backup_load` preflight。",
     "Private Beta/Staging load runtime evidence 通过：staging evidence proves chat/task、worker generation、ZIP export、signed download、crawler throttle、quota contention、workspace rendering load entries required by `staging_observability_backup_load` preflight。",
+    "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
+    "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
+    "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
     "staging backend/worker/crawler metrics runtime evidence 通过。",
     "Production skill release/eval/canary runtime/deployment evidence 通过。",
     "Production provider-or-comp-only runtime/deployment evidence 通过。",
@@ -2934,12 +3072,15 @@ REQUIRED_OPEN_ITEMS -= {
     "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
     "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
     "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
-    "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
-    "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
-    "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
+    "Private Beta/Staging object storage signed download/retention runtime evidence 通过。",
+    "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。",
+    "Private Beta/Staging object retention/cleanup exact evidence file 通过：`ops/evidence/staging/object-storage-retention-cleanup.json` exists, declares `environment=staging`, `release_gate_check_id=staging_object_storage_signed_downloads`, passing status, retention policy, expired export cleanup, orphan cleanup, audit refs, and no preserved blockers。",
     "Private Beta/Staging observability/backup/load runtime evidence 通过。",
     "Private Beta/Staging backup/restore runtime evidence 通过：staging evidence proves Postgres restore and object restore entries required by `staging_observability_backup_load` preflight。",
     "Private Beta/Staging load runtime evidence 通过：staging evidence proves chat/task、worker generation、ZIP export、signed download、crawler throttle、quota contention、workspace rendering load entries required by `staging_observability_backup_load` preflight。",
+    "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
+    "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
+    "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
     "Production skill release/eval/canary runtime/deployment evidence 通过。",
     "Production activation review/audit runtime/deployment evidence 通过。",
     "Production abuse throttle/hold runtime/deployment evidence 通过。",
@@ -3209,6 +3350,7 @@ OPS_EVIDENCE_REQUIRED_KEYS = {
     "installation_status",
     "token_blocked_reason",
     "draft_ref",
+    "installed_workflow_ref",
     "checklist_policy",
     "artifact_checks",
     "release_gate_effect",
@@ -3362,6 +3504,18 @@ def normalize_evidence_path(path: str) -> str:
     return path.rstrip(".,;:)。")
 
 
+def normalize_semantic_token_text(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "", value.lower())
+
+
+def text_has_semantic_token(text: str, token: str) -> bool:
+    return normalize_semantic_token_text(token) in normalize_semantic_token_text(text)
+
+
+def missing_semantic_tokens(text: str, tokens: tuple[str, ...]) -> list[str]:
+    return [token for token in tokens if not text_has_semantic_token(text, token)]
+
+
 def evidence_path_exists(path: str) -> bool:
     normalized = normalize_evidence_path(path)
     if normalized == ".github":
@@ -3382,6 +3536,40 @@ def concrete_evidence_paths(evidence_ref: str) -> set[str]:
         if path.startswith(CONCRETE_EVIDENCE_PATH_PREFIXES):
             paths.add(path)
     return paths
+
+
+def blocked_check_can_cite_blocked_runtime_artifact(
+    *,
+    gate: str,
+    ref_kind: str,
+    ref_id: str,
+    ref_state: str,
+    artifact: dict[str, Any],
+) -> bool:
+    if artifact.get("environment") not in RUNTIME_PASS_FILE_ENVIRONMENTS.get(gate, set()):
+        return False
+    if artifact.get("status") in RUNTIME_PASS_EVIDENCE_STATUS_VALUES:
+        return False
+    artifact_check_id = artifact.get("release_gate_check_id")
+    if ref_kind == "check":
+        if ref_state not in {"blocked", "fail"}:
+            return False
+        if artifact_check_id != ref_id:
+            return False
+        return bool(RELEASE_GATE_CHECK_BLOCKING_CONDITIONS.get(gate, {}).get(ref_id))
+    if ref_kind == "condition":
+        if ref_state != "active":
+            return False
+        return any(
+            ref_id in condition_ids
+            for check_id, condition_ids in RELEASE_GATE_CHECK_BLOCKING_CONDITIONS.get(gate, {}).items()
+            if check_id == artifact_check_id
+        )
+    if ref_kind == "decision":
+        if ref_state != "no_go":
+            return False
+        return artifact_check_id in RELEASE_GATE_CHECK_BLOCKING_CONDITIONS.get(gate, {})
+    return False
 
 
 def require_concrete_evidence_ref(
@@ -3601,11 +3789,19 @@ def require_existing_paths_are_passable_for_ref(
         )
         status = artifact.get("status")
         if status is not None:
-            require(
-                status in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
-                f"{gate}.{ref_id} {ref_kind} evidence cites existing runtime artifact {path} "
-                f"with non-passing status={status!r}",
-            )
+            if status not in RUNTIME_PASS_EVIDENCE_STATUS_VALUES:
+                require(
+                    blocked_check_can_cite_blocked_runtime_artifact(
+                        gate=gate,
+                        ref_kind=ref_kind,
+                        ref_id=ref_id,
+                        ref_state=ref_state,
+                        artifact=artifact,
+                    ),
+                    f"{gate}.{ref_id} {ref_kind} evidence cites existing runtime artifact {path} "
+                    f"with non-passing status={status!r}",
+                )
+                continue
         require(
             not artifact.get("blocked_slots"),
             f"{gate}.{ref_id} {ref_kind} evidence cites runtime artifact {path} with blocked_slots",
@@ -4336,14 +4532,12 @@ def require_split_runtime_pass_evidence(evidence_ref: str, gate: str, check_id: 
                     not blockers,
                     f"{gate}.{check_id} split runtime evidence {rel_path} cannot preserve blockers when closing combined check: {blockers}",
                 )
-        missing_tokens = [
-            token
-            for token in (
-                requirement["tokens"][subitem_id]
-                + requirement.get("pass_only_tokens", {}).get(subitem_id, ())
-            )
-            if token not in evidence_ref_lower and token not in json.dumps(evidence, ensure_ascii=False).lower()
-        ]
+        semantic_text = evidence_ref_lower + "\n" + json.dumps(evidence, ensure_ascii=False).lower()
+        missing_tokens = missing_semantic_tokens(
+            semantic_text,
+            requirement["tokens"][subitem_id]
+            + requirement.get("pass_only_tokens", {}).get(subitem_id, ()),
+        )
         require(
             not missing_tokens,
             f"{gate}.{check_id} split runtime evidence {rel_path} missing required coverage tokens for {subitem_id}: {missing_tokens}",
@@ -4401,7 +4595,7 @@ def split_runtime_evidence_is_passable(path: Path, requirement: dict[str, Any]) 
     elif preserved_blockers:
         return False
     combined = json.dumps(evidence, ensure_ascii=False).lower()
-    return all(token in combined for token in requirement["tokens"])
+    return not missing_semantic_tokens(combined, requirement["tokens"])
 
 
 def split_release_check_may_remain_blocked_after_exact_evidence(
@@ -4602,14 +4796,8 @@ def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_i
                 f"{gate}.{check_id} blocked split evidence {rel_path} is not owned by an exact checklist row",
             )
             require(
-                any(term in path_window for term in SPLIT_EVIDENCE_PRESENT_TERMS),
-                f"{gate}.{check_id} blocked split evidence {rel_path} exists but evidence_ref does not mark "
-                f"that split as present/pass; stale missing prose cannot preserve a blocker",
-            )
-            require(
-                not any(term in path_window for term in SPLIT_EVIDENCE_STALE_ABSENT_TERMS),
-                f"{gate}.{check_id} blocked split evidence {rel_path} exists but evidence_ref still describes "
-                f"that exact file as missing/absent",
+                path.exists(),
+                f"{gate}.{check_id} blocked split evidence {rel_path} vanished while being evaluated",
             )
             if isinstance(evidence, dict):
                 environment = evidence.get("environment")
@@ -4629,7 +4817,30 @@ def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_i
                     allowed_non_closure_contexts is not None
                     and (gate, "check", check_id, "blocked") in allowed_non_closure_contexts
                 )
-                if is_allowed_blocked_non_closure:
+                is_blocked_runtime_diagnostic = blocked_check_can_cite_blocked_runtime_artifact(
+                    gate=gate,
+                    ref_kind="check",
+                    ref_id=check_id,
+                    ref_state="blocked",
+                    artifact=evidence,
+                )
+                require(
+                    split_artifact_description_is_current(
+                        path,
+                        path_window,
+                        allow_non_closure=is_allowed_blocked_non_closure or is_blocked_runtime_diagnostic,
+                    ),
+                    f"{gate}.{check_id} blocked split evidence {rel_path} exists but evidence_ref does not mark "
+                    "that split as present/pass or as an allowed blocked diagnostic split",
+                )
+                require(
+                    is_allowed_blocked_non_closure
+                    or is_blocked_runtime_diagnostic
+                    or not any(term in path_window for term in SPLIT_EVIDENCE_STALE_ABSENT_TERMS),
+                    f"{gate}.{check_id} blocked split evidence {rel_path} exists but evidence_ref still describes "
+                    f"that exact file as missing/absent",
+                )
+                if is_allowed_blocked_non_closure or is_blocked_runtime_diagnostic:
                     require(
                         evidence.get("status") not in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
                         f"{gate}.{check_id} blocked non-closure split evidence {rel_path} must not be passing",
@@ -4641,7 +4852,7 @@ def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_i
                         f"it cannot be cited as present for {checklist_item}",
                     )
                 preserved_blockers = runtime_evidence_preserved_blockers(evidence)
-                if is_allowed_blocked_non_closure:
+                if is_allowed_blocked_non_closure or is_blocked_runtime_diagnostic:
                     require(
                         preserved_blockers,
                         f"{gate}.{check_id} blocked non-closure split evidence {rel_path} must preserve blockers",
@@ -4658,11 +4869,7 @@ def require_split_runtime_blocked_evidence(evidence_ref: str, gate: str, check_i
                         f"{preserved_blockers}",
                     )
                 combined = json.dumps(evidence, ensure_ascii=False).lower()
-                missing_evidence_tokens = [
-                    token
-                    for token in checklist_requirement["tokens"]
-                    if token not in combined
-                ]
+                missing_evidence_tokens = missing_semantic_tokens(combined, checklist_requirement["tokens"])
                 require(
                     not missing_evidence_tokens,
                     f"{gate}.{check_id} blocked split evidence {rel_path} lacks required checked-row semantics "
@@ -4891,7 +5098,15 @@ def require_gate_decision_exact_blocker_paths(
         after_candidates = [index for index in after_candidates if index >= 0]
         after_end = min(after_candidates) if after_candidates else len(evidence_ref_lower)
         path_context = evidence_ref_lower[before_start:after_end]
+        path_window = evidence_ref_lower[
+            max(0, path_index - 180) : min(len(evidence_ref_lower), path_index + len(rel_path) + 180)
+        ]
         if path.exists():
+            allowed_non_closure_contexts = NON_CLOSURE_RUNTIME_EVIDENCE_ALLOWED_CONTEXTS.get(rel_path)
+            is_allowed_decision_non_closure = (
+                allowed_non_closure_contexts is not None
+                and (gate, "decision", "gate_decision", "no_go") in allowed_non_closure_contexts
+            )
             if gate == "ci" and path == CI_WORKFLOW:
                 workflow_text = path.read_text(encoding="utf-8").lower()
                 required_tokens = ("stage0-rev2", "playwright", "docker", "validate_stage0_rev2.py")
@@ -4902,11 +5117,17 @@ def require_gate_decision_exact_blocker_paths(
                     f"Stage 0 Rev2 CI: missing {missing_tokens}",
                 )
             require(
-                any(term in path_context for term in SPLIT_EVIDENCE_PRESENT_TERMS),
-                f"{gate} gate_decision evidence {rel_path} exists but is not described as present/pass",
+                split_artifact_description_is_current(
+                    path,
+                    path_window,
+                    allow_non_closure=is_allowed_decision_non_closure,
+                ),
+                f"{gate} gate_decision evidence {rel_path} exists but is not described as present/pass "
+                "or as an allowed blocked diagnostic split",
             )
             require(
-                not any(term in path_context for term in SPLIT_EVIDENCE_STALE_ABSENT_TERMS),
+                is_allowed_decision_non_closure
+                or not any(term in path_context for term in SPLIT_EVIDENCE_STALE_ABSENT_TERMS),
                 f"{gate} gate_decision evidence {rel_path} exists but stale prose describes it as absent/missing",
             )
             continue
@@ -4972,11 +5193,7 @@ def validate_split_checklist_item_evidence(
                 f"checked split runtime evidence {rel_path} must not preserve blockers: {preserved_blockers}",
             )
         combined = json.dumps(evidence, ensure_ascii=False).lower()
-        missing_tokens = [
-            token
-            for token in requirement["tokens"]
-            if token not in combined
-        ]
+        missing_tokens = missing_semantic_tokens(combined, requirement["tokens"])
         require(
             not missing_tokens,
             f"checked split runtime evidence {rel_path} missing required semantics for {item}: {missing_tokens}",
@@ -5039,9 +5256,14 @@ def require_check_level_evidence_gate_impact(
         + json.dumps(sorted(expected_current_remaining), ensure_ascii=False),
     )
     if gate == "private_beta_staging":
+        expected_private_beta_status = (
+            "blocked_by_other_staging_runtime_items"
+            if expected_current_remaining
+            else "go"
+        )
         require(
-            gate_impact.get("aggregate_private_beta_gate_status") == "blocked_by_other_staging_runtime_items",
-            f"{evidence_name} must keep the aggregate private beta gate blocked",
+            gate_impact.get("aggregate_private_beta_gate_status") == expected_private_beta_status,
+            f"{evidence_name} aggregate private beta gate status must be {expected_private_beta_status}",
         )
     elif gate == "production_launch":
         require(
@@ -5115,9 +5337,10 @@ def release_evidence_by_gate() -> dict[str, dict[str, Any]]:
             data["gate"] == expected_gate,
             f"{path.relative_to(ROOT)} gate must be {expected_gate!r}",
         )
+        allowed_evidence_ids = RELEASE_GATE_EVIDENCE_IDS[expected_gate]
         require(
-            data.get("evidence_id") == RELEASE_GATE_EVIDENCE_IDS[expected_gate],
-            f"{path.relative_to(ROOT)} evidence_id must be {RELEASE_GATE_EVIDENCE_IDS[expected_gate]!r}",
+            data.get("evidence_id") in allowed_evidence_ids,
+            f"{path.relative_to(ROOT)} evidence_id must be one of {sorted(allowed_evidence_ids)!r}",
         )
         require(
             expected_gate not in evidence,
@@ -5189,6 +5412,94 @@ def current_blocked_release_gate_checks(gate: str) -> set[str]:
         for check in data["checks"]
         if check["status"] != "pass"
     }
+
+
+def accept_stage1_blocked_production_diagnostic(
+    evidence: dict[str, Any],
+    *,
+    schema_version: str,
+    kind: str,
+    release_gate_check_id: str,
+    evidence_name: str,
+) -> bool:
+    if evidence.get("schema_version") != schema_version:
+        return False
+    require(evidence.get("environment") == "production", f"{evidence_name} blocked diagnostic must be production-scoped")
+    require(evidence.get("kind") == kind, f"{evidence_name} blocked diagnostic kind mismatch")
+    require(evidence.get("status") == "blocked", f"{evidence_name} blocked diagnostic must stay blocked")
+    require(
+        evidence.get("release_gate_check_id") == release_gate_check_id,
+        f"{evidence_name} blocked diagnostic must target {release_gate_check_id}",
+    )
+    require(evidence.get("canonical_pass_path") is False, f"{evidence_name} blocked diagnostic must not claim canonical pass")
+    require(evidence.get("dry_run") is False, f"{evidence_name} blocked diagnostic must not be dry-run")
+    require(evidence.get("local_devport_debug") is False, f"{evidence_name} blocked diagnostic must not be local devport debug")
+    require(
+        evidence.get("allow_local_devport_evidence") is False,
+        f"{evidence_name} blocked diagnostic must reject local devport evidence",
+    )
+    blocked_checks = evidence.get("blocked_checks")
+    require(
+        isinstance(blocked_checks, list) and blocked_checks,
+        f"{evidence_name} blocked diagnostic must preserve non-empty blocked_checks",
+    )
+    gate_impact = evidence.get("gate_impact")
+    require(isinstance(gate_impact, dict), f"{evidence_name} blocked diagnostic gate_impact must be object")
+    require(
+        gate_impact.get("can_clear_aggregate_production_gate") is not True,
+        f"{evidence_name} blocked diagnostic must not clear aggregate production gate",
+    )
+    require(
+        gate_impact.get("preserved_release_gate_check_id") == release_gate_check_id,
+        f"{evidence_name} blocked diagnostic must preserve its release gate check",
+    )
+    require(
+        gate_impact.get("remaining_blockers") == blocked_checks,
+        f"{evidence_name} blocked diagnostic remaining_blockers must mirror blocked_checks",
+    )
+    for field in (
+        "secret_material_persisted",
+        "raw_prompt_persisted",
+        "raw_provider_payload_persisted",
+        "raw_stripe_payload_persisted",
+        "raw_support_body_projected",
+        "signed_url_persisted",
+        "authorization_header_persisted",
+        "cookie_persisted",
+        "check_level_only",
+    ):
+        if field in evidence:
+            require(evidence.get(field) is False, f"{evidence_name} blocked diagnostic {field} must be false")
+    return True
+
+
+def production_evidence_passable_or_stage1_blocked(
+    path: Path,
+    *,
+    pass_schema_version: str,
+    blocked_schema_version: str,
+    kind: str,
+    release_gate_check_id: str,
+    evidence_name: str,
+    split_requirement: dict[str, Any] | None = None,
+) -> bool:
+    evidence = load_json(path)
+    if accept_stage1_blocked_production_diagnostic(
+        evidence,
+        schema_version=blocked_schema_version,
+        kind=kind,
+        release_gate_check_id=release_gate_check_id,
+        evidence_name=evidence_name,
+    ):
+        return False
+    if split_requirement is not None:
+        return split_runtime_evidence_is_passable(path, split_requirement)
+    return (
+        evidence.get("schema_version") == pass_schema_version
+        and evidence.get("environment") == "production"
+        and evidence.get("release_gate_check_id") == release_gate_check_id
+        and evidence.get("status") in {"pass", "passed", "pass_with_blockers_preserved"}
+    )
 
 
 def validate_gate_decision(data: dict[str, Any]) -> None:
@@ -5383,9 +5694,10 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
         data.get("schema_version") == "stage0.rev2",
         f"{gate} release evidence schema_version must be stage0.rev2",
     )
+    allowed_evidence_ids = RELEASE_GATE_EVIDENCE_IDS[gate]
     require(
-        data.get("evidence_id") == RELEASE_GATE_EVIDENCE_IDS[gate],
-        f"{gate} release evidence_id must be {RELEASE_GATE_EVIDENCE_IDS[gate]!r}",
+        data.get("evidence_id") in allowed_evidence_ids,
+        f"{gate} release evidence_id must be one of {sorted(allowed_evidence_ids)!r}",
     )
     require(
         data["provenance"]["created_by_lane"] == "lane6",
@@ -5458,6 +5770,8 @@ def validate_release_gate_basics(data: dict[str, Any]) -> tuple[dict[str, dict[s
             check["evidence_ref"],
             gate=gate,
             context=f"{gate}.{check_id} evidence",
+            allow_upstream_gate_fixtures=gate == "production_launch"
+            and check_id == "production_backup_rollback_incident",
         )
         require_release_gate_evidence_ref_allowed_paths(
             check["evidence_ref"],
@@ -5691,12 +6005,35 @@ def require_active_condition_split_path_state(evidence_ref: str, gate: str, cond
                 expected_tokens=tokens,
                 condition_present=True,
             )
-            require(
-                any(term in path_window for term in SPLIT_EVIDENCE_PRESENT_TERMS),
-                f"{gate}.{condition_id} active blocker evidence {rel_path} exists but is not described as present/pass",
+            allowed_non_closure_contexts = NON_CLOSURE_RUNTIME_EVIDENCE_ALLOWED_CONTEXTS.get(rel_path)
+            is_allowed_active_non_closure = (
+                allowed_non_closure_contexts is not None
+                and (gate, "condition", condition_id, "active") in allowed_non_closure_contexts
+            )
+            artifact = load_json_if_path(rel_path)
+            is_blocked_runtime_diagnostic = isinstance(
+                artifact,
+                dict,
+            ) and blocked_check_can_cite_blocked_runtime_artifact(
+                gate=gate,
+                ref_kind="condition",
+                ref_id=condition_id,
+                ref_state="active",
+                artifact=artifact,
             )
             require(
-                not any(term in path_window for term in SPLIT_EVIDENCE_STALE_ABSENT_TERMS),
+                split_artifact_description_is_current(
+                    path,
+                    path_window,
+                    allow_non_closure=is_allowed_active_non_closure or is_blocked_runtime_diagnostic,
+                ),
+                f"{gate}.{condition_id} active blocker evidence {rel_path} exists but is not described "
+                "as present/pass or as an allowed blocked diagnostic split",
+            )
+            require(
+                is_allowed_active_non_closure
+                or is_blocked_runtime_diagnostic
+                or not any(term in path_window for term in SPLIT_EVIDENCE_STALE_ABSENT_TERMS),
                 f"{gate}.{condition_id} active blocker evidence {rel_path} exists but stale prose describes it as absent/missing",
             )
             continue
@@ -5747,7 +6084,13 @@ def validate_condition_split_artifact_semantics(
             fixture.get("gate") == fixture_gate,
             f"{gate}.{condition_id} split artifact {rel_path} must target gate={fixture_gate!r}",
         )
-        expected_status = "no_go" if condition_present else "go"
+        if condition_present and (gate, condition_id) == (
+            "production_launch",
+            "ci_staging_gates_not_passed",
+        ):
+            expected_status = "go" if gate_allows_checklist_completion(fixture) else "no_go"
+        else:
+            expected_status = "no_go" if condition_present else "go"
         require(
             gate_decision_status(fixture) == expected_status,
             f"{gate}.{condition_id} split artifact {rel_path} must have gate_decision.status={expected_status!r}",
@@ -5789,10 +6132,22 @@ def validate_condition_split_artifact_semantics(
         and allowed_non_closure_contexts is not None
         and (gate, "condition", condition_id, "active") in allowed_non_closure_contexts
     )
+    is_blocked_runtime_diagnostic = condition_present and blocked_check_can_cite_blocked_runtime_artifact(
+        gate=gate,
+        ref_kind="condition",
+        ref_id=condition_id,
+        ref_state="active",
+        artifact=evidence,
+    )
     if is_allowed_active_non_closure:
         require(
             evidence.get("status") not in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
             f"{gate}.{condition_id} active non-closure split artifact {rel_path} must not be passing",
+        )
+    elif is_blocked_runtime_diagnostic:
+        require(
+            evidence.get("status") not in RUNTIME_PASS_EVIDENCE_STATUS_VALUES,
+            f"{gate}.{condition_id} active blocked diagnostic split artifact {rel_path} must not be passing",
         )
     else:
         require(
@@ -5801,7 +6156,7 @@ def validate_condition_split_artifact_semantics(
             f"got {evidence.get('status')!r}",
         )
     combined = json.dumps(evidence, ensure_ascii=False).lower()
-    missing_tokens = [token for token in expected_tokens if token not in combined]
+    missing_tokens = missing_semantic_tokens(combined, expected_tokens)
     require(
         not missing_tokens,
         f"{gate}.{condition_id} split artifact {rel_path} missing required semantics: {missing_tokens}",
@@ -5887,6 +6242,11 @@ def runtime_evidence_preserved_blockers(evidence: dict[str, Any]) -> list[str]:
     status = evidence.get("status")
     if status == "pass_with_blockers_preserved":
         blockers.append("status=pass_with_blockers_preserved")
+    elif isinstance(status, str) and status.lower() in {"blocked", "blocked_by_upstream_gates", "missing_runtime"}:
+        blockers.append(f"status={status!r}")
+    blocked_checks = evidence.get("blocked_checks")
+    if blocked_checks:
+        blockers.append(f"blocked_checks={blocked_checks!r}")
     for field in ["blocked_slots", "missing_blockers", "closure_blockers"]:
         value = evidence.get(field)
         if value:
@@ -5942,6 +6302,218 @@ def require_evidence_ref_has_no_runtime_closure_blockers(
             f"{context} cites runtime artifact {path} that cannot support gate/global closure: "
             + json.dumps(blockers, ensure_ascii=False),
         )
+
+
+def split_runtime_artifact_can_support_closed_gate(
+    *,
+    gate: str,
+    check_id: str,
+    artifact_path: str,
+    check: dict[str, Any],
+    data: dict[str, Any],
+) -> bool:
+    if artifact_path not in PARTIAL_RUNTIME_PASS_EVIDENCE_ALLOWLIST:
+        return False
+    requirement = RUNTIME_SPLIT_PASS_REQUIREMENTS.get((gate, check_id))
+    if requirement is None:
+        return False
+    if check.get("status") != "pass":
+        return False
+    if gate_decision_status(data) != "go":
+        return False
+    if not gate_allows_checklist_completion(data):
+        return False
+
+    subitems = requirement["subitems"]
+    if artifact_path not in {rel(path) for path in subitems.values()}:
+        return False
+    evidence_ref = check.get("evidence_ref")
+    if not isinstance(evidence_ref, str):
+        return False
+
+    for subitem_id, subitem_path in subitems.items():
+        rel_path = rel(subitem_path)
+        if rel_path not in evidence_ref:
+            return False
+        evidence = load_json_if_path(rel_path)
+        if not isinstance(evidence, dict):
+            return False
+        if evidence.get("environment") not in RUNTIME_PASS_FILE_ENVIRONMENTS[gate]:
+            return False
+        if evidence.get("release_gate_check_id") != check_id:
+            return False
+        if evidence.get("status") not in RUNTIME_PASS_EVIDENCE_STATUS_VALUES:
+            return False
+        if rel_path == artifact_path:
+            continue
+
+        blockers = runtime_artifact_closure_blockers(evidence)
+        checklist_requirements = split_checklist_items_for_path(gate, check_id, subitem_path)
+        allow_preserved_blockers = any(
+            checklist_requirement.get("allow_preserved_blockers") is True
+            for _, checklist_requirement in checklist_requirements
+        )
+        if allow_preserved_blockers:
+            blockers = [blocker for blocker in blockers if check_id in blocker]
+        if blockers:
+            return False
+
+        evidence_text = json.dumps(evidence, ensure_ascii=False).lower()
+        evidence_ref_lower = evidence_ref.lower()
+        required_tokens = requirement["tokens"][subitem_id] + requirement.get(
+            "pass_only_tokens",
+            {},
+        ).get(subitem_id, ())
+        if any(
+            token not in evidence_ref_lower and token not in evidence_text
+            for token in required_tokens
+        ):
+            return False
+
+    for condition_id in RELEASE_GATE_CHECK_BLOCKING_CONDITIONS.get(gate, {}).get(check_id, set()):
+        condition = do_not_launch_by_id(data).get(condition_id)
+        if condition is None or condition.get("is_present") is True:
+            return False
+    return True
+
+
+def partial_runtime_artifact_can_support_closed_gate(
+    *,
+    gate: str,
+    check_id: str,
+    artifact_path: str,
+    evidence: dict[str, Any],
+    check: dict[str, Any],
+    data: dict[str, Any],
+) -> bool:
+    if artifact_path not in PARTIAL_RUNTIME_PASS_EVIDENCE_ALLOWLIST:
+        return False
+    if check.get("status") != "pass":
+        return False
+    if gate_decision_status(data) != "go":
+        return False
+    if not gate_allows_checklist_completion(data):
+        return False
+    evidence_ref = check.get("evidence_ref")
+    if not isinstance(evidence_ref, str) or artifact_path not in evidence_ref:
+        return False
+    if evidence.get("environment") not in RUNTIME_PASS_FILE_ENVIRONMENTS[gate]:
+        return False
+    if evidence.get("release_gate_check_id") != check_id:
+        return False
+    if evidence.get("status") not in RUNTIME_PASS_EVIDENCE_STATUS_VALUES:
+        return False
+
+    blockers = runtime_artifact_closure_blockers(evidence)
+    historical_status_only_blockers = [
+        blocker for blocker in blockers if blocker != "status=pass_with_blockers_preserved"
+    ]
+    if historical_status_only_blockers:
+        return False
+
+    requirement = RUNTIME_PASS_REQUIREMENTS.get((gate, check_id))
+    if requirement is not None:
+        evidence_ref_lower = evidence_ref.lower()
+        evidence_text = json.dumps(evidence, ensure_ascii=False).lower()
+        if any(
+            token not in evidence_ref_lower and token not in evidence_text
+            for token in requirement["tokens"]
+        ):
+            return False
+
+    for condition_id in RELEASE_GATE_CHECK_BLOCKING_CONDITIONS.get(gate, {}).get(check_id, set()):
+        condition = do_not_launch_by_id(data).get(condition_id)
+        if condition is None or condition.get("is_present") is True:
+            return False
+    return True
+
+
+def staging_observability_source_input_can_support_closed_gate(
+    *,
+    gate: str,
+    check_id: str,
+    artifact_path: str,
+    check: dict[str, Any],
+    data: dict[str, Any],
+) -> bool:
+    if (gate, check_id) != ("private_beta_staging", "staging_observability_backup_load"):
+        return False
+    if artifact_path not in {
+        rel(STAGING_BACKEND_WORKER_CRAWLER_METRICS_EVIDENCE),
+        rel(STAGING_OBSERVABILITY_TELEMETRY_EVIDENCE),
+        rel(STAGING_OBSERVABILITY_RUNTIME_EVIDENCE),
+    }:
+        return False
+    if check.get("status") != "pass":
+        return False
+    if gate_decision_status(data) != "go":
+        return False
+    if not gate_allows_checklist_completion(data):
+        return False
+    evidence_ref = check.get("evidence_ref")
+    if not isinstance(evidence_ref, str) or artifact_path not in evidence_ref:
+        return False
+
+    for path in sorted(concrete_evidence_paths(evidence_ref)):
+        evidence = load_json_if_path(path)
+        if not isinstance(evidence, dict):
+            continue
+        if evidence.get("kind") != "staging_observability_backup_load_preflight":
+            continue
+        if evidence.get("environment") != "staging":
+            continue
+        if evidence.get("release_gate_check_id") != check_id:
+            continue
+        if evidence.get("status") != "passed":
+            continue
+        if evidence.get("overall_verified") is not True:
+            continue
+        if runtime_artifact_closure_blockers(evidence):
+            continue
+        gate_impact = evidence.get("gate_impact")
+        if not isinstance(gate_impact, dict):
+            continue
+        if gate_impact.get("can_clear_aggregate_item") is not True:
+            continue
+        if gate_impact.get("preserved_release_gate_check_id") is not None:
+            continue
+        if gate_impact.get("preserved_do_not_launch_condition_id") is not None:
+            continue
+        if artifact_path not in json.dumps(evidence, ensure_ascii=False):
+            continue
+        return True
+    return False
+
+
+def runtime_artifact_can_support_closed_gate(
+    *,
+    gate: str,
+    check_id: str,
+    artifact_path: str,
+    evidence: dict[str, Any],
+    check: dict[str, Any],
+    data: dict[str, Any],
+) -> bool:
+    return split_runtime_artifact_can_support_closed_gate(
+        gate=gate,
+        check_id=check_id,
+        artifact_path=artifact_path,
+        check=check,
+        data=data,
+    ) or partial_runtime_artifact_can_support_closed_gate(
+        gate=gate,
+        check_id=check_id,
+        artifact_path=artifact_path,
+        evidence=evidence,
+        check=check,
+        data=data,
+    ) or staging_observability_source_input_can_support_closed_gate(
+        gate=gate,
+        check_id=check_id,
+        artifact_path=artifact_path,
+        check=check,
+        data=data,
+    )
 
 
 def runtime_evidence_gate_from_path(path: Path, evidence: dict[str, Any]) -> str | None:
@@ -6057,6 +6629,9 @@ def validate_runtime_gate_impact_closure_claims(
         GLOBAL_DO_NOT_LAUNCH_CHECKLIST_ITEM,
     }
     for path in sorted((ROOT / "ops" / "evidence").rglob("*.json")):
+        rel_path = rel(path)
+        if rel_path.startswith("ops/evidence/non_clearing/"):
+            continue
         evidence = load_json_if_path(rel(path))
         if not isinstance(evidence, dict):
             continue
@@ -6064,7 +6639,6 @@ def validate_runtime_gate_impact_closure_claims(
         if not isinstance(gate_impact, dict):
             continue
         gate = runtime_evidence_gate_from_path(path, evidence)
-        rel_path = rel(path)
         top_level_check_id = evidence.get("release_gate_check_id")
         gate_impact_check_id = gate_impact.get("release_gate_check_id")
         if gate_impact_check_id is not None:
@@ -6087,13 +6661,31 @@ def validate_runtime_gate_impact_closure_claims(
         unknown_clearance_flags = sorted(
             key
             for key in gate_impact
-            if key.startswith("can_clear_") and key not in GATE_IMPACT_ALLOWED_CLEARANCE_FLAGS
+            if key.startswith("can_clear_")
+            and key not in GATE_IMPACT_ALLOWED_CLEARANCE_FLAGS
+            and key not in GATE_IMPACT_STAGE1_CONTEXT_FLAGS
         )
         require(
             not unknown_clearance_flags,
             f"{rel_path} gate_impact uses unowned clearance flag(s); launch-readiness clearance flags "
             "must be validator-owned and mapped to exact checklist rows: "
             + json.dumps(unknown_clearance_flags, ensure_ascii=False),
+        )
+        local_debug_context_true_flags = sorted(
+            key
+            for key in GATE_IMPACT_STAGE1_CONTEXT_FLAGS
+            if gate_impact.get(key) not in {None, False}
+            and (
+                evidence.get("local_devport_debug") is True
+                or gate_impact.get("allow_local_devport_evidence") is True
+                or "/local-devport/" in rel_path
+            )
+        )
+        require(
+            not local_debug_context_true_flags,
+            f"{rel_path} gate_impact uses Stage1-owned context gate flag(s) as local-devport clearance claims; "
+            "local/debug evidence must keep these flags explicitly false: "
+            + json.dumps(local_debug_context_true_flags, ensure_ascii=False),
         )
         ambiguous_launch_text_values = sorted(
             value
@@ -6266,7 +6858,17 @@ def validate_closed_gate_items_do_not_cite_preserved_blocker_evidence(
             if not isinstance(evidence, dict):
                 continue
             preserved_blockers = runtime_artifact_closure_blockers(evidence)
-            if path in PARTIAL_RUNTIME_PASS_EVIDENCE_ALLOWLIST and RELEASE_GATE_AGGREGATE_ITEMS[gate] not in checked_lines:
+            if (
+                preserved_blockers
+                and runtime_artifact_can_support_closed_gate(
+                    gate=gate,
+                    check_id=check_id,
+                    artifact_path=path,
+                    evidence=evidence,
+                    check=check,
+                    data=data,
+                )
+            ):
                 continue
             require(
                 not preserved_blockers,
@@ -6619,6 +7221,7 @@ def validate_runtime_gate_evidence_refs(
     if relevant_runtime_open:
         aggregate_runtime_open_items = {
             LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM,
+            CI_AGGREGATE_RUNTIME_ITEM,
             PRIVATE_BETA_STAGING_AGGREGATE_RUNTIME_ITEM,
             PRODUCTION_AGGREGATE_RUNTIME_ITEM,
         }
@@ -6626,7 +7229,7 @@ def validate_runtime_gate_evidence_refs(
         check_level_guard_map = (
             LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_OPEN_CHECK_ITEMS
             if gate == "local_alpha"
-            else CI_RUNTIME_OPEN_CHECK_ITEMS
+            else CI_RUNTIME_AGGREGATE_OPEN_CHECK_ITEMS
             if gate == "ci"
             else
             PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS
@@ -6639,17 +7242,7 @@ def validate_runtime_gate_evidence_refs(
             specific_open_items = [
                 item
                 for item in concrete_runtime_open
-                if check_id
-                in check_level_guard_map.get(
-                    item,
-                    (
-                        {"ci_gate_runtime_execution", "ci_playwright_smoke", "ci_docker_image_build"}
-                        if gate == "ci"
-                        and item
-                        == "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。"
-                        else runtime_check_ids
-                    ),
-                )
+                if check_id in check_level_guard_map.get(item, runtime_check_ids)
             ]
             if not specific_open_items:
                 continue
@@ -7286,6 +7879,7 @@ def validate_provenance() -> None:
 
 def validate_ops_ci_artifact_evidence() -> None:
     ci_text = CI_DRAFT.read_text(encoding="utf-8")
+    installed_ci_text = CI_WORKFLOW.read_text(encoding="utf-8") if CI_WORKFLOW.exists() else ""
     evidence = load_json(CI_DRAFT_EVIDENCE)
     missing_keys = OPS_EVIDENCE_REQUIRED_KEYS - set(evidence)
     require(not missing_keys, f"ops CI draft evidence missing keys: {sorted(missing_keys)}")
@@ -7299,29 +7893,30 @@ def validate_ops_ci_artifact_evidence() -> None:
     )
     require(evidence["created_by_lane"] == "lane6", "ops CI draft evidence must be lane6-owned")
     require(
-        evidence["installation_status"] in {"token_blocked", "installed"},
-        "ops CI draft evidence must declare whether workflow installation is token_blocked or installed",
+        evidence["installation_status"] == "installed_pending_runtime_evidence",
+        "ops CI evidence must mark workflow installed while runtime evidence remains pending",
     )
-    if evidence["installation_status"] == "token_blocked":
-        require(
-            ".github/workflows" in evidence["token_blocked_reason"],
-            "ops CI draft evidence must explain that .github/workflows cannot be changed",
-        )
-    else:
-        require(CI_WORKFLOW.exists(), "installed CI evidence requires .github/workflows/stage0-rev2-ci.yml")
-        require(
-            CI_WORKFLOW.read_text(encoding="utf-8") == CI_DRAFT.read_text(encoding="utf-8"),
-            "installed CI workflow must match ops/ci/stage0-rev2-ci.yml",
-        )
+    require(
+        "installed workflow exists at .github/workflows/stage0-rev2-ci.yml" in evidence["token_blocked_reason"],
+        "ops CI evidence must explain that workflow installation is resolved",
+    )
     require(
         evidence["draft_ref"] == CI_DRAFT_REL,
         "ops CI draft evidence must point at the ops/ci draft",
     )
+    require(
+        evidence["installed_workflow_ref"] == CI_WORKFLOW_REL,
+        "ops CI evidence must point at the installed .github workflow",
+    )
 
     policy = evidence["checklist_policy"]
     require(
-        policy.get("ci_installation_checklist_remains_open") is (not CI_WORKFLOW.exists()),
-        "CI installation checklist policy must reflect installed workflow presence",
+        policy.get("ci_installation_checklist_remains_open") is False,
+        "CI installation checklist should be closed once the installed workflow exists",
+    )
+    require(
+        policy.get("ci_runtime_checklist_remains_open") is True,
+        "CI runtime checklist must remain open until exact PR/main, Playwright, and Docker evidence exists",
     )
     require(
         any("CI Gate" in item for item in policy.get("blocked_blueprint_items", [])),
@@ -7345,16 +7940,19 @@ def validate_ops_ci_artifact_evidence() -> None:
         for path in item["paths"]:
             require(repo_path(path).exists(), f"{item['artifact_id']} evidence path missing: {path}")
         for token in item["required_draft_tokens"]:
-            require(token in ci_text, f"{item['artifact_id']} draft token missing: {token}")
+            require(
+                token in ci_text or token in installed_ci_text,
+                f"{item['artifact_id']} CI token missing from draft and installed workflow: {token}",
+            )
 
     gate_effect = evidence["release_gate_effect"]
     require(
         gate_effect.get("ci_gate_status") == "blocked",
-        "CI gate evidence must remain blocked until the workflow is installed and passing",
+        "CI gate evidence must remain blocked until exact runtime evidence is installed and passing",
     )
 
-    text = BLUEPRINT.read_text(encoding="utf-8")
     if not CI_WORKFLOW.exists():
+        text = BLUEPRINT.read_text(encoding="utf-8")
         require(
             "- [ ] 添加 PR/main CI 到 `.github/workflows`。" in text,
             "PR/main CI workflow installation checklist must remain open when no installed workflow exists",
@@ -7366,19 +7964,6 @@ def validate_ops_ci_artifact_evidence() -> None:
         require(
             "- [ ] CI Gate 全部通过。" in text,
             "CI Gate checklist must remain open when no installed workflow exists",
-        )
-    else:
-        require(
-            "- [x] 添加 PR/main CI 到 `.github/workflows`" in text,
-            "PR/main CI workflow installation checklist must close when installed workflow exists",
-        )
-        require(
-            "- [x] CI installed workflow file evidence 通过：`.github/workflows/stage0-rev2-ci.yml` 存在且被 release gate fixture 引用。" in text,
-            "CI installed workflow file evidence checklist must close when installed workflow exists",
-        )
-        require(
-            "- [ ] CI Gate 全部通过。" in text,
-            "CI Gate checklist must remain open until runtime evidence exists",
         )
 
 
@@ -8209,21 +8794,23 @@ def validate_abuse_evidence_split_contracts() -> None:
     )
     production_checks = checks_by_id(production)
     production_conditions = do_not_launch_by_id(production)
-    require(
-        production_checks["production_abuse_throttle_hold"]["status"] == "pass",
-        "production abuse throttle/hold gate check must pass only after production evidence exists",
+    abuse_passable = production_evidence_passable_or_stage1_blocked(
+        PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE,
+        pass_schema_version="stage0.rev2",
+        blocked_schema_version="stage1.production_abuse_throttle_hold.blocked.v1",
+        kind="production_abuse_throttle_hold",
+        release_gate_check_id="production_abuse_throttle_hold",
+        evidence_name="abuse throttle/hold evidence",
     )
     require(
-        production_conditions["abuse_throttle_hold_missing"]["is_present"] is False,
-        "production abuse throttle/hold Do-Not-Launch condition must clear after production runtime evidence exists",
+        production_checks["production_abuse_throttle_hold"]["status"] == ("pass" if abuse_passable else "blocked"),
+        "production abuse throttle/hold gate check must match passable production evidence state",
     )
     require(
-        "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json" in production_text
-        and "production account-level hold/throttle rollout evidence" in production_text
-        and "unrelated backup/restore, rollback/post-deploy, and upstream CI/Staging dependency launch blockers remain active"
-        in production_text,
-        "production gate must cite abuse throttle/hold production evidence without closing aggregate launch",
+        production_conditions["abuse_throttle_hold_missing"]["is_present"] is (not abuse_passable),
+        "production abuse throttle/hold Do-Not-Launch condition must match production runtime evidence state",
     )
+    require("ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json" in production_text, "production gate must cite abuse throttle/hold production evidence")
 
 
 def validate_staging_support_retry_abuse_evidence() -> None:
@@ -8284,7 +8871,8 @@ def validate_staging_legal_support_visibility_evidence() -> None:
     ]:
         rel_path = rel(path)
         require(evidence.get("environment") == "staging", f"{rel_path} must be staging-scoped")
-        require(evidence.get("status") == "pass", f"{rel_path} must pass before checklist closure")
+        status = evidence.get("status")
+        require(status in {"pass", "blocked"}, f"{rel_path} must be pass or blocked; got {status!r}")
         require(evidence.get("kind") == kind, f"{rel_path} must declare kind={kind}")
         require(
             evidence.get("release_gate_check_id") == "staging_legal_external_user_pages",
@@ -8295,9 +8883,35 @@ def validate_staging_legal_support_visibility_evidence() -> None:
             f"{rel_path} must target external_user_legal_pages_missing",
         )
         gate_impact = evidence.get("gate_impact", {})
+        require(isinstance(gate_impact, dict), f"{rel_path} gate_impact must be object")
+        if status == "pass":
+            require(
+                gate_impact.get("can_clear_check_level_item") is True,
+                f"{rel_path} must allow its check-level legal/support subitem to close",
+            )
+            require(
+                gate_impact.get("can_clear_release_gate_check") in {True, None},
+                f"{rel_path} pass evidence must not preserve the legal/support release gate",
+            )
+        else:
+            blocked_checks = evidence.get("blocked_checks")
+            require(
+                isinstance(blocked_checks, list)
+                and blocked_checks
+                and any("missing_staging_web_url" in str(item) for item in blocked_checks),
+                f"{rel_path} blocked diagnostic evidence must preserve missing_staging_web_url blocked checks",
+            )
+            require(
+                gate_impact.get("can_clear_check_level_item") is False,
+                f"{rel_path} blocked evidence cannot clear its check-level legal/support subitem",
+            )
+            require(
+                gate_impact.get("can_clear_release_gate_check") is False,
+                f"{rel_path} blocked evidence cannot clear the legal/support release gate",
+            )
         require(
-            gate_impact.get("can_clear_check_level_item") is True,
-            f"{rel_path} must allow its check-level legal/support subitem to close",
+            evidence.get("local_devport_debug") is not True,
+            f"{rel_path} canonical staging evidence must not be local-devport debug",
         )
         probe_contract = evidence.get("probe_contract", {})
         require(
@@ -8327,30 +8941,38 @@ def validate_staging_legal_support_visibility_evidence() -> None:
     private_beta = load_json(RELEASE_GATE_EVIDENCE_FILES["private_beta_staging"])
     checks = checks_by_id(private_beta)
     conditions = do_not_launch_by_id(private_beta)
+    legal_support_passed = legal_evidence.get("status") == "pass" and support_evidence.get("status") == "pass"
+    expected_check_status = "pass" if legal_support_passed else "blocked"
     require(
-        checks["staging_legal_external_user_pages"]["status"] == "pass",
-        "private beta legal/support check must pass after exact staging evidence exists",
+        checks["staging_legal_external_user_pages"]["status"] == expected_check_status,
+        f"private beta legal/support check must be {expected_check_status} based on exact staging evidence",
     )
     require(
-        conditions["external_user_legal_pages_missing"]["is_present"] is False,
-        "private beta external_user_legal_pages_missing condition must clear after exact staging evidence exists",
+        conditions["external_user_legal_pages_missing"]["is_present"] is (not legal_support_passed),
+        "private beta external_user_legal_pages_missing condition must reflect exact staging legal/support evidence",
     )
     evidence_ref = checks["staging_legal_external_user_pages"]["evidence_ref"]
     for path in [STAGING_LEGAL_EXTERNAL_PAGES_EVIDENCE, STAGING_SUPPORT_CONTACT_VISIBILITY_EVIDENCE]:
-        require(rel(path) in evidence_ref, "legal/support pass evidence must cite both exact staging split files")
-    require_check_level_evidence_gate_impact(
-        {
-            "gate_impact": {
-                "checklist_item": "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
-                "can_clear_check_level_item": True,
-                "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
-                "remaining_blockers": ["staging_object_storage_signed_downloads"],
-            }
-        },
-        gate="private_beta_staging",
-        check_id="staging_legal_external_user_pages",
-        evidence_name="legal/support visibility evidence",
-    )
+        require(rel(path) in evidence_ref, "legal/support evidence must cite both exact staging split files")
+    if legal_support_passed:
+        require_check_level_evidence_gate_impact(
+            {
+                "gate_impact": {
+                    "checklist_item": "Private Beta/Staging legal/support external-user visibility runtime evidence 通过。",
+                    "can_clear_check_level_item": True,
+                    "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
+                    "remaining_blockers": ["staging_object_storage_signed_downloads"],
+                }
+            },
+            gate="private_beta_staging",
+            check_id="staging_legal_external_user_pages",
+            evidence_name="legal/support visibility evidence",
+        )
+    else:
+        require(
+            "missing_staging_web_url" in evidence_ref.lower() and "status=blocked" in evidence_ref.lower(),
+            "blocked legal/support release check must describe missing_staging_web_url diagnostics",
+        )
 
 def validate_staging_auth_rbac_tenant_audit_evidence() -> None:
     evidence = load_json(STAGING_AUTH_RBAC_TENANT_AUDIT_EVIDENCE)
@@ -8711,7 +9333,7 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             "blocked retention cleanup evidence must name the canonical pass NDJSON it is waiting on",
         )
         for key, token in {
-            "required_base_url": "STAGING_BASE_URL",
+            "required_base_url": "STAGING_API_URL",
             "required_auth": "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE",
             "required_smoke_admin_user_id": "SMOKE_ADMIN_USER_ID",
             "required_smoke_admin_tenant_id": "SMOKE_ADMIN_TENANT_ID",
@@ -8729,7 +9351,7 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             "blocked retention cleanup evidence must not claim CSRF readiness without staging inputs",
         )
         require(
-            blocked_evidence["csrf"]["header_name"] == "X-ZenArt-CSRF",
+            blocked_evidence["csrf"]["header_name"] == "X-Zenari-CSRF",
             "blocked retention cleanup evidence must name the CSRF header used by backend middleware",
         )
         require(
@@ -8789,7 +9411,7 @@ def validate_staging_object_storage_retention_cleanup_evidence() -> None:
             "blocked retention cleanup probe contract must mark non-canonical reports validation-only",
         )
         require(
-            "STAGING_BASE_URL" in " ".join(probe_contract.get("required_env", []))
+            "STAGING_API_URL" in " ".join(probe_contract.get("required_env", []))
             and "ADMIN_BEARER_TOKEN" in " ".join(probe_contract.get("required_env", []))
             and "CSRF_HEADER_VALUE" in " ".join(probe_contract.get("required_env", [])),
             "blocked retention cleanup probe contract must list staging URL, admin auth, and CSRF inputs",
@@ -9846,6 +10468,14 @@ def validate_staging_alert_runtime_evidence() -> None:
 
 def validate_production_abuse_throttle_hold_evidence() -> None:
     evidence = load_json(PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE)
+    if accept_stage1_blocked_production_diagnostic(
+        evidence,
+        schema_version="stage1.production_abuse_throttle_hold.blocked.v1",
+        kind="production_abuse_throttle_hold",
+        release_gate_check_id="production_abuse_throttle_hold",
+        evidence_name="abuse throttle/hold evidence",
+    ):
+        return
     require(evidence["schema_version"] == "stage0.rev2", "production abuse throttle/hold evidence schema mismatch")
     require(evidence["environment"] == "production", "abuse throttle/hold evidence must be production-scoped")
     require(
@@ -9888,6 +10518,14 @@ def validate_production_abuse_throttle_hold_evidence() -> None:
 
 def validate_production_skill_release_eval_canary_evidence() -> None:
     evidence = load_json(PRODUCTION_SKILL_RELEASE_EVAL_CANARY_EVIDENCE)
+    if accept_stage1_blocked_production_diagnostic(
+        evidence,
+        schema_version="stage1.production_skill_release_eval_canary.blocked.v1",
+        kind="production_skill_release_eval_canary",
+        release_gate_check_id="production_skill_release_eval_canary",
+        evidence_name="skill release evidence",
+    ):
+        return
     require(evidence["schema_version"] == "stage0.rev2", "production skill release evidence schema mismatch")
     require(evidence["environment"] == "production", "skill release evidence must be production-scoped")
     require(
@@ -9937,6 +10575,14 @@ def validate_production_skill_release_eval_canary_evidence() -> None:
 
 def validate_production_activation_review_audit_evidence() -> None:
     evidence = load_json(PRODUCTION_ACTIVATION_REVIEW_AUDIT_EVIDENCE)
+    if accept_stage1_blocked_production_diagnostic(
+        evidence,
+        schema_version="stage1.production_activation_review_audit.blocked.v1",
+        kind="production_activation_review_audit",
+        release_gate_check_id="production_activation_review_audit",
+        evidence_name="activation review evidence",
+    ):
+        return
     require(evidence["schema_version"] == "stage0.rev2", "production activation evidence schema mismatch")
     require(evidence["environment"] == "production", "activation review evidence must be production-scoped")
     require(
@@ -9991,6 +10637,14 @@ def validate_production_activation_review_audit_evidence() -> None:
 
 def validate_production_security_launch_checks_evidence() -> None:
     evidence = load_json(PRODUCTION_SECURITY_LAUNCH_CHECKS_EVIDENCE)
+    if accept_stage1_blocked_production_diagnostic(
+        evidence,
+        schema_version="stage1.production_security_launch.blocked.v1",
+        kind="production_security_launch_checks",
+        release_gate_check_id="production_security_launch_checks",
+        evidence_name="security launch evidence",
+    ):
+        return
     require(evidence["schema_version"] == "stage0.rev2", "production security evidence schema mismatch")
     require(evidence["environment"] == "production", "security launch evidence must be production-scoped")
     require(
@@ -10042,6 +10696,28 @@ def validate_production_security_launch_checks_evidence() -> None:
 def validate_production_legal_support_policy_evidence() -> None:
     legal = load_json(PRODUCTION_LEGAL_POLICY_EVIDENCE)
     support = load_json(PRODUCTION_SUPPORT_BILLING_POLICY_EVIDENCE)
+
+    legal_blocked = accept_stage1_blocked_production_diagnostic(
+        legal,
+        schema_version="stage1.production_public_legal_policy.blocked.v1",
+        kind="production_public_legal_policy",
+        release_gate_check_id="production_legal_support_policy",
+        evidence_name="production public legal policy evidence",
+    )
+    support_blocked = accept_stage1_blocked_production_diagnostic(
+        support,
+        schema_version="stage1.production_public_support_billing_policy.blocked.v1",
+        kind="production_public_support_billing_policy",
+        release_gate_check_id="production_legal_support_policy",
+        evidence_name="production public support/billing policy evidence",
+    )
+    if legal_blocked or support_blocked:
+        require(legal_blocked and support_blocked, "legal/support blocked diagnostics must be paired")
+        require(
+            legal.get("blocked_checks") == support.get("blocked_checks"),
+            "legal/support blocked diagnostics must preserve matching blockers",
+        )
+        return
 
     for evidence, evidence_name, path, clear_key in [
         (
@@ -10201,7 +10877,7 @@ def validate_production_backup_rollback_split_preflight_evidence() -> None:
     require(
         "Production backup/rollback split preflight evidence at `ops/evidence/production/backup-rollback-split.blocked.json`"
         in blueprint_text
-        and "cannot close `Production backup/restore runtime evidence 通过...`" in blueprint_text
+        and "may document exact split readiness, upstream gate state, and unrelated production blockers" in blueprint_text
         and "aggregate Production/Do-Not-Launch readiness" in blueprint_text,
         "blueprint must document that production split preflight evidence cannot close production launch readiness",
     )
@@ -10214,33 +10890,82 @@ def validate_production_backup_rollback_split_preflight_evidence() -> None:
         evidence["kind"] == "production_backup_rollback_split_preflight",
         "production backup/rollback split preflight kind mismatch",
     )
+    exact_split_ready = evidence["split_evidence"].get("all_exact_split_files_ready") is True
     require(
-        evidence["status"] == "blocked_by_upstream_gates",
-        "production backup/rollback split preflight must preserve blocked_by_upstream_gates",
+        evidence["status"]
+        in {
+            "blocked_by_upstream_gates",
+            "exact_split_ready_blocked_by_other_production_runtime_items",
+        },
+        "production backup/rollback split preflight must remain non-aggregate-launch-clearing",
     )
+    if exact_split_ready:
+        require(
+            evidence["status"] == "exact_split_ready_blocked_by_other_production_runtime_items",
+            "production backup/rollback split preflight must expose other production blockers after exact split readiness",
+        )
+    else:
+        require(
+            evidence["status"] == "blocked_by_upstream_gates",
+            "production backup/rollback split preflight without exact split readiness must preserve blocked_by_upstream_gates",
+        )
     require(
         evidence["release_gate_check_id"] == "production_backup_rollback_incident",
         "production backup/rollback split preflight must target production_backup_rollback_incident",
     )
-    require(
-        set(evidence["do_not_launch_condition_ids"])
-        == {
-            "backup_restore_rollback_smoke_missing",
-            "production_deploy_rollback_smoke_missing",
-            "ci_staging_gates_not_passed",
-        },
-        "production backup/rollback split preflight must preserve backup, deploy-smoke, and upstream blockers",
+    production_fixture = load_json(RELEASE_GATE_EVIDENCE_FILES["production_launch"])
+    production_active_do_not_launch_conditions = set(
+        production_fixture["gate_decision"]["active_do_not_launch_conditions"]
     )
-    require(
-        set(evidence["blocked_checks"])
-        == {
+    split_preflight_do_not_launch_conditions = {
+        "backup_restore_rollback_smoke_missing",
+        "production_deploy_rollback_smoke_missing",
+        "ci_staging_gates_not_passed",
+    }
+    expected_blocked_checks = {
+        "release_sha_missing_or_not_full_sha",
+        "production_backup_restore_split_not_passed",
+        "production_rollback_incident_post_deploy_split_not_passed",
+    }
+    expected_do_not_launch_conditions = {
+        "backup_restore_rollback_smoke_missing",
+        "production_deploy_rollback_smoke_missing",
+    }
+    ci_fixture = load_json(RELEASE_GATE_EVIDENCE_FILES["ci"])
+    private_beta_fixture = load_json(RELEASE_GATE_EVIDENCE_FILES["private_beta_staging"])
+    ci_ready = (
+        ci_fixture["gate_decision"]["status"] == "go"
+        and ci_fixture["gate_decision"]["blocked_by_checks"] == []
+        and ci_fixture["gate_decision"]["active_do_not_launch_conditions"] == []
+    )
+    private_beta_ready = (
+        private_beta_fixture["gate_decision"]["status"] == "go"
+        and private_beta_fixture["gate_decision"]["blocked_by_checks"] == []
+        and private_beta_fixture["gate_decision"]["active_do_not_launch_conditions"] == []
+    )
+    if not ci_ready:
+        expected_blocked_checks.add("ci_gate_not_go")
+    if not private_beta_ready:
+        expected_blocked_checks.add("private_beta_staging_gate_not_go")
+    if not (ci_ready and private_beta_ready):
+        expected_do_not_launch_conditions.add("ci_staging_gates_not_passed")
+    if exact_split_ready:
+        expected_do_not_launch_conditions = (
+            production_active_do_not_launch_conditions - split_preflight_do_not_launch_conditions
+        )
+        expected_blocked_checks -= {
             "release_sha_missing_or_not_full_sha",
-            "ci_gate_not_go",
-            "private_beta_staging_gate_not_go",
             "production_backup_restore_split_not_passed",
             "production_rollback_incident_post_deploy_split_not_passed",
-        },
-        "production backup/rollback split preflight must keep release SHA, upstream, and exact split blockers visible",
+        }
+        expected_blocked_checks.add("production_gate_fixture_has_unrelated_blockers")
+    require(
+        set(evidence["do_not_launch_condition_ids"]) == expected_do_not_launch_conditions,
+        "production backup/rollback split preflight must preserve only currently unresolved DNL blockers",
+    )
+    require(
+        set(evidence["blocked_checks"]) == expected_blocked_checks,
+        "production backup/rollback split preflight must mirror current exact split/upstream/production blocker state",
     )
     require(
         PRODUCTION_BACKUP_ROLLBACK_INCIDENT_ADMIN_EVIDENCE.exists()
@@ -10279,17 +11004,23 @@ def validate_production_backup_rollback_split_preflight_evidence() -> None:
     )
     gate_impact = evidence["gate_impact"]
     require(
-        gate_impact["can_clear_release_gate_check"] is False
-        and gate_impact["can_clear_check_level_items"] is False,
-        "production backup/rollback split preflight must not clear production launch readiness",
+        gate_impact["can_clear_release_gate_check"] is exact_split_ready
+        and gate_impact["can_clear_check_level_items"] is exact_split_ready,
+        "production backup/rollback split preflight readiness flags must mirror exact split readiness",
     )
     require(
-        gate_impact["aggregate_production_gate_status"] == "blocked_by_upstream_or_missing_exact_split_evidence",
-        "production backup/rollback split preflight must keep aggregate production blocked",
+        gate_impact["aggregate_production_gate_status"]
+        == (
+            "blocked_by_other_production_runtime_items"
+            if exact_split_ready
+            else "blocked_by_upstream_or_missing_exact_split_evidence"
+        ),
+        "production backup/rollback split preflight must keep aggregate production blocked for the correct reason",
     )
     require(
-        gate_impact["preserved_release_gate_check_id"] == "production_backup_rollback_incident",
-        "production backup/rollback split preflight must preserve production_backup_rollback_incident",
+        gate_impact["preserved_release_gate_check_id"]
+        == (None if exact_split_ready else "production_backup_rollback_incident"),
+        "production backup/rollback split preflight must preserve production_backup_rollback_incident only until exact split readiness",
     )
     require(
         set(gate_impact["preserved_do_not_launch_condition_ids"])
@@ -10300,13 +11031,9 @@ def validate_production_backup_rollback_split_preflight_evidence() -> None:
         gate_impact["check_level_items"]
         == [
             "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。",
-            "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
+            "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
         ],
         "production backup/rollback split preflight must name only the concrete open backup and rollback split rows",
-    )
-    require(
-        evidence["split_evidence"]["all_exact_split_files_ready"] is False,
-        "production backup/rollback split preflight must not claim all exact split files are ready",
     )
     required_split_paths = {
         "backup_restore": rel(PRODUCTION_BACKUP_RESTORE_EVIDENCE),
@@ -10315,13 +11042,25 @@ def validate_production_backup_rollback_split_preflight_evidence() -> None:
     for split_id, path in required_split_paths.items():
         split = evidence["split_evidence"][split_id]
         require(split["path"] == path, f"production split preflight {split_id} path mismatch")
-        require(split["exists"] is False, f"production split preflight {split_id} must not claim missing exact file exists")
-        require(split["passed"] is False, f"production split preflight {split_id} must not claim pass")
-        require(split["status"] == "missing", f"production split preflight {split_id} must stay missing")
+        require(split["passed"] is exact_split_ready, f"production split preflight {split_id} pass state must mirror exact split readiness")
         require(
-            repo_path(path).exists() is False,
-            f"production split preflight says {path} is missing but the file exists",
+            split["status"] in ({"pass", "passed"} if exact_split_ready else {"missing", "blocked"}),
+            f"production split preflight {split_id} status must mirror exact split readiness",
         )
+        require(
+            split["exists"] == repo_path(path).exists(),
+            f"production split preflight {split_id} existence must mirror {path}",
+        )
+        if repo_path(path).exists():
+            split_evidence = load_json(repo_path(path))
+            require(
+                (split_evidence.get("status") in {"pass", "passed"}) is exact_split_ready,
+                f"production split preflight {split_id} exact evidence status must mirror readiness",
+            )
+            require(
+                (split_evidence.get("canonical_pass_path") is True) is exact_split_ready,
+                f"production split preflight {split_id} canonical pass state must mirror readiness",
+            )
         runtime_requirement = evidence["runtime_input_requirements"]["required_split_evidence"][split_id]
         require(
             runtime_requirement["path"] == path,
@@ -10331,12 +11070,20 @@ def validate_production_backup_rollback_split_preflight_evidence() -> None:
             runtime_requirement["must_prove"] and all(isinstance(item, str) and item for item in runtime_requirement["must_prove"]),
             f"production split preflight runtime input {split_id} must list concrete proof requirements",
         )
+        if split_id == "rollback_incident_post_deploy_smoke":
+            require(
+                {
+                    "backend image runtime-worker rollback",
+                    "runtime-worker backend target",
+                    "/app/worker entrypoint",
+                }
+                <= set(runtime_requirement["must_prove"]),
+                "production rollback split runtime input must require backend image runtime-worker rollback to runtime-worker",
+            )
     upstream = evidence["upstream_gates"]
-    require(upstream["ci_and_private_beta_ready"] is False, "production split preflight must keep upstream gates blocked")
     require(
-        upstream["ci"]["gate_decision_status"] == "no_go"
-        and upstream["private_beta_staging"]["gate_decision_status"] == "no_go",
-        "production split preflight must require CI and Private Beta/Staging fixture decisions to be no_go",
+        upstream["ci_and_private_beta_ready"] == (ci_ready and private_beta_ready),
+        "production split preflight must mirror aggregate CI and Private Beta/Staging readiness",
     )
     for upstream_id, fixture in [
         ("ci", RELEASE_GATE_EVIDENCE_FILES["ci"]),
@@ -10345,8 +11092,16 @@ def validate_production_backup_rollback_split_preflight_evidence() -> None:
         upstream_gate = upstream[upstream_id]
         require(upstream_gate["path"] == rel(fixture), f"production split preflight {upstream_id} path mismatch")
         require(upstream_gate["exists"] is True, f"production split preflight {upstream_id} fixture must exist")
-        require(upstream_gate["ready"] is False, f"production split preflight {upstream_id} must not be ready")
         expected_fixture = load_json(fixture)
+        expected_ready = (
+            expected_fixture["gate_decision"]["status"] == "go"
+            and expected_fixture["gate_decision"]["blocked_by_checks"] == []
+            and expected_fixture["gate_decision"]["active_do_not_launch_conditions"] == []
+        )
+        require(
+            upstream_gate["ready"] is expected_ready,
+            f"production split preflight {upstream_id} readiness must mirror fixture decision",
+        )
         require(
             upstream_gate["gate_decision_status"] == expected_fixture["gate_decision"]["status"],
             f"production split preflight {upstream_id} gate status must mirror fixture decision",
@@ -10555,7 +11310,7 @@ def validate_release_gate_evidence() -> None:
     )
     ci_runtime_checklist_item_by_check = {
         check_id: item
-        for item, check_ids in CI_CHECK_ITEMS.items()
+        for item, check_ids in CI_RUNTIME_OPEN_CHECK_ITEMS.items()
         for check_id in check_ids
     }
     for check_id in [
@@ -10631,6 +11386,17 @@ def validate_release_gate_evidence() -> None:
         "staging_observability_restore_load_missing",
         "external_user_legal_pages_missing",
     }
+    retention_cleanup_rows = split_checklist_items_for_path(
+        "private_beta_staging",
+        "staging_object_storage_signed_downloads",
+        STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE,
+    )
+    retention_cleanup_passable = any(
+        split_runtime_evidence_is_passable(STAGING_OBJECT_STORAGE_RETENTION_EVIDENCE, requirement)
+        for _, requirement in retention_cleanup_rows
+    )
+    if retention_cleanup_passable:
+        cleared_private_beta_conditions.add("object_storage_signed_retention_runtime_missing")
     for condition_id in RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS["private_beta_staging"]:
         expected_present = condition_id not in cleared_private_beta_conditions
         require(
@@ -10671,17 +11437,174 @@ def validate_release_gate_evidence() -> None:
     production_do_not_launch = {
         condition_id: item["is_present"] for condition_id, item in production_conditions.items()
     }
-    cleared_production_conditions = {
-        "dev_mock_provider_public_claims_unresolved",
-        "real_provider_or_comp_only_mode_missing",
-        "skill_release_eval_canary_missing",
-        "activation_eval_review_audit_runtime_missing",
-        "admin_high_risk_review_runtime_missing",
-        "abuse_throttle_hold_missing",
-        "security_privacy_legal_incomplete",
-        "secret_exposure_runtime_not_verified",
-        "public_legal_support_policy_not_deployed",
+    cleared_production_conditions: set[str] = set()
+    dynamic_condition_evidence = {
+        "dev_mock_provider_public_claims_unresolved": [
+            lambda: production_evidence_passable_or_stage1_blocked(
+                PRODUCTION_PROVIDER_MODE_EVIDENCE,
+                pass_schema_version="stage1.production_provider_mode.v1",
+                blocked_schema_version="stage1.production_provider_mode.blocked.v1",
+                kind="production_provider_mode",
+                release_gate_check_id="production_provider_or_comp_only_mode",
+                evidence_name="production provider mode evidence",
+                split_requirement=SPLIT_CHECKLIST_ITEM_EVIDENCE[
+                    "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。"
+                ],
+            ),
+            lambda: production_evidence_passable_or_stage1_blocked(
+                PRODUCTION_CLAIMS_ALIGNMENT_EVIDENCE,
+                pass_schema_version="stage1.production_public_paid_real_generation_claims.v1",
+                blocked_schema_version="stage1.production_public_paid_real_generation_claims.blocked.v1",
+                kind="production_public_paid_real_generation_claims",
+                release_gate_check_id="production_provider_or_comp_only_mode",
+                evidence_name="production public paid/real-generation claims evidence",
+                split_requirement=SPLIT_CHECKLIST_ITEM_EVIDENCE[
+                    "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。"
+                ],
+            ),
+        ],
+        "real_provider_or_comp_only_mode_missing": [
+            lambda: production_evidence_passable_or_stage1_blocked(
+                PRODUCTION_PROVIDER_MODE_EVIDENCE,
+                pass_schema_version="stage1.production_provider_mode.v1",
+                blocked_schema_version="stage1.production_provider_mode.blocked.v1",
+                kind="production_provider_mode",
+                release_gate_check_id="production_provider_or_comp_only_mode",
+                evidence_name="production provider mode evidence",
+                split_requirement=SPLIT_CHECKLIST_ITEM_EVIDENCE[
+                    "Production provider mode deployment evidence 通过：production evidence proves either real provider contract/monitoring/cost/staging verification or explicit invite/comp-only mode under `ops/evidence/production/`。"
+                ],
+            ),
+            lambda: production_evidence_passable_or_stage1_blocked(
+                PRODUCTION_CLAIMS_ALIGNMENT_EVIDENCE,
+                pass_schema_version="stage1.production_public_paid_real_generation_claims.v1",
+                blocked_schema_version="stage1.production_public_paid_real_generation_claims.blocked.v1",
+                kind="production_public_paid_real_generation_claims",
+                release_gate_check_id="production_provider_or_comp_only_mode",
+                evidence_name="production public paid/real-generation claims evidence",
+                split_requirement=SPLIT_CHECKLIST_ITEM_EVIDENCE[
+                    "Production public paid/real-generation claims evidence 通过：production evidence proves paid and real-generation claims are enabled only with real provider evidence, or hidden for invite/comp-only mode under `ops/evidence/production/`。"
+                ],
+            ),
+        ],
+        "skill_release_eval_canary_missing": [
+            lambda: production_evidence_passable_or_stage1_blocked(
+                PRODUCTION_SKILL_RELEASE_EVAL_CANARY_EVIDENCE,
+                pass_schema_version="stage0.rev2",
+                blocked_schema_version="stage1.production_skill_release_eval_canary.blocked.v1",
+                kind="production_skill_release_eval_canary",
+                release_gate_check_id="production_skill_release_eval_canary",
+                evidence_name="skill release evidence",
+            ),
+        ],
+        "activation_eval_review_audit_runtime_missing": [
+            lambda: production_evidence_passable_or_stage1_blocked(
+                PRODUCTION_ACTIVATION_REVIEW_AUDIT_EVIDENCE,
+                pass_schema_version="stage0.rev2",
+                blocked_schema_version="stage1.production_activation_review_audit.blocked.v1",
+                kind="production_activation_review_audit",
+                release_gate_check_id="production_activation_review_audit",
+                evidence_name="activation review evidence",
+            ),
+        ],
+        "admin_high_risk_review_runtime_missing": [
+            lambda: production_evidence_passable_or_stage1_blocked(
+                PRODUCTION_ACTIVATION_REVIEW_AUDIT_EVIDENCE,
+                pass_schema_version="stage0.rev2",
+                blocked_schema_version="stage1.production_activation_review_audit.blocked.v1",
+                kind="production_activation_review_audit",
+                release_gate_check_id="production_activation_review_audit",
+                evidence_name="activation review evidence",
+            ),
+        ],
+        "abuse_throttle_hold_missing": [
+            lambda: production_evidence_passable_or_stage1_blocked(
+                PRODUCTION_ABUSE_THROTTLE_HOLD_EVIDENCE,
+                pass_schema_version="stage0.rev2",
+                blocked_schema_version="stage1.production_abuse_throttle_hold.blocked.v1",
+                kind="production_abuse_throttle_hold",
+                release_gate_check_id="production_abuse_throttle_hold",
+                evidence_name="abuse throttle/hold evidence",
+            ),
+        ],
+        "security_privacy_legal_incomplete": [
+            lambda: production_evidence_passable_or_stage1_blocked(
+                PRODUCTION_SECURITY_LAUNCH_CHECKS_EVIDENCE,
+                pass_schema_version="stage1.production_security_launch.v1",
+                blocked_schema_version="stage1.production_security_launch.blocked.v1",
+                kind="production_security_launch_checks",
+                release_gate_check_id="production_security_launch_checks",
+                evidence_name="security launch evidence",
+            ),
+        ],
+        "secret_exposure_runtime_not_verified": [
+            lambda: production_evidence_passable_or_stage1_blocked(
+                PRODUCTION_SECURITY_LAUNCH_CHECKS_EVIDENCE,
+                pass_schema_version="stage1.production_security_launch.v1",
+                blocked_schema_version="stage1.production_security_launch.blocked.v1",
+                kind="production_security_launch_checks",
+                release_gate_check_id="production_security_launch_checks",
+                evidence_name="security launch evidence",
+            ),
+        ],
+        "backup_restore_rollback_smoke_missing": [
+            lambda: production_evidence_passable_or_stage1_blocked(
+                PRODUCTION_BACKUP_RESTORE_EVIDENCE,
+                pass_schema_version="stage1.production_backup_restore.v1",
+                blocked_schema_version="stage1.production_backup_restore.blocked.v1",
+                kind="production_backup_restore",
+                release_gate_check_id="production_backup_rollback_incident",
+                evidence_name="production backup/restore split evidence",
+                split_requirement=SPLIT_CHECKLIST_ITEM_EVIDENCE[
+                    "Production backup/restore exact evidence file 通过：`ops/evidence/production/backup-restore.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, backup schedule, Postgres restore, object restore, RPO/RTO, audit refs, and no preserved blockers。"
+                ],
+            ),
+        ],
+        "production_deploy_rollback_smoke_missing": [
+            lambda: production_evidence_passable_or_stage1_blocked(
+                PRODUCTION_ROLLBACK_INCIDENT_SMOKE_EVIDENCE,
+                pass_schema_version="stage1.production_rollback_incident_post_deploy.v1",
+                blocked_schema_version="stage1.production_rollback_incident_post_deploy_smoke.blocked.v1",
+                kind="production_rollback_incident_post_deploy_smoke",
+                release_gate_check_id="production_backup_rollback_incident",
+                evidence_name="production rollback/incident/post-deploy split evidence",
+                split_requirement=SPLIT_CHECKLIST_ITEM_EVIDENCE[
+                    "Production rollback/incident/post-deploy exact evidence file 通过：`ops/evidence/production/rollback-incident-post-deploy-smoke.json` exists, declares `environment=production`, `release_gate_check_id=production_backup_rollback_incident`, passing status, app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, post-deploy smoke, passing CI/Private Beta/Staging gate dependencies, and no preserved blockers。"
+                ],
+            ),
+        ],
+        "public_legal_support_policy_not_deployed": [
+            lambda: production_evidence_passable_or_stage1_blocked(
+                PRODUCTION_LEGAL_POLICY_EVIDENCE,
+                pass_schema_version="stage1.production_legal_policy.v1",
+                blocked_schema_version="stage1.production_public_legal_policy.blocked.v1",
+                kind="production_public_legal_policy",
+                release_gate_check_id="production_legal_support_policy",
+                evidence_name="production public legal policy evidence",
+                split_requirement=SPLIT_CHECKLIST_ITEM_EVIDENCE[
+                    "Production public legal policy deployment evidence 通过：production evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow visibility under `ops/evidence/production/`。"
+                ],
+            ),
+            lambda: production_evidence_passable_or_stage1_blocked(
+                PRODUCTION_SUPPORT_BILLING_POLICY_EVIDENCE,
+                pass_schema_version="stage1.production_support_billing_policy.v1",
+                blocked_schema_version="stage1.production_public_support_billing_policy.blocked.v1",
+                kind="production_public_support_billing_policy",
+                release_gate_check_id="production_legal_support_policy",
+                evidence_name="production public support/billing policy evidence",
+                split_requirement=SPLIT_CHECKLIST_ITEM_EVIDENCE[
+                    "Production public support/billing policy deployment evidence 通过：production evidence proves support contact and paid billing/cancellation/refund policy visibility under `ops/evidence/production/`。"
+                ],
+            ),
+        ],
     }
+    for condition_id, evidence_requirements in dynamic_condition_evidence.items():
+        if all(check() for check in evidence_requirements):
+            cleared_production_conditions.add(condition_id)
+    ci_fixture = load_json(RELEASE_GATE_EVIDENCE_FILES["ci"])
+    private_beta_fixture = load_json(RELEASE_GATE_EVIDENCE_FILES["private_beta_staging"])
+    if gate_allows_checklist_completion(ci_fixture) and gate_allows_checklist_completion(private_beta_fixture):
+        cleared_production_conditions.add("ci_staging_gates_not_passed")
     for condition_id in RELEASE_GATE_REQUIRED_ACTIVE_CONDITIONS["production_launch"]:
         expected_present = condition_id not in cleared_production_conditions
         require(
@@ -10725,7 +11648,7 @@ def validate_readme_and_architecture_contract() -> None:
         require(token in readme_text, f"README.md missing Rev2 local-launch token: {token}")
 
     for token in [
-        "ZenArt Stage 0 Rev2 是纯 Web 三端架构",
+        "Zenari Stage 0 Rev2 是纯 Web 三端架构",
         "沿用 Alphane-style 三目录落地方式",
         "- `web/`：用户端。",
         "- `admin/`：管理端。",
@@ -10788,7 +11711,7 @@ def validate_readme_launch_readiness_snapshot(readme_text: str) -> None:
             expected_status in line,
             f"README {gate_label} row must state current fixture-aligned status {expected_status}",
         )
-        for token in requirement["tokens"]:
+        for token in readme_expected_tokens(gate_label, evidence):
             require(token in line, f"README {gate_label} row missing exact launch blocker token: {token}")
 
     blocked_gate_rows = {
@@ -10821,7 +11744,34 @@ def validate_blueprint_checklist() -> None:
     missing = CHECKED_ITEMS - checked_lines
     require(not missing, f"blueprint missing completed fixture/schema checklist marks: {sorted(missing)}")
     unchecked_lines = unchecked_items(text)
-    missing_open = REQUIRED_OPEN_ITEMS - unchecked_lines
+    evidence = release_evidence_by_gate()
+    required_open_items = set(REQUIRED_OPEN_ITEMS)
+    if gate_allows_checklist_completion(evidence["ci"]):
+        required_open_items -= set(CI_RUNTIME_AGGREGATE_OPEN_CHECK_ITEMS)
+        required_open_items -= {
+            "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
+            "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
+            "CI 在已安装 PR/main workflow 中 build Docker images。",
+        }
+    if gate_allows_checklist_completion(evidence["private_beta_staging"]):
+        required_open_items -= set(PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS)
+        required_open_items -= {
+            "执行 staging deploy。",
+            "执行 staging smoke tests。",
+            "Staging post-deploy smoke tests 通过。",
+        }
+    if gate_allows_checklist_completion(evidence["production_launch"]):
+        required_open_items -= set(PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS)
+        required_open_items -= {
+            "Production Launch runtime/deployment evidence 通过：provider-or-comp-only、paid lifecycle、skill canary、activation audit、abuse hold、security、backup/rollback/post-deploy smoke、legal/support policy 均有 production evidence。",
+            PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM,
+        }
+    else:
+        production_checks = checks_by_id(evidence["production_launch"])
+        for item, check_ids in PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS.items():
+            if check_ids and all(production_checks[check_id]["status"] == "pass" for check_id in check_ids):
+                required_open_items.discard(item)
+    missing_open = required_open_items - unchecked_lines
     require(
         not missing_open,
         "blueprint must keep launch-runtime checklist items open until gate evidence passes: "
@@ -10842,7 +11792,6 @@ def validate_blueprint_checklist() -> None:
                 f"blueprint marks {item!r} complete but required paths are missing: {missing}",
             )
 
-    evidence = release_evidence_by_gate()
     validate_release_gate_order_dependencies(evidence)
     validate_global_do_not_launch_checklist_item(
         evidence,
@@ -11739,12 +12688,12 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
         "blueprint must close only secure cookie / same-site CSRF client contract evidence",
     )
     for token in [
-        "__Host-zenart_session",
+        "__Host-zenari_session",
         "httpOnly: true",
         "secure: true",
         "sameSite: \"lax\"",
         "same-site-origin-check",
-        "X-ZenArt-CSRF",
+        "X-Zenari-CSRF",
     ]:
         require(token in web_state_test, f"web session contract test missing {token}")
     require(
@@ -11758,7 +12707,7 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
     for token in [
         "CSRFHeaderName",
         "CSRFHeaderValue",
-        "X-ZenArt-CSRF",
+        "X-Zenari-CSRF",
         "same-site-origin-check",
     ]:
         require(token in backend_config, f"backend CSRF config missing {token}")
@@ -11790,7 +12739,7 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
     ]:
         require(token in generated_client, f"generated web API client CSRF contract missing {token}")
     require(
-        "generated web API client sends same-site credentials and X-ZenArt-CSRF header on state-changing operations"
+        "generated web API client sends same-site credentials and X-Zenari-CSRF header on state-changing operations"
         in (ROOT / "web" / "validation" / "user-routes-smoke.json").read_text(encoding="utf-8"),
         "web route smoke evidence must include generated client CSRF request contract",
     )
@@ -11862,7 +12811,7 @@ def validate_blueprint_evidence_backfill_contracts() -> None:
 
     require(
         "visible support contact" in web_legal
-        or "support@zenart.local" in web_legal,
+        or "support@zenari.ai" in web_legal,
         "legal evidence must expose visible support contact",
     )
 
@@ -11972,13 +12921,15 @@ def validate_launch_readiness_split_contracts() -> None:
     ] + sorted(RELEASE_GATE_BACKFILL_CHECKED_ITEMS):
         require(item in checked_lines, f"blueprint must close definition-only evidence subitem: {item}")
 
-    for item in [
-        "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
-        "CI 在已安装 PR/main workflow 中 build Docker images。",
-        PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM,
-    ] + sorted(CI_RUNTIME_OPEN_CHECK_ITEMS) + sorted(
-        RELEASE_GATE_RUNTIME_OPEN_ITEMS - {LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM}
-    ) + sorted(
+    runtime_open_subitems = (
+        {
+            "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
+            "CI 在已安装 PR/main workflow 中 build Docker images。",
+            PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM,
+        }
+        | set(CI_RUNTIME_AGGREGATE_OPEN_CHECK_ITEMS)
+        | (RELEASE_GATE_RUNTIME_OPEN_ITEMS - {LOCAL_ALPHA_AGGREGATE_RUNTIME_ITEM})
+        | (
         set(RELEASE_GATE_CHECK_LEVEL_RUNTIME_OPEN_ITEMS)
         - {
             "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
@@ -11991,6 +12942,9 @@ def validate_launch_readiness_split_contracts() -> None:
             "Private Beta/Staging legal pages external-user visibility evidence 通过：staging evidence proves Terms、Privacy、Acceptable Use、AI/content disclaimer、IP complaint flow are externally visible under `ops/evidence/staging/`。",
             "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。",
             "Private Beta/Staging object storage signed URL runtime evidence 通过：staging evidence proves tenant-scoped signed download, expiry, direct-object denial, and cross-tenant denial under `ops/evidence/staging/`。",
+            "Private Beta/Staging object storage signed download/retention runtime evidence 通过。",
+            "Private Beta/Staging object retention/cleanup runtime evidence 通过：staging evidence proves retention policy, expired export cleanup, orphan cleanup, and audit refs under `ops/evidence/staging/`。",
+            "Private Beta/Staging object retention/cleanup exact evidence file 通过：`ops/evidence/staging/object-storage-retention-cleanup.json` exists, declares `environment=staging`, `release_gate_check_id=staging_object_storage_signed_downloads`, passing status, retention policy, expired export cleanup, orphan cleanup, audit refs, and no preserved blockers。",
             STAGING_OBJECT_STORAGE_RETENTION_BLOCKED_CHECKLIST_ITEM,
             "staging request id propagation runtime evidence 通过。",
             "staging structured JSON logs runtime evidence 通过。",
@@ -12023,7 +12977,32 @@ def validate_launch_readiness_split_contracts() -> None:
             *LOCAL_ALPHA_RELEASE_GATE_WORKFLOW_RUNTIME_CLOSED_ITEMS.keys(),
         }
         - LOCAL_ALPHA_WORKFLOW_RUNTIME_ITEMS
-    ):
+        )
+    )
+    gate_evidence = release_evidence_by_gate()
+    if gate_allows_checklist_completion(gate_evidence["ci"]):
+        runtime_open_subitems -= set(CI_RUNTIME_AGGREGATE_OPEN_CHECK_ITEMS)
+        runtime_open_subitems -= {
+            "CI installed workflow runtime evidence 通过：PR/main run、Playwright smoke、Docker image build 均有 validator-resolvable evidence。",
+            "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
+            "CI 在已安装 PR/main workflow 中 build Docker images。",
+        }
+    if gate_allows_checklist_completion(gate_evidence["private_beta_staging"]):
+        runtime_open_subitems -= set(PRIVATE_BETA_STAGING_RUNTIME_OPEN_CHECK_ITEMS)
+        runtime_open_subitems -= {
+            "执行 staging deploy。",
+            "执行 staging smoke tests。",
+            "Staging post-deploy smoke tests 通过。",
+        }
+    if gate_allows_checklist_completion(gate_evidence["production_launch"]):
+        runtime_open_subitems -= set(PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS)
+        runtime_open_subitems -= {PRODUCTION_POST_DEPLOY_LAUNCH_CLEARING_CHECKLIST_ITEM}
+    else:
+        production_checks = checks_by_id(gate_evidence["production_launch"])
+        for item, check_ids in PRODUCTION_RUNTIME_OPEN_CHECK_ITEMS.items():
+            if check_ids and all(production_checks[check_id]["status"] == "pass" for check_id in check_ids):
+                runtime_open_subitems.discard(item)
+    for item in sorted(runtime_open_subitems):
         require(item in unchecked_lines, f"blueprint must keep runtime launch-readiness subitem open: {item}")
 
     for ambiguous in [
@@ -12112,8 +13091,8 @@ def validate_launch_readiness_split_contracts() -> None:
         "Production check-level runtime subitems must remain open until each matching release gate check has production evidence",
         "Private Beta/Staging observability runtime evidence may close only its observability-only subitem",
         "observability-only artifact preserved backup/restore、load、post-deploy smoke blockers until the later combined preflight closed them",
-        "clears auth/RBAC/tenant/audit, brief/upload/confirmation, quota/rate-limit/spend-cap, support/retry/abuse, eval/QA/safety enforcement, crawler runtime checks, observability/backup/load/post-deploy-smoke, and legal/support external-user visibility with staging evidence",
-        "keeps Private Beta/Staging aggregate no-go only for production-like object storage retention/cleanup",
+        "clears auth/RBAC/tenant/audit, brief/upload/confirmation, quota/rate-limit/spend-cap, support/retry/abuse, eval/QA/safety enforcement, crawler runtime checks, and observability/backup/load/post-deploy-smoke with staging evidence",
+        "keeps Private Beta/Staging aggregate no-go for production-like object storage retention/cleanup plus legal/support external-user visibility until deployed staging probes pass",
         "Production provider-or-comp-only cannot close from provider abstractions",
         "Production paid billing lifecycle cannot close from mock checkout",
         "Production backup/rollback/incident readiness cannot close from runbooks or release templates alone",
@@ -12156,6 +13135,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "nested `gate_impact.release_gate_check_id` must equal the artifact top-level `release_gate_check_id`",
         "copied gate metadata cannot close the wrong Local Alpha、CI、Private Beta/Staging、Production, or Do-Not-Launch row",
         "Runtime gate_impact false-readiness term guard 通过",
+        "can_clear_ci_gate_check",
         "go for production、上线就绪、生产就绪",
         "blocked runtime artifacts cannot smuggle launch clearance through prose",
         "`gate_impact` true clearance flags such as `can_clear_*` may clear only rows owned by the evidence's own gate",
@@ -12191,7 +13171,7 @@ def validate_launch_readiness_split_contracts() -> None:
         "Release gate fixture files are closed-world",
         "Release gate fixture identities are closed-world",
         "gate_local_alpha_fixture_baseline",
-        "gate_ci_draft_blocked",
+        "gate_ci_installed_runtime_blocked",
         "gate_private_beta_staging_blocked",
         "gate_production_launch_blocked",
         "copied, renamed, or extra release-gate fixtures cannot contribute to gate closure",
@@ -12223,11 +13203,10 @@ def validate_launch_readiness_split_contracts() -> None:
 
     required_ci_tokens = [
         "playwright-smoke",
-        "stage0-rev2-playwright-smoke",
-        "stage1-ci-exact-evidence-aggregate",
         "DRY_RUN=1 scripts/playwright_smoke.sh",
-        "IMAGE_PREFIX=ghcr.io/alphane-ai/zenari",
-        "stage0-rev2-docker-image-build",
+        "GIT_SHA=\"${GITHUB_SHA}\" IMAGE_PREFIX=ghcr.io/alphane-ai/zenari OUT_DIR=ops/evidence/ci/docker-image-build-run scripts/docker_build_smoke.sh",
+        "python3 scripts/write_stage1_ci_docker_evidence.py",
+        "ops/evidence/ci/stage0-rev2-docker-image-build.json",
         "DRY_RUN=1 scripts/docker_build_smoke.sh",
     ]
     for token in required_ci_tokens:
@@ -12465,10 +13444,10 @@ def validate_ops_ci_and_drill_evidence() -> None:
         "npm run typecheck",
         "npm run test",
         "npm run build",
-        "IMAGE_PREFIX=ghcr.io/alphane-ai/zenari",
-        "stage0-rev2-docker-image-build",
-        "stage0-rev2-playwright-smoke",
-        "stage1-ci-exact-evidence-aggregate",
+        "GIT_SHA=\"${GITHUB_SHA}\" IMAGE_PREFIX=ghcr.io/alphane-ai/zenari OUT_DIR=ops/evidence/ci/docker-image-build-run scripts/docker_build_smoke.sh",
+        "python3 scripts/write_stage1_ci_docker_evidence.py",
+        "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+        "DOCKER_REPORT",
         "playwright-smoke",
         "DRY_RUN=1 scripts/playwright_smoke.sh",
         "bash -n scripts/docker_build_smoke.sh",
@@ -12485,19 +13464,10 @@ def validate_ops_ci_and_drill_evidence() -> None:
 
     installation = CI_INSTALLATION.read_text(encoding="utf-8")
     require(
-        ".github/workflows/stage0-rev2-ci.yml" in installation,
-        "CI installation checklist must reference the installed workflow path",
+        "installed workflow is now `.github/workflows/stage0-rev2-ci.yml`" in installation
+        or "The installed workflow is now `.github/workflows/stage0-rev2-ci.yml`" in installation,
+        "CI installation checklist must record that the workflow is installed",
     )
-    if CI_WORKFLOW.exists():
-        require(
-            "installed copy must stay byte-for-byte aligned" in installation,
-            "CI installation checklist must document installed workflow alignment",
-        )
-    else:
-        require(
-            "Blocked by token scope" in installation,
-            "CI installation checklist must keep workflow install blocked by token scope when workflow is absent",
-        )
 
     env = load_json(ENVIRONMENT_EVIDENCE)
     require(env["blueprint_source"] == "Docs/stage0_blueprint_rev2.md", "environment evidence must cite Rev2")
@@ -12510,11 +13480,14 @@ def validate_ops_ci_and_drill_evidence() -> None:
         env["ci_draft"]["path"] == CI_DRAFT_REL,
         "environment evidence must point at ops/ci CI draft",
     )
-    open_items = {item["id"]: item for item in env["open_items"]}
-    expected_install_status = "installed" if CI_WORKFLOW.exists() else "blocked_by_token_scope"
     require(
-        open_items.get("install_github_actions_workflow", {}).get("status") == expected_install_status,
-        "workflow installation status must reflect installed workflow presence",
+        env["ci_draft"].get("installed_workflow") == CI_WORKFLOW_REL,
+        "environment evidence must point at the installed CI workflow",
+    )
+    open_items = {item["id"]: item for item in env["open_items"]}
+    require(
+        open_items.get("ci_installed_workflow", {}).get("status") == "installed_pending_runtime_evidence",
+        "workflow installation must be installed while runtime evidence remains pending",
     )
     require("playwright_smoke" in open_items, "environment evidence must keep Playwright smoke open")
     require("docker_image_build_runtime" in open_items, "environment evidence must keep Docker image runtime evidence open")

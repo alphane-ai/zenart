@@ -1,0 +1,17 @@
+{
+  "id": "billing_admin_c8c114dffe9e4795ce119d73",
+  "tenant_id": "tenant_1",
+  "actor_id": "local_stage1.stripe.admin_zenari.ai",
+  "target_user_id": "local_stage1.stripe.user_zenari.ai",
+  "operation": "manual_credit",
+  "idempotency_key": "stage1-stripe-production-like-canonical-quota_projection",
+  "status": "succeeded",
+  "units": 25,
+  "bucket_id": "quota_tenant_1_local_stage1.stripe.user_zenari.ai_stage1_stripe",
+  "rationale": "Stage 1 Stripe test refund credit quota reconciliation",
+  "metadata": {
+    "stripe_test_subscription_id": "[REDACTED]"
+  },
+  "created_at": "2026-06-23T04:03:39.18195Z",
+  "updated_at": "2026-06-23T04:03:39.18195Z"
+}

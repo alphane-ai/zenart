@@ -1,0 +1,163 @@
+{
+  "schema_version": "stage1.stripe_staging_lifecycle.contract.v1",
+  "kind": "stripe_test_checkout_webhook_contract",
+  "canonical_evidence_path": "ops/evidence/staging/stripe-test-checkout-webhook.json",
+  "canonical_results_path": "ops/evidence/staging/stripe-test-checkout-webhook.ndjson",
+  "local_devport_evidence_path": "ops/evidence/staging/local-devport/stripe-test-checkout-webhook.local-devport.json",
+  "local_devport_results_path": "ops/evidence/staging/local-devport/stripe-test-checkout-webhook.local-devport.ndjson",
+  "local_devport_can_clear_staging_gate": false,
+  "strict_schema_version": "stage1.stripe_staging_lifecycle.v1",
+  "required_top_level": {
+    "environment": "staging",
+    "kind": "stripe_test_checkout_webhook",
+    "status": "pass",
+    "stripe_mode": "test",
+    "livemode": false,
+    "secret_material_persisted": false,
+    "raw_webhook_secret_persisted": false,
+    "raw_stripe_key_persisted": false
+  },
+  "required_scenarios": [
+    {
+      "scenario_id": "checkout_session_created",
+      "description": "Authenticated user creates a Stripe test checkout session with tenant/user/plan metadata and an idempotency key.",
+      "required_fields": [
+        "checkout_session.id",
+        "checkout_session.url",
+        "checkout_session.livemode",
+        "checkout_session.metadata.tenant_id",
+        "checkout_session.metadata.user_id",
+        "checkout_session.metadata.plan_id",
+        "checkout_session.idempotency_key"
+      ]
+    },
+    {
+      "scenario_id": "checkout_completed_paid",
+      "description": "checkout.session.completed is verified, stored once, and syncs an active subscription.",
+      "required_fields": [
+        "event.id",
+        "event.type",
+        "event.livemode",
+        "subscription.status",
+        "subscription.provider_ref",
+        "subscription.plan_id"
+      ]
+    },
+    {
+      "scenario_id": "invoice_paid",
+      "description": "invoice.paid or invoice.payment_succeeded keeps the subscription active and exposes sanitized invoice links.",
+      "required_fields": [
+        "event.id",
+        "event.type",
+        "event.livemode",
+        "invoice.id",
+        "invoice.status",
+        "invoice.hosted_invoice_url"
+      ]
+    },
+    {
+      "scenario_id": "invoice_payment_failed",
+      "description": "invoice.payment_failed moves the subscription/account projection to past_due.",
+      "required_fields": [
+        "event.id",
+        "event.type",
+        "event.livemode",
+        "subscription.status",
+        "account_projection.subscription_status"
+      ]
+    },
+    {
+      "scenario_id": "cancel_at_period_end",
+      "description": "User cancellation schedules cancel_at_period_end and the projected account state matches Stripe.",
+      "required_fields": [
+        "subscription.id",
+        "subscription.cancel_at_period_end",
+        "subscription.current_period_end",
+        "account_projection.cancel_at_period_end"
+      ]
+    },
+    {
+      "scenario_id": "subscription_cancelled",
+      "description": "customer.subscription.deleted or equivalent terminal event is processed and reflected in the account projection.",
+      "required_fields": [
+        "event.id",
+        "event.type",
+        "event.livemode",
+        "subscription.status",
+        "account_projection.subscription_status"
+      ]
+    },
+    {
+      "scenario_id": "refund_credit",
+      "description": "Refund evidence is connected to an admin refund note and manual quota credit without leaking Stripe secrets.",
+      "required_fields": [
+        "refund.id",
+        "refund.status",
+        "admin_operation.operation",
+        "admin_operation.idempotency_key",
+        "quota_credit.transaction_id",
+        "quota_credit.units"
+      ]
+    },
+    {
+      "scenario_id": "webhook_replay_idempotency",
+      "description": "Webhook replay is attempted and produces no duplicate subscription, quota, or admin mutation.",
+      "required_fields": [
+        "event.id",
+        "replay_attempted",
+        "first_delivery_mutations",
+        "replay_delivery_mutations",
+        "duplicate_mutation_count"
+      ]
+    },
+    {
+      "scenario_id": "quota_projection",
+      "description": "Subscription lifecycle, refund credit, and quota/account projection are reconciled for the user-facing billing view.",
+      "required_fields": [
+        "quota.bucket_id",
+        "quota.limit_units",
+        "quota.used_units",
+        "quota.reserved_units",
+        "quota.transactions"
+      ]
+    },
+    {
+      "scenario_id": "invoice_receipt_visibility",
+      "description": "User-facing billing view can display sanitized invoice and receipt links from Stripe test mode.",
+      "required_fields": [
+        "invoice.id",
+        "invoice.hosted_invoice_url",
+        "invoice.invoice_pdf",
+        "ui_projection.invoice_visible",
+        "ui_projection.receipt_visible"
+      ]
+    }
+  ],
+  "required_result_rows": [
+    "checkout_session_created",
+    "checkout_completed_paid",
+    "invoice_paid",
+    "invoice_payment_failed",
+    "cancel_at_period_end",
+    "subscription_cancelled",
+    "refund_credit",
+    "webhook_replay_idempotency",
+    "quota_projection",
+    "invoice_receipt_visibility"
+  ],
+  "required_code_anchors": [
+    "scripts/stage1_stripe_staging_smoke.sh",
+    "scripts/stripe_sandbox_selftest.sh",
+    "backend/internal/billing/stripe_checkout.go",
+    "backend/internal/billing/stripe_webhook.go",
+    "backend/internal/billing/stripe_checkout_test.go",
+    "backend/internal/billing/stripe_webhook_test.go",
+    "backend/internal/server/server.go",
+    "web/lib/billing-client.ts"
+  ],
+  "notes": [
+    "This file is a contract fixture only. It is not staging pass evidence.",
+    "The strict validator must fail until ops/evidence/staging/stripe-test-checkout-webhook.json and .ndjson are generated from real staging Stripe test mode runs.",
+    "Evidence may prove secret material presence by boolean fields, but must never include raw Stripe keys, webhook secrets, Authorization headers, cookies, or signature values."
+  ]
+}

@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import {
   getStagingLegalSupportVisibilityEvidence,
   getStagingSupportRetryAbuseEvidence,
+  getSupportAdminDeletionGovernanceContract,
   getSupportEscalationRunbooks,
   getSupportTickets,
   getSupportUsers
@@ -11,6 +12,8 @@ import {
 import type {
   StagingLegalSupportVisibilityCoverage,
   StagingSupportRetryAbuseCoverage,
+  SupportAdminDeletionGovernanceContract,
+  SupportAdminDeletionRequest,
   SupportEscalationRunbook,
   SupportLookupAction,
   SupportTicket,
@@ -18,10 +21,11 @@ import type {
 } from "@/lib/types";
 
 export default async function SupportPage() {
-  const [users, tickets, runbooks, stagingEvidence, legalSupportEvidence] = await Promise.all([
+  const [users, tickets, runbooks, deletionGovernance, stagingEvidence, legalSupportEvidence] = await Promise.all([
     getSupportUsers(),
     getSupportTickets(),
     getSupportEscalationRunbooks(),
+    getSupportAdminDeletionGovernanceContract(),
     getStagingSupportRetryAbuseEvidence(),
     getStagingLegalSupportVisibilityEvidence()
   ]);
@@ -32,6 +36,77 @@ export default async function SupportPage() {
         title="Support Console"
         description="User lookup surface for projects, recent tasks, traces, assets, exports, quota, tickets, and risk flags."
       />
+      <section className="panel" data-support-deletion-governance-contract="stage1.support-admin-deletion-governance-local-contract">
+        <div className="panel-header">
+          <div>
+            <h3>Deletion Governance</h3>
+            <p>Support-side deletion and account-disposition requests remain evidence-bound, retention-aware, and review-gated without closing staging or production launch gates.</p>
+          </div>
+        </div>
+        <div className="dependency-summary" data-support-deletion-non-launch-status="local-contract-only">
+          <article>
+            <span>Staging gate</span>
+            <strong>preserved</strong>
+            <small>canClearStagingGate: false</small>
+          </article>
+          <article>
+            <span>Production gate</span>
+            <strong>preserved</strong>
+            <small>canClearProductionGate: false</small>
+          </article>
+          <article>
+            <span>DNL closure</span>
+            <strong>blocked</strong>
+            <small>canCloseDoNotLaunch: false</small>
+          </article>
+          <article>
+            <span>Mutation controls</span>
+            <strong>disabled</strong>
+            <small>mutationControlsEnabled: false</small>
+          </article>
+        </div>
+        <DataTable<SupportAdminDeletionGovernanceContract>
+          rows={[deletionGovernance]}
+          columns={[
+            { key: "id", header: "Contract", render: (row) => <span className="mono">{row.contractId}</span> },
+            { key: "schema", header: "Schema", render: (row) => row.schema },
+            { key: "blueprint", header: "Blueprint Items", render: (row) => row.blueprintItems.join(", ") },
+            { key: "source", header: "Evidence Source", render: (row) => row.evidenceSource },
+            { key: "route", header: "Admin Route", render: (row) => row.adminRoute },
+            { key: "blocked", header: "Blocked Gate Checks", render: (row) => <span data-support-deletion-blocked-gate-checks>{row.blockedGateChecks.join(", ")}</span> },
+            { key: "dnl", header: "Preserved DNL Conditions", render: (row) => <span data-support-deletion-preserved-dnl>{row.preservedDoNotLaunchConditions.join(", ")}</span> }
+          ]}
+        />
+        <DataTable<SupportAdminDeletionGovernanceContract>
+          rows={[deletionGovernance]}
+          columns={[
+            { key: "fields", header: "Required Deletion Fields", render: (row) => <span data-support-deletion-required-fields>{row.requiredDeletionFields.join(", ")}</span> },
+            { key: "evidence", header: "Required Linked Evidence", render: (row) => <span data-support-deletion-linked-evidence>{row.requiredLinkedEvidence.join(", ")}</span> },
+            { key: "denied", header: "Denied Projection Fields", render: (row) => <span data-support-deletion-denied-fields>{row.deniedProjectionFields.join(", ")}</span> }
+          ]}
+        />
+        <DataTable<SupportAdminDeletionRequest>
+          rows={deletionGovernance.requests}
+          columns={[
+            { key: "id", header: "Request", render: (row) => <span className="mono">{row.requestId}</span> },
+            { key: "type", header: "Type", render: (row) => row.requestType },
+            { key: "user", header: "User", render: (row) => <span className="mono">{row.subjectUserId}</span> },
+            { key: "ticket", header: "Ticket", render: (row) => <span className="mono">{row.supportTicketId}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "role", header: "Required Role", render: (row) => row.requiredRole },
+            { key: "review", header: "Second Review", render: (row) => `${row.secondReviewRequired ? "required" : "not required"} / ${row.secondReviewStatus}` },
+            { key: "hold", header: "Abuse Hold", render: (row) => <span className="mono">{row.abuseHoldRef}</span> },
+            { key: "linked", header: "Linked Objects", render: (row) => <span data-support-deletion-request-links>{[...row.linkedTraceIds, ...row.linkedAssetIds, ...row.linkedExportIds, ...row.billingReferenceIds].join(", ")}</span> },
+            { key: "retained", header: "Retained Evidence", render: (row) => row.retainedEvidenceRefs.join(", ") },
+            { key: "plan", header: "Deletion Plan", render: (row) => row.deletionPlan },
+            { key: "retention", header: "Retention Boundary", render: (row) => row.retentionBoundary },
+            { key: "blocked", header: "Blocked Reason", render: (row) => row.blockedReason },
+            { key: "message", header: "User Message", render: (row) => row.userVisibleMessage },
+            { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }
+          ]}
+        />
+      </section>
+
       <section className="panel">
         <div className="panel-header">
           <div>
@@ -221,7 +296,7 @@ export default async function SupportPage() {
         <div className="panel-header">
           <div>
             <h3>Ticket Linkage</h3>
-            <p>Each support ticket must preserve user, project, task, trace, asset, export, quota, next action, and audit evidence.</p>
+            <p>Each support ticket must preserve user, project, batch, task, trace, asset, export, quota, billing, next action, and audit evidence.</p>
           </div>
         </div>
         <DataTable<SupportTicket>
@@ -232,11 +307,14 @@ export default async function SupportPage() {
             { key: "priority", header: "Priority", render: (row) => <StatusBadge value={row.priority} /> },
             { key: "user", header: "User", render: (row) => <span className="mono">{row.userId}</span> },
             { key: "project", header: "Project", render: (row) => <span className="mono">{row.projectId}</span> },
+            { key: "batch", header: "Batch", render: (row) => <span className="mono">{row.batchId}</span> },
             { key: "task", header: "Task", render: (row) => <span className="mono">{row.taskId}</span> },
             { key: "trace", header: "Trace", render: (row) => <span className="mono">{row.traceId}</span> },
             { key: "asset", header: "Asset", render: (row) => <span className="mono">{row.assetId}</span> },
             { key: "export", header: "Export", render: (row) => <span className="mono">{row.exportId}</span> },
+            { key: "quota-bucket", header: "Quota Bucket", render: (row) => <span className="mono">{row.quotaBucketId}</span> },
             { key: "quota", header: "Quota Txn", render: (row) => <span className="mono">{row.quotaTransactionId}</span> },
+            { key: "billing", header: "Billing", render: (row) => <span className="mono">{row.billingReferenceId}</span> },
             { key: "subject", header: "Subject", render: (row) => row.subject },
             { key: "action", header: "Next Action", render: (row) => row.nextAction },
             { key: "audit", header: "Audit Ref", render: (row) => <span className="mono">{row.auditRef}</span> }

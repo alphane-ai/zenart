@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://zenart.local/schemas/stage0/rev2/trace_export_gate_matrix.schema.json",
-  "title": "ZenArt Stage 0 Rev2 Trace Export Gate Matrix",
+  "$id": "https://zenari.local/schemas/stage0/rev2/trace_export_gate_matrix.schema.json",
+  "title": "Zenari Stage 0 Rev2 Trace Export Gate Matrix",
   "type": "object",
   "additionalProperties": false,
   "required": [

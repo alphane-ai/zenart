@@ -1,0 +1,317 @@
+{
+  "schema_version": "stage1.production_launch.contract.v1",
+  "fixture_id": "stage1_production_launch_local_contract",
+  "kind": "production_launch_contract",
+  "canonical_evidence_path": "ops/evidence/production/stage1-production-launch.json",
+  "canonical_results_path": "ops/evidence/production/stage1-production-launch.ndjson",
+  "strict_schema_version": "stage1.production_launch.v1",
+  "release_gate_status": "contract_ready_production_launch_evidence_open",
+  "required_gate_fixtures": [
+    {
+      "gate_id": "local_alpha",
+      "path": "fixtures/stage0/rev2/release_gate_evidence.local_alpha.json",
+      "required_status": "go"
+    },
+    {
+      "gate_id": "ci",
+      "path": "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+      "required_status": "go"
+    },
+    {
+      "gate_id": "private_beta_staging",
+      "path": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+      "required_status": "go",
+      "required_stage1_validator": "scripts/validate_stage1_staging_runtime.py"
+    },
+    {
+      "gate_id": "production_launch",
+      "path": "fixtures/stage0/rev2/release_gate_evidence.production_launch.json",
+      "required_status": "go"
+    }
+  ],
+  "required_ci_evidence": [
+    "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+    "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+    "ops/evidence/ci/stage0-rev2-docker-image-build.json"
+  ],
+  "required_release_bundle_evidence": {
+    "path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.json",
+    "required_status": "passed",
+    "required_decision": "go",
+    "required_stage1_staging_runtime_verified": true,
+    "required_stage1_quota_replay_verified": true,
+    "required_stage1_load_verified": true,
+    "required_object_retention_cleanup_verified": true,
+    "required_legal_support_visibility_verified": true,
+    "required_ci_closure_artifacts_ready": true,
+    "required_production_backup_rollback_split_ready": true,
+    "required_missing_slots_empty": true,
+    "required_unverified_slots_empty": true,
+    "required_blocking_reasons_empty": true
+  },
+  "required_components": [
+    {
+      "component_id": "provider_claims",
+      "category": "provider",
+      "generator": "scripts/generate_stage1_production_provider_claims_evidence.py",
+      "blocked_generation_command": "python3 scripts/generate_stage1_production_provider_claims_evidence.py --source <missing> --provider-evidence <tmp>/provider-mode.json --claims-evidence <tmp>/public-paid-real-generation-claims.json",
+      "required_evidence_refs": [
+        "ops/evidence/production/provider-mode.json",
+        "ops/evidence/production/public-paid-real-generation-claims.json"
+      ],
+      "required_status_values": ["pass", "passed"],
+      "required_proofs": [
+        "real provider contract or invite/comp-only mode",
+        "no dev-provider public routing",
+        "paid and real-generation claims gated",
+        "provider monitoring and cost evidence"
+      ]
+    },
+    {
+      "component_id": "paid_billing_lifecycle",
+      "category": "billing",
+      "generator": "scripts/generate_stage1_production_billing_evidence.py",
+      "blocked_generation_command": "python3 scripts/generate_stage1_production_billing_evidence.py --source <missing> --lifecycle-evidence <tmp>/billing-lifecycle.json --refund-evidence <tmp>/billing-refund-credit-webhook.json",
+      "required_evidence_refs": [
+        "ops/evidence/production/billing-lifecycle.json",
+        "ops/evidence/production/billing-refund-credit-webhook.json"
+      ],
+      "required_status_values": ["pass", "passed"],
+      "required_proofs": [
+        "Stripe live/test separation",
+        "paid checkout",
+        "subscription active and past_due lifecycle",
+        "cancel",
+        "refund or credit",
+        "quota reset",
+        "webhook idempotency",
+        "team seat quantity sync",
+        "invoice and receipt visibility"
+      ]
+    },
+    {
+      "component_id": "backup_restore",
+      "category": "ops",
+      "required_evidence_ref": "ops/evidence/production/backup-restore.json",
+      "required_status_values": ["pass", "passed"],
+      "required_proofs": [
+        "backup schedule",
+        "Postgres restore",
+        "object restore",
+        "asset lineage",
+        "billing ledger",
+        "RPO/RTO",
+        "audit refs"
+      ]
+    },
+    {
+      "component_id": "rollback_incident_post_deploy",
+      "category": "ops",
+      "required_evidence_ref": "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+      "required_status_values": ["pass", "passed"],
+      "required_proofs": [
+        "app rollback",
+        "feature flag rollback",
+        "worker drain",
+        "migration compatibility",
+        "incident/alert path",
+        "post-deploy smoke",
+        "CI and staging dependencies go"
+      ]
+    },
+    {
+      "component_id": "security_launch_checks",
+      "category": "security",
+      "generator": "scripts/generate_stage1_production_security_launch_evidence.py",
+      "blocked_generation_command": "python3 scripts/generate_stage1_production_security_launch_evidence.py --source <missing> --evidence <tmp>/production-security-launch.json",
+      "required_evidence_ref": "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+      "required_status_values": ["pass", "passed"],
+      "required_proofs": [
+        "secure session cookies",
+        "CSRF same-site enforcement",
+        "secret redaction",
+        "admin surface privacy",
+        "provider key containment",
+        "Stripe live/test separation"
+      ]
+    },
+    {
+      "component_id": "legal_support_policy",
+      "category": "legal_support",
+      "generator": "scripts/generate_stage1_production_legal_support_evidence.py",
+      "blocked_generation_command": "python3 scripts/generate_stage1_production_legal_support_evidence.py --source <missing> --legal-evidence <tmp>/public-legal-policy.json --support-evidence <tmp>/public-support-billing-policy.json",
+      "required_evidence_refs": [
+        "ops/evidence/production/public-legal-policy.json",
+        "ops/evidence/production/public-support-billing-policy.json"
+      ],
+      "required_status_values": ["pass", "passed"],
+      "required_proofs": [
+        "Terms",
+        "Privacy",
+        "Acceptable Use",
+        "AI/content disclaimer",
+        "IP complaint flow",
+        "support contact",
+        "billing cancellation refund policy"
+      ]
+    },
+    {
+      "component_id": "activation_review_audit",
+      "category": "admin_governance",
+      "generator": "scripts/generate_stage1_production_governance_release_evidence.py",
+      "blocked_generation_command": "python3 scripts/generate_stage1_production_governance_release_evidence.py --source <missing> --activation-evidence <tmp>/activation-review-audit.json --abuse-evidence <tmp>/abuse-throttle-hold.json --skill-evidence <tmp>/skill-release-eval-canary.json",
+      "required_evidence_ref": "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
+      "required_status_values": ["pass", "passed"],
+      "required_proofs": [
+        "high-risk RBAC",
+        "reviewer rationale",
+        "second review",
+        "audit immutability",
+        "activation gates"
+      ]
+    },
+    {
+      "component_id": "abuse_throttle_hold",
+      "category": "admin_governance",
+      "generator": "scripts/generate_stage1_production_governance_release_evidence.py",
+      "blocked_generation_command": "python3 scripts/generate_stage1_production_governance_release_evidence.py --source <missing> --activation-evidence <tmp>/activation-review-audit.json --abuse-evidence <tmp>/abuse-throttle-hold.json --skill-evidence <tmp>/skill-release-eval-canary.json",
+      "required_evidence_ref": "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+      "required_status_values": ["pass", "passed"],
+      "required_proofs": [
+        "account hold",
+        "rate limit",
+        "spend cap or kill switch",
+        "audit refs"
+      ]
+    },
+    {
+      "component_id": "skill_release_eval_canary",
+      "category": "release",
+      "generator": "scripts/generate_stage1_production_governance_release_evidence.py",
+      "blocked_generation_command": "python3 scripts/generate_stage1_production_governance_release_evidence.py --source <missing> --activation-evidence <tmp>/activation-review-audit.json --abuse-evidence <tmp>/abuse-throttle-hold.json --skill-evidence <tmp>/skill-release-eval-canary.json",
+      "required_evidence_ref": "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+      "required_status_values": ["pass", "passed"],
+      "required_proofs": [
+        "owner",
+        "risk level",
+        "eval suite",
+        "safety refs",
+        "canary metrics",
+        "rollback target"
+      ]
+    }
+  ],
+  "required_child_validators": [
+    {
+      "validator": "scripts/validate_stage0_rev2.py",
+      "strict_command": "python3 scripts/validate_stage0_rev2.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_staging_runtime.py",
+      "contract_only_command": "python3 scripts/validate_stage1_staging_runtime.py --contract-only",
+      "strict_command": "python3 scripts/validate_stage1_staging_runtime.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_production_security_launch_evidence.py",
+      "generator": "scripts/generate_stage1_production_security_launch_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_production_security_launch_evidence.py --contract-only",
+      "blocked_generation_command": "python3 scripts/generate_stage1_production_security_launch_evidence.py --source <missing> --evidence <tmp>/production-security-launch.json",
+      "strict_command": "python3 scripts/validate_stage1_production_security_launch_evidence.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_production_provider_claims_evidence.py",
+      "generator": "scripts/generate_stage1_production_provider_claims_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_production_provider_claims_evidence.py --contract-only",
+      "blocked_generation_command": "python3 scripts/generate_stage1_production_provider_claims_evidence.py --source <missing> --provider-evidence <tmp>/provider-mode.json --claims-evidence <tmp>/public-paid-real-generation-claims.json",
+      "strict_command": "python3 scripts/validate_stage1_production_provider_claims_evidence.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_production_governance_release_evidence.py",
+      "generator": "scripts/generate_stage1_production_governance_release_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_production_governance_release_evidence.py --contract-only",
+      "blocked_generation_command": "python3 scripts/generate_stage1_production_governance_release_evidence.py --source <missing> --activation-evidence <tmp>/activation-review-audit.json --abuse-evidence <tmp>/abuse-throttle-hold.json --skill-evidence <tmp>/skill-release-eval-canary.json",
+      "strict_command": "python3 scripts/validate_stage1_production_governance_release_evidence.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_production_legal_support_evidence.py",
+      "generator": "scripts/generate_stage1_production_legal_support_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_production_legal_support_evidence.py --contract-only",
+      "blocked_generation_command": "python3 scripts/generate_stage1_production_legal_support_evidence.py --source <missing> --legal-evidence <tmp>/public-legal-policy.json --support-evidence <tmp>/public-support-billing-policy.json",
+      "strict_command": "python3 scripts/validate_stage1_production_legal_support_evidence.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_production_billing_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_production_billing_evidence.py --contract-only",
+      "strict_command": "python3 scripts/validate_stage1_production_billing_evidence.py"
+    },
+    {
+      "validator": "scripts/validate_stage1_production_backup_rollback_evidence.py",
+      "generator": "scripts/generate_stage1_production_backup_rollback_evidence.py",
+      "contract_only_command": "python3 scripts/validate_stage1_production_backup_rollback_evidence.py --contract-only",
+      "blocked_generation_command": "python3 scripts/generate_stage1_production_backup_rollback_evidence.py --backup-evidence <tmp>/backup-restore.json --rollback-evidence <tmp>/rollback-incident-post-deploy-smoke.json",
+      "strict_command": "python3 scripts/validate_stage1_production_backup_rollback_evidence.py"
+    },
+    {
+      "validator": "scripts/render_no_go_release_notes.py",
+      "contract_only_command": "python3 scripts/render_no_go_release_notes.py --check"
+    }
+  ],
+  "required_stage0_smoke_scripts": [
+    "scripts/production_backup_rollback_split_smoke.sh",
+    "scripts/release_evidence_bundle_smoke.sh"
+  ],
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false
+  },
+  "strict_evidence_policy": {
+    "environment": "production",
+    "kind": "stage1_production_launch",
+    "status": "pass",
+    "release_gate_decision": "go",
+    "allow_blocked_component": false,
+    "allow_blockers_preserved_status": false,
+    "allow_local_alpha_component": false,
+    "allow_local_devport_debug": false,
+    "allow_local_devport_evidence": false,
+    "allow_dry_run": false,
+    "all_component_refs_under": "ops/evidence/production/",
+    "component_status_field": "status",
+    "component_pass_status": "passed",
+    "component_evidence_must_exist": true,
+    "all_release_gate_fixtures_must_be_go": true,
+    "canonical_pass_path_required": true,
+    "gate_impact_can_clear_required": true,
+    "strict_staging_validator_must_pass": true,
+    "do_not_launch_conditions_must_be_empty": true
+  },
+  "aggregate_preflight_policy": {
+    "validator_command": "python3 scripts/validate_stage1_production_launch.py --allow-preflight",
+    "generator_command": "python3 scripts/generate_stage1_production_launch_evidence.py",
+    "accepted_schema_version": "stage1.production_launch.v1",
+    "accepted_status": "blocked",
+    "accepted_release_gate_decision": "no_go",
+    "can_clear_stage1_production_launch_gate": false,
+    "can_close_do_not_launch": false,
+    "must_preserve_do_not_launch_condition": "stage1_production_launch_evidence_incomplete",
+    "must_surface_ci_evidence_state": true,
+    "must_surface_release_bundle_blockers": true,
+    "must_surface_blocked_child_components": true,
+    "strict_validator_still_rejects_preflight": true
+  },
+  "remaining_production_evidence": [
+    "CI gate exact pass evidence and gate fixture go",
+    "Stage 1 strict staging runtime evidence and private beta/staging gate fixture go",
+    "production paid billing lifecycle exact pass evidence replacing deferred Stripe blocked evidence",
+    "production backup split exact pass evidence at ops/evidence/production/backup-restore.json",
+    "production rollback/incident/post-deploy exact pass evidence at ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+    "production launch gate fixture go with no active Do-Not-Launch conditions",
+    "canonical aggregate Stage 1 production launch evidence at ops/evidence/production/stage1-production-launch.json and .ndjson"
+  ]
+}

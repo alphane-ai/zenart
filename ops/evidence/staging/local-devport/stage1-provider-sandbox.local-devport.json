@@ -1,0 +1,204 @@
+{
+  "adapter": "openai-compatible",
+  "adapter_endpoint_version": "openai_compatible_chat_completions_v1",
+  "admin_only_test_call": true,
+  "api_url": "http://127.0.0.1:31080",
+  "asset_persisted": true,
+  "batch_runtime": {
+    "asset_id": "asset_ea39b22b76408f0b18a363d55d8e15fc",
+    "batch_id": "batch_466d3485d43b396218c1b611",
+    "canvas_object_id": "canvas_node_ea39b22b76408f0b18a363d55d8e15fc",
+    "failed_children": 0,
+    "model_id": "glm-5.2",
+    "progress": {
+      "batch_id": "batch_466d3485d43b396218c1b611",
+      "blocked": 0,
+      "cancelled": 0,
+      "failed": 0,
+      "queued": 0,
+      "requested_count": 1,
+      "retryable": 0,
+      "running": 0,
+      "status": "succeeded",
+      "succeeded": 1
+    },
+    "provider_child_failures": [],
+    "provider_id": "zenari-image-sandbox",
+    "succeeded_children": 1,
+    "usage_units": 4
+  },
+  "blocked_checks": [
+    "local_devport_debug_evidence_cannot_clear_staging_gate"
+  ],
+  "blueprint_source": "Docs/Stage1_20260621_blueprint.md",
+  "canvas_persisted": true,
+  "checks": [
+    {
+      "check_id": "adapter_health_probe",
+      "expected_tokens": [
+        "openai-compatible provider selftest passed",
+        "glm-5.2",
+        "chat_completion_chars"
+      ],
+      "http_status": 200,
+      "matched_tokens": [
+        "openai-compatible provider selftest passed",
+        "glm-5.2",
+        "chat_completion_chars"
+      ],
+      "method": "SELFTEST",
+      "missing_tokens": [],
+      "path": "scripts/openai_compatible_provider_selftest.sh",
+      "reason": "ok",
+      "request_id": "stage1-provider-sandbox-adapter_health_probe",
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "admin_registry",
+      "expected_tokens": [
+        "zenari-image-sandbox",
+        "openai-compatible"
+      ],
+      "http_status": 200,
+      "matched_tokens": [
+        "zenari-image-sandbox",
+        "openai-compatible"
+      ],
+      "method": "GET",
+      "missing_tokens": [],
+      "path": "/api/admin/v1/providers/registry",
+      "reason": "ok",
+      "request_id": "stage1-provider-sandbox-admin_registry",
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "admin_sandbox_test_call",
+      "expected_tokens": [
+        "succeeded",
+        "prompt_hash"
+      ],
+      "http_status": 201,
+      "matched_tokens": [
+        "succeeded",
+        "prompt_hash"
+      ],
+      "method": "POST",
+      "missing_tokens": [],
+      "path": "/api/admin/v1/providers/registry/zenari-image-sandbox/test-call",
+      "reason": "ok",
+      "request_id": "stage1-provider-sandbox-admin_sandbox_test_call",
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "batch_create",
+      "expected_tokens": [
+        "zenari-image-sandbox"
+      ],
+      "http_status": 201,
+      "matched_tokens": [
+        "zenari-image-sandbox"
+      ],
+      "method": "POST",
+      "missing_tokens": [],
+      "path": "/api/v1/projects/project_local_ecommerce_growth/batch-generations",
+      "reason": "ok",
+      "request_id": "stage1-provider-sandbox-batch_create",
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "batch_progress",
+      "expected_tokens": [
+        "succeeded"
+      ],
+      "http_status": 200,
+      "matched_tokens": [
+        "succeeded"
+      ],
+      "method": "GET",
+      "missing_tokens": [],
+      "path": "/api/v1/batch-generations/batch_466d3485d43b396218c1b611/progress",
+      "reason": "ok",
+      "request_id": "stage1-provider-sandbox-batch_progress",
+      "secret_leak_detected": false,
+      "status": "passed"
+    },
+    {
+      "check_id": "batch_children",
+      "expected_tokens": [
+        "asset_id",
+        "canvas_object_id",
+        "zenari-image-sandbox"
+      ],
+      "http_status": 200,
+      "matched_tokens": [
+        "asset_id",
+        "canvas_object_id",
+        "zenari-image-sandbox"
+      ],
+      "method": "GET",
+      "missing_tokens": [],
+      "path": "/api/v1/batch-generations/batch_466d3485d43b396218c1b611/children",
+      "reason": "ok",
+      "request_id": "stage1-provider-sandbox-batch_children",
+      "secret_leak_detected": false,
+      "status": "passed"
+    }
+  ],
+  "environment": "staging",
+  "evidence_id": "stage1-provider-sandbox",
+  "gate_impact": {
+    "can_clear_check_level_item": false,
+    "can_clear_provider_sandbox_gate": false,
+    "preserved_do_not_launch_condition_id": "provider_sandbox_runtime_missing",
+    "preserved_release_gate_check_id": "stage1_provider_sandbox",
+    "remaining_blockers": [
+      "local-devport debug evidence cannot clear canonical staging provider sandbox gate"
+    ]
+  },
+  "health_probe_passed": true,
+  "kind": "provider_sandbox",
+  "live_calls_enabled": true,
+  "llm_base_url_host": "api.z.ai",
+  "llm_openai_model": "glm-5.2",
+  "llm_provider": "openai-compatible",
+  "local_devport_debug": true,
+  "model_id": "glm-5.2",
+  "probe_contract": {
+    "allow_local_devport_evidence_env": "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 writes debug-only provider sandbox evidence under ops/evidence/staging/local-devport/ and cannot clear staging gates",
+    "canonical_pass_report": "ops/evidence/staging/stage1-provider-sandbox.json",
+    "canonical_pass_results": "ops/evidence/staging/stage1-provider-sandbox.ndjson",
+    "local_devport_report": "ops/evidence/staging/local-devport/stage1-provider-sandbox.local-devport.json",
+    "local_devport_results": "ops/evidence/staging/local-devport/stage1-provider-sandbox.local-devport.ndjson",
+    "production_like_local_fixture_command": "API_URL=https://zenari-staging.example.test:<port> API_URL_RESOLVE_ADDR=127.0.0.1 API_URL_CA_CERT=<self-signed-ca.pem> LLM_OPENAI_BASE_URL=https://zenari-provider.example.test:<port> LLM_OPENAI_RESOLVE_ADDR=127.0.0.1 LLM_OPENAI_CA_CERT=<self-signed-ca.pem> scripts/stage1_provider_sandbox_smoke.sh",
+    "provider_failure_blocker_prefix": "batch_children:provider_child_failure:"
+  },
+  "provider_cost_reconciled": "contract_only",
+  "provider_id": "zenari-image-sandbox",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "release_sha": "",
+  "results_path": "ops/evidence/staging/local-devport/stage1-provider-sandbox.local-devport.ndjson",
+  "runtime_input_readiness": {
+    "admin_auth_ready": true,
+    "allow_local_devport_evidence": true,
+    "canonical_pass_path": false,
+    "csrf_ready": true,
+    "llm_live_config_ready": true,
+    "staging_api_url_ready": true,
+    "use_dev_identity_headers": true,
+    "user_auth_ready": true,
+    "worker_batch_enabled": true
+  },
+  "schema_version": "stage1.provider_sandbox.v1",
+  "secret_material_persisted": false,
+  "secret_material_present": true,
+  "status": "blocked",
+  "usage_recorded": true,
+  "use_dev_identity_headers": true,
+  "user_model_id": "glm-5.2",
+  "user_visible_provider_secret": false
+}

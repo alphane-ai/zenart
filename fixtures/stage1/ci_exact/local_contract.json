@@ -1,0 +1,113 @@
+{
+  "schema_version": "stage1.ci_exact.contract.v1",
+  "fixture_id": "stage1_ci_exact_local_contract",
+  "kind": "ci_exact_evidence_contract",
+  "release_gate_status": "contract_ready_exact_ci_evidence_open",
+  "required_environment": "ci",
+  "preflight_evidence_path": "ops/evidence/ci/stage1-ci-exact.preflight.json",
+  "required_evidence": [
+    {
+      "artifact_id": "pr_main_run",
+      "path": "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+      "release_gate_check_id": "ci_gate_runtime_execution",
+      "required_schema_version": "stage1.ci_pr_main_run.v1",
+      "required_kind": "ci_pr_main_run",
+      "required_proofs": [
+        "installed workflow run id",
+        "workflow run URL",
+        "full release SHA",
+        "pull_request or main trigger",
+        "stage0 rev2 validation",
+        "stage1 pre-launch contract validation",
+        "web/admin/backend validation summary"
+      ]
+    },
+    {
+      "artifact_id": "playwright_smoke",
+      "path": "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+      "release_gate_check_id": "ci_playwright_smoke",
+      "required_schema_version": "stage1.ci_playwright_smoke.v1",
+      "required_kind": "ci_playwright_smoke",
+      "required_proofs": [
+        "user web smoke",
+        "admin web smoke",
+        "billing smoke",
+        "workspace smoke",
+        "batch and canvas deep coverage remains in Stage 1 feature/staging validators",
+        "coverage projection",
+        "safe projection flags",
+        "trace or artifact refs"
+      ]
+    },
+    {
+      "artifact_id": "docker_image_build",
+      "path": "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+      "release_gate_check_id": "ci_docker_image_build",
+      "required_schema_version": "stage1.ci_docker_image_build.v1",
+      "required_kind": "ci_docker_image_build",
+      "required_proofs": [
+        "web image build",
+        "admin image build",
+        "backend image build",
+        "backend worker command build",
+        "no standalone manager or worker release image requirement",
+        "immutable image digests"
+      ]
+    }
+  ],
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false
+  },
+  "strict_evidence_policy": {
+    "environment": "ci",
+    "status": "pass",
+    "canonical_pass_path_required": true,
+    "allow_blocked": false,
+    "allow_dry_run": false,
+    "allow_local_devport_debug": false,
+    "allow_preserved_blockers": false,
+    "release_sha_must_match_all_files": true,
+    "do_not_launch_conditions_must_be_empty": true,
+    "gate_impact_can_clear_required": true
+  },
+  "preflight_policy": {
+    "generator_command": "python3 scripts/generate_stage1_ci_exact_preflight.py",
+    "validator_command": "python3 scripts/validate_stage1_ci_exact_evidence.py --allow-preflight",
+    "status_ready_does_not_clear_gate": true,
+    "canonical_artifacts_written": false,
+    "requires_github_actions_for_strict_evidence": true,
+    "can_clear_ci_gate": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "required_metadata": [
+      "GITHUB_SHA or --release-sha",
+      "GITHUB_RUN_ID or --run-id",
+      "GITHUB_REPOSITORY or --repository",
+      "GITHUB_EVENT_NAME or --event-name",
+      "GITHUB_REF/GITHUB_BASE_REF or --ref/--base-ref"
+    ],
+    "canonical_artifacts": [
+      "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+      "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+      "ops/evidence/ci/stage0-rev2-docker-image-build.json"
+    ]
+  },
+  "artifact_fetch_policy": {
+    "fetch_command": "python3 scripts/fetch_stage1_ci_artifacts.py",
+    "fetch_by_run_url_command": "python3 scripts/fetch_stage1_ci_artifacts.py --run-url <github-actions-run-url>",
+    "fetch_latest_successful_command": "python3 scripts/fetch_stage1_ci_artifacts.py --latest-successful --repository <owner/repo>",
+    "fetch_from_downloaded_artifacts_command": "python3 scripts/fetch_stage1_ci_artifacts.py --input-dir <downloaded-artifact-dir>",
+    "strict_validator": "python3 scripts/validate_stage1_ci_exact_evidence.py",
+    "canonical_artifacts_written_only_after_strict_validation": true,
+    "raw_artifact_zip_persisted": false,
+    "github_token_persisted": false,
+    "can_clear_ci_gate_directly": false,
+    "can_clear_stage1_production_launch_gate_directly": false
+  }
+}

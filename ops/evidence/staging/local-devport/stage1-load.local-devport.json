@@ -1,0 +1,52 @@
+{
+  "allow_local_devport_evidence": true,
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "local_devport_debug_evidence_cannot_clear_staging_gate"
+  ],
+  "canonical_pass_path": false,
+  "concurrency": 4,
+  "cookie_persisted": false,
+  "dry_run": false,
+  "environment": "staging",
+  "gate_impact": {
+    "can_clear_load_slot": false,
+    "can_clear_stage1_staging_runtime_gate": false,
+    "preserved_do_not_launch_condition_id": "stage1_load_runtime_missing",
+    "preserved_release_gate_check_id": "staging_observability_backup_load",
+    "release_gate_check_id": "staging_observability_backup_load",
+    "remaining_blockers": [
+      "local_devport_debug_evidence_cannot_clear_staging_gate"
+    ]
+  },
+  "kind": "stage1_load",
+  "legacy_stage0_load_only": false,
+  "local_devport_debug": true,
+  "probe_contract": {
+    "allow_local_devport_evidence_env": "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 writes debug-only Stage 1 load evidence under ops/evidence/staging/local-devport/ and cannot clear staging gates",
+    "canonical_pass_report": "ops/evidence/staging/stage1-load.json",
+    "canonical_pass_results": "ops/evidence/staging/stage1-load.ndjson",
+    "local_devport_report": "ops/evidence/staging/local-devport/stage1-load.local-devport.json",
+    "local_devport_results": "ops/evidence/staging/local-devport/stage1-load.local-devport.ndjson"
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "staging_observability_backup_load",
+  "release_sha": "",
+  "requests_per_mode": 20,
+  "schema_version": "stage1.load.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "blocked",
+  "summary": {
+    "billing_webhook_failure_rate": 0,
+    "error_rate": 0.0,
+    "export_success_rate": 1.0,
+    "p95_ms": 55,
+    "provider_fallback_rate": 0,
+    "queue_delay_p95_ms": 0,
+    "request_count": 140
+  }
+}

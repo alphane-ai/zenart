@@ -1,0 +1,16 @@
+=== Symbol Results ===
+
+Vulnerability #1: GO-2026-5004
+    SQL Injection via placeholder confusion with dollar quoted string literals
+    in github.com/jackc/pgx
+  More info: https://pkg.go.dev/vuln/GO-2026-5004
+  Module: github.com/jackc/pgx/v5
+    Found in: github.com/jackc/pgx/v5@v5.9.0
+    Fixed in: github.com/jackc/pgx/v5@v5.9.2
+    Example traces found:
+      #1: internal/store/postgres.go:63:27: store.PoolAdapter.Query calls pgxpool.Pool.Query, which eventually calls sanitize.SanitizeSQL
+
+Your code is affected by 1 vulnerability from 1 module.
+This scan found no other vulnerabilities in packages you import or modules you
+require.
+Use '-show verbose' for more details.

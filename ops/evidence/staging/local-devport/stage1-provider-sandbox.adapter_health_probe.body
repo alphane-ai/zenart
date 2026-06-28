@@ -1,0 +1,1 @@
+openai-compatible provider selftest passed: host=api.z.ai model=glm-5.2 models_seen=8 chat_completion_chars=56

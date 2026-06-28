@@ -17,7 +17,7 @@ Release gate status: `no-go` until every required evidence slot below is filled 
 
 - User-facing changes: `<summary or n/a>`
 - Admin/operator changes: `<summary or n/a>`
-- Backend/worker/crawler changes: `<summary or n/a>`
+- Backend runtime changes: `<API, worker entrypoint, crawler entrypoint, migrate command summary or n/a>`
 - Ops/config changes: `<summary or n/a>`
 
 ## Migration List
@@ -48,7 +48,7 @@ Release gate status: `no-go` until every required evidence slot below is filled 
 - Admin smoke: `scripts/playwright_smoke.sh` or manual browser smoke, evidence `<path/url>`
 - Export/package smoke: `<command and evidence>`
 - Signed download smoke: `<command and evidence>`
-- Worker/crawler smoke: `<command and evidence>`
+- Backend runtime smoke: `<worker/crawler command and evidence under the backend release image>`
 - Quota/rate-limit smoke: `<command and evidence>`
 
 ## Evidence
@@ -69,7 +69,7 @@ Release gate status: `no-go` until every required evidence slot below is filled 
 - Legal/support external-user visibility evidence: `<ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json>`; staging JSON must set `environment=staging`, target `release_gate_check_id=staging_legal_external_user_pages`, record status `pass` or `passed`, and prove Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy visibility from deployed staging routes rather than source files.
 - Staging rollback drill: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated entries with evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.
 - Production backup/restore split evidence: `<ops/evidence/production/backup-restore.json>`; production JSON must reference the release SHA, set `environment=production`, target `release_gate_check_id=production_backup_rollback_incident`, record status `pass` or `passed`, and prove backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs. This split cannot clear production launch while CI or Private Beta/Staging gates remain no-go.
-- Production rollback/incident/post-deploy split evidence: `<ops/evidence/production/rollback-incident-post-deploy-smoke.json>`; production JSON must reference the release SHA, set `environment=production`, target `release_gate_check_id=production_backup_rollback_incident`, record status `pass` or `passed`, cite passing CI and Private Beta/Staging gate fixtures, and prove app rollback, feature flag rollback, worker drain, migration compatibility, incident/alert path, and post-deploy smoke. This split cannot clear `production_deploy_rollback_smoke_missing` while upstream gates remain no-go.
+- Production rollback/incident/post-deploy split evidence: `<ops/evidence/production/rollback-incident-post-deploy-smoke.json>`; production JSON must reference the release SHA, set `environment=production`, target `release_gate_check_id=production_backup_rollback_incident`, record status `pass` or `passed`, cite passing CI and Private Beta/Staging gate fixtures, and prove app rollback, feature flag rollback, backend image runtime-worker rollback using the `runtime-worker` Docker target with `/app/worker` entrypoint, worker drain, migration compatibility, incident/alert path, and post-deploy smoke. This split cannot clear `production_deploy_rollback_smoke_missing` while upstream gates remain no-go.
 - Production split preflight: `scripts/production_backup_rollback_split_smoke.sh` must write `ops/evidence/production/backup-rollback-split.blocked.json` or a newer report that lists blocked checks, exact split file status, missing requirements, upstream CI/Private Beta gate states, and preserved Do-Not-Launch conditions. Admin-visible probe evidence alone must not close production backup/rollback rows.
 - Security scan: `<local JSON path/url>`; local JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated entries with evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.
 

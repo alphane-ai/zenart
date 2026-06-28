@@ -110,6 +110,20 @@ const exportZipPayloadEvidence = requireSecurityEvidence("stage0.rev2.export-zip
 const exportDownloadParityEvidence = requireSecurityEvidence("stage0.rev2.export-download-parity-smoke");
 const workflowApiSmokeEvidence = requireSecurityEvidence("stage0.rev2.workflow-api-smoke");
 
+const countUniqueGuardedOperations = (operationContracts = []) => {
+  const operationIds = new Set();
+  for (const contract of operationContracts) {
+    const [, operations = ""] = String(contract).split("=>");
+    for (const operationContract of operations.split("+")) {
+      const operationId = operationContract.split(":")[0];
+      if (operationId) {
+        operationIds.add(operationId);
+      }
+    }
+  }
+  return operationIds.size;
+};
+
 if (
   workflowApiSmokeEvidence.workflowId !== ecommerceGrowthWebSmoke.workflow.workflowId ||
   workflowApiSmokeEvidence.fixtureId !== ecommerceGrowthWebSmoke.workflow.fixtureId ||
@@ -314,12 +328,12 @@ for (const requiredSessionAttribute of [
 
 if (
   sessionEvidence.expectedStatus !== "pass" ||
-  sessionEvidence.cookie?.name !== "__Host-zenart_session" ||
+  sessionEvidence.cookie?.name !== "__Host-zenari_session" ||
   sessionEvidence.cookie?.expectedHttpOnly !== "true" ||
   sessionEvidence.cookie?.expectedSecure !== "true" ||
   sessionEvidence.cookie?.expectedSameSite !== "lax" ||
   sessionEvidence.cookie?.expectedPath !== "/" ||
-  sessionEvidence.csrf?.expectedHeader !== "X-ZenArt-CSRF" ||
+  sessionEvidence.csrf?.expectedHeader !== "X-Zenari-CSRF" ||
   sessionEvidence.csrf?.expectedSameSiteRequirement !== "lax-or-strict" ||
   sessionEvidence.csrf?.expectedOriginPolicy !== "same-site-only" ||
   sessionEvidence.csrf?.expectedMissingOperationCount !== "0" ||
@@ -328,12 +342,16 @@ if (
   sessionEvidence.unsafeActionGuard?.expectedGuard !== "authenticated-same-site-session" ||
   sessionEvidence.unsafeActionGuard?.expectedEnabledStatus !== "enabled" ||
   sessionEvidence.unsafeActionGuard?.expectedBlockedStatus !== "blocked" ||
-  sessionEvidence.unsafeActionGuard?.expectedSafeLabels !== "load,login" ||
-  sessionEvidence.unsafeActionGuard?.expectedExpiredBlockedControlCount !== "18" ||
+  !sessionEvidence.unsafeActionGuard?.expectedSafeLabels?.split(",").includes("load") ||
+  !sessionEvidence.unsafeActionGuard?.expectedSafeLabels?.split(",").includes("login") ||
+  sessionEvidence.unsafeActionGuard?.expectedExpiredBlockedControlCount !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedExpiredBlockedCount ||
   sessionEvidence.unsafeActionGuard?.expectedExpiredRecoveryLabels !== "Refresh Session" ||
   sessionEvidence.unsafeActionGuard?.expectedProtectedMethods !== "POST,PUT,PATCH,DELETE" ||
-  sessionEvidence.unsafeActionGuard?.expectedGuardCount !== "19" ||
-  sessionEvidence.unsafeActionGuard?.expectedOperationCount !== "18" ||
+  sessionEvidence.unsafeActionGuard?.expectedGuardCount !==
+    sessionEvidence.unsafeActionGuard?.sessionStateMatrix?.expectedAuthenticatedEnabledCount ||
+  sessionEvidence.unsafeActionGuard?.expectedOperationCount !==
+    String(countUniqueGuardedOperations(sessionEvidence.unsafeActionGuard?.requiredOperationContracts)) ||
   sessionEvidence.unsafeActionGuard?.expectedCsrfProtectedOperationCount !== String(generatedApiCsrfContract.unsafeOperationCount)
 ) {
   fail("session/CSRF UI evidence does not assert the secure-cookie and same-site contract");
@@ -681,7 +699,7 @@ if (
   fail("package/export metadata evidence must assert cross-payload identity parity for manifest, provenance, disclaimer, metadata, and trace payloads");
 }
 if (
-  packageExportEvidence.expectedWorkflowMetadata?.generatedBy !== "zenart-web-dev-client" ||
+  packageExportEvidence.expectedWorkflowMetadata?.generatedBy !== "zenari-web-dev-client" ||
   packageExportEvidence.expectedWorkflowMetadata?.provider !== "dev-provider" ||
   packageExportEvidence.expectedWorkflowMetadata?.model !== "deterministic-local-alpha" ||
   packageExportEvidence.expectedWorkflowMetadata?.skill !== "ecommerce_growth_pack" ||
@@ -812,6 +830,30 @@ for (const route of artifact.routes) {
 
   if (!componentSource.includes(`${route.initialView}: "${route.path}"`)) {
     fail(`WorkspaceApp route map does not send ${route.initialView} to ${route.path}`);
+  }
+}
+
+for (const aliasRoute of artifact.aliasRoutes ?? []) {
+  if (!expectedViews.has(aliasRoute.initialView)) {
+    fail(`${aliasRoute.path} has unsupported alias initialView ${aliasRoute.initialView}`);
+  }
+
+  const pagePath = path.join(appDir, aliasRoute.path.slice(1), "page.tsx");
+  if (!existsSync(pagePath)) {
+    fail(`${aliasRoute.path} alias is missing ${path.relative(root, pagePath)}`);
+  }
+
+  const canonical = artifact.routes.find((route) => route.path === aliasRoute.canonicalPath);
+  if (!canonical) {
+    fail(`${aliasRoute.path} alias points at unknown canonical route ${aliasRoute.canonicalPath}`);
+  }
+  if (canonical.initialView !== aliasRoute.initialView) {
+    fail(`${aliasRoute.path} alias initialView does not match canonical route ${aliasRoute.canonicalPath}`);
+  }
+
+  const pageSource = await readFile(pagePath, "utf8");
+  if (!pageSource.includes(`initialView="${aliasRoute.initialView}"`)) {
+    fail(`${aliasRoute.path} alias does not render WorkspaceApp with initialView="${aliasRoute.initialView}"`);
   }
 }
 
@@ -1046,11 +1088,11 @@ for (const requiredSnippet of [
   "data-session-csrf-strategy",
   "data-session-csrf-credential-mode",
   "data-session-csrf-same-site-requirement",
-  "__Host-zenart_session",
+  "__Host-zenari_session",
   "HttpOnly",
   "Secure",
   "SameSite=",
-  "X-ZenArt-CSRF",
+  "X-Zenari-CSRF",
   "same-site-origin-check",
   "sameSiteRequired",
   "sameSiteRequirement",
@@ -1071,10 +1113,10 @@ for (const requiredSnippet of [
   "generated web operations require same-site CSRF headers",
   "CSRF and same-site contract evidence",
   "lax-or-strict",
-  "zenArtClient.login",
-  "zenArtClient.refreshSession",
-  "zenArtClient.expireSession",
-  "zenArtClient.logout",
+  "zenariClient.login",
+  "zenariClient.refreshSession",
+  "zenariClient.expireSession",
+  "zenariClient.logout",
   "Session expired",
   "Signed out"
 ]) {
@@ -1099,7 +1141,7 @@ for (const expectedSecuritySnippet of [
   "DELETE",
   "buildCsrfRequestHeaders",
   "stripCsrfHeaderAliases",
-  "headerName.toLowerCase() !== contract.headerName.toLowerCase()",
+  "normalized !== contract.headerName.toLowerCase()",
   "[contract.headerName]: contract.headerValue"
 ]) {
   if (!requestSecuritySource.includes(expectedSecuritySnippet)) {
@@ -1110,7 +1152,7 @@ for (const expectedSecuritySnippet of [
 for (const expectedApiSnippet of [
   "buildCsrfRequestHeaders(operation.method",
   "credentials: defaultSameSiteCsrfContract.credentialMode",
-  "\"X-ZenArt-CSRF\"",
+  "\"X-Zenari-CSRF\"",
   "assertSameSiteBaseUrl",
   "same-origin for same-site CSRF protection",
   "absolute baseUrl requires a browser origin",
@@ -1137,7 +1179,7 @@ for (const expectedContractField of [
   "web/lib/generated/zenart-api.ts",
   "web/lib/request-security.ts",
   "include",
-  "X-ZenArt-CSRF",
+  "X-Zenari-CSRF",
   "same-site-origin-check",
   "lax-or-strict",
   "same-site-only"
@@ -1187,8 +1229,8 @@ for (const expectedPolicy of [
   "Acceptable Use Policy",
   "IP Complaint Flow",
   "Billing, Cancellation, and Refund Policy",
-  "support@zenart.local",
-  "legal@zenart.local"
+  "support@zenari.ai",
+  "legal@zenari.ai"
 ]) {
   if (!legalPoliciesSource.includes(expectedPolicy)) {
     fail(`legal policy source missing ${expectedPolicy}`);
@@ -1268,7 +1310,7 @@ for (const expectedPayloadBuilderSnippet of [
   "safety-policy-report.json",
   "provenance.json",
   "ppt-ready-metadata.json",
-  "assets/README.txt",
+  "assets/local-rendered-asset-manifest.json",
   "buildExportZipPayloadContentDigest",
   "buildExportZipPayloadContentEntries"
 ]) {

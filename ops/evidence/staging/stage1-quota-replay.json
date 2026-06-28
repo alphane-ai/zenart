@@ -1,0 +1,51 @@
+{
+  "allow_local_devport_evidence": false,
+  "authorization_header_persisted": false,
+  "batch_id_hash": "2b02e74721e51688",
+  "blockers": [],
+  "canonical_pass_path": true,
+  "cookie_persisted": false,
+  "coverage": {
+    "dead_letter_refund": true,
+    "idempotent_replay": true,
+    "manual_retry_rereserve": true,
+    "provider_usage_credit": true,
+    "provider_usage_debit": true,
+    "retry_scheduled": true
+  },
+  "database_read_provenance": "deployed_staging_postgres",
+  "database_url_persisted": false,
+  "do_not_launch_conditions": [],
+  "dry_run": false,
+  "environment": "staging",
+  "generated_at": "2026-06-24T06:24:26+00:00",
+  "kind": "stage1_staging_quota_replay",
+  "local_devport_debug": false,
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "go",
+  "result_row_count": 11,
+  "runtime_components": [
+    "BatchRunner.RunOnce",
+    "BatchChildExecutor.ExecuteClaimedChild",
+    "PostgresBatchQuotaLedger.ReserveBatchQuota",
+    "PostgresBatchQuotaLedger.CommitBatchQuota",
+    "PostgresBatchQuotaLedger.RefundBatchQuota",
+    "BatchRepository.RetryChild",
+    "QuotaRepository.ReconcileProviderUsage"
+  ],
+  "schema_version": "stage1.staging_quota_replay.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_tables": [
+    "batch_generation_requests",
+    "generation_child_tasks",
+    "quota_buckets",
+    "quota_transactions",
+    "provider_usage_logs"
+  ],
+  "staging_api_url": "https://staging.zenari.ai",
+  "status": "pass"
+}

@@ -1,13 +1,6 @@
 {
-  "blocked_checks": [
-    "terms:missing_staging_web_url",
-    "privacy:missing_staging_web_url",
-    "acceptable_use:missing_staging_web_url",
-    "ip_complaint:missing_staging_web_url",
-    "ai_content_disclaimer:missing_staging_web_url",
-    "support_contact:missing_staging_web_url",
-    "billing_policy:missing_staging_web_url"
-  ],
+  "allow_local_devport_evidence": false,
+  "blocked_checks": [],
   "blueprint_source": "Docs/stage0_blueprint_rev2.md",
   "coverage": [
     {
@@ -30,8 +23,8 @@
         "Support Context",
         "Telemetry",
         "Terms of Service",
-        "legal@zenart.local",
-        "support@zenart.local"
+        "legal@zenari.ai",
+        "support@zenari.ai"
       ],
       "external_user_evidence": "Staging external-user HTTP visibility probe over deployed web routes; source files alone do not satisfy this check.",
       "routes": [
@@ -42,7 +35,7 @@
         "/support"
       ],
       "runtime_probe": "External-user staging probe verifies Terms, Privacy, Acceptable Use, AI/content responsibility disclaimer, and IP complaint flow visibility.",
-      "status": "blocked"
+      "status": "pass"
     },
     {
       "area": "support_contact_visibility",
@@ -57,15 +50,21 @@
         "Report Problem",
         "Submit Ticket",
         "and Refund Policy",
-        "support@zenart.local"
+        "export",
+        "project",
+        "quota",
+        "support@zenari.ai",
+        "task",
+        "trace"
       ],
       "external_user_evidence": "Staging external-user HTTP visibility probe over deployed web routes; source files alone do not satisfy this check.",
       "routes": [
         "/support",
+        "/report-problem",
         "/legal/billing-policy"
       ],
       "runtime_probe": "External-user staging probe verifies visible support contact, report-problem path, and support/billing policy visibility.",
-      "status": "blocked"
+      "status": "pass"
     }
   ],
   "do_not_launch_condition_id": "external_user_legal_pages_missing",
@@ -73,7 +72,7 @@
   "evidence_id": "stage0-rev2-current-release-evidence-bundle.legal-support-visibility",
   "gate_impact": {
     "can_clear_aggregate_item": false,
-    "can_clear_release_gate_check": false,
+    "can_clear_release_gate_check": true,
     "check_level_items": [
       "Private Beta/Staging legal/support external-user visibility runtime evidence \u901a\u8fc7\u3002",
       "Private Beta/Staging legal pages external-user visibility evidence \u901a\u8fc7\uff1astaging evidence proves Terms\u3001Privacy\u3001Acceptable Use\u3001AI/content disclaimer\u3001IP complaint flow are externally visible under `ops/evidence/staging/`\u3002",
@@ -87,12 +86,13 @@
   },
   "input_readiness": {
     "dry_run": false,
-    "external_probe_attempted": false,
-    "legal_pages_split_ready": false,
-    "support_contact_split_ready": false,
-    "web_url_ready": false
+    "external_probe_attempted": true,
+    "legal_pages_split_ready": true,
+    "support_contact_split_ready": true,
+    "web_url_ready": true
   },
   "kind": "legal_support_visibility",
+  "local_devport_debug": false,
   "probe_contract": {
     "blocked_without_runtime_inputs": true,
     "canonical_legal_pages_report": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-pages-external-user.json",
@@ -101,6 +101,7 @@
     "do_not_launch_condition_id": "external_user_legal_pages_missing",
     "environment": "staging",
     "local_blocked_command": "DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh || test \"$?\" = 2",
+    "local_devport_debug_command": "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 WEB_URL=http://127.0.0.1:26080 scripts/staging_legal_support_visibility_smoke.sh || test \"$?\" = 2",
     "release_gate_check_id": "staging_legal_external_user_pages",
     "required_env": [
       "STAGING_WEB_URL or WEB_URL"
@@ -111,6 +112,7 @@
       "/legal/acceptable-use",
       "/legal/ip-complaints",
       "/support",
+      "/report-problem",
       "/legal/billing-policy"
     ],
     "results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson",
@@ -124,16 +126,18 @@
     ]
   },
   "release_gate_check_id": "staging_legal_external_user_pages",
-  "release_sha": "",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
   "required_routes": [
     "/legal/terms",
     "/legal/privacy",
     "/legal/acceptable-use",
     "/legal/ip-complaints",
     "/support",
+    "/report-problem",
     "/legal/billing-policy"
   ],
   "results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson",
+  "runtime_checks_status": "passed",
   "runtime_input_requirements": {
     "required_exact_split_reports": {
       "legal_pages_external_user": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-pages-external-user.json",
@@ -146,6 +150,7 @@
       "billing_policy": "/legal/billing-policy",
       "ip_complaint": "/legal/ip-complaints",
       "privacy": "/legal/privacy",
+      "report_problem": "/report-problem",
       "support_contact": "/support",
       "terms": "/legal/terms"
     },
@@ -153,7 +158,7 @@
     "source_file_policy": "web source files or checked-in policy text alone cannot satisfy staging legal/support visibility; the pass report requires deployed external-user HTTP probe results."
   },
   "schema_version": "stage0.rev2.staging.legal_support_visibility",
-  "status": "blocked",
+  "status": "pass",
   "validated_by_role": "external_user_smoke",
-  "web_url": ""
+  "web_url": "https://staging.zenari.ai"
 }

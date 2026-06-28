@@ -1,0 +1,285 @@
+{
+  "allow_local_devport_evidence": false,
+  "authorization_header_persisted": false,
+  "cookie_persisted": false,
+  "dry_run": false,
+  "environment": "production",
+  "generated_at": "2026-06-28T17:48:17+00:00",
+  "kind": "production_legal_support_source",
+  "legal": {
+    "audit_refs": [
+      "replace_me:audit://production/legal-support"
+    ],
+    "coverage": [
+      {
+        "evidence_refs": [
+          "replace_me:production/public-legal-pages"
+        ],
+        "required_runtime_proof": "public-legal-pages",
+        "required_tokens": [
+          "terms",
+          "privacy",
+          "acceptable use"
+        ],
+        "status": "template_only"
+      },
+      {
+        "evidence_refs": [
+          "replace_me:production/legal-gate-clearance"
+        ],
+        "required_runtime_proof": "legal-gate-clearance",
+        "required_tokens": [
+          "external user",
+          "public"
+        ],
+        "status": "template_only"
+      }
+    ],
+    "page_probes": [
+      {
+        "admin_session_required": false,
+        "evidence_refs": [
+          "replace_me:production/legal-support/terms"
+        ],
+        "external_user_visible": true,
+        "http_status": 200,
+        "page_id": "terms",
+        "path": "/legal/terms",
+        "required_tokens": [
+          "Terms",
+          "support contact",
+          "AI content"
+        ],
+        "status": "template_only",
+        "visibility": "public"
+      },
+      {
+        "admin_session_required": false,
+        "evidence_refs": [
+          "replace_me:production/legal-support/privacy"
+        ],
+        "external_user_visible": true,
+        "http_status": 200,
+        "page_id": "privacy",
+        "path": "/legal/privacy",
+        "required_tokens": [
+          "Privacy",
+          "data deletion",
+          "support contact"
+        ],
+        "status": "template_only",
+        "visibility": "public"
+      },
+      {
+        "admin_session_required": false,
+        "evidence_refs": [
+          "replace_me:production/legal-support/acceptable_use"
+        ],
+        "external_user_visible": true,
+        "http_status": 200,
+        "page_id": "acceptable_use",
+        "path": "/legal/acceptable-use",
+        "required_tokens": [
+          "Acceptable Use",
+          "abuse",
+          "support contact"
+        ],
+        "status": "template_only",
+        "visibility": "public"
+      },
+      {
+        "admin_session_required": false,
+        "evidence_refs": [
+          "replace_me:production/legal-support/ai_content_disclaimer"
+        ],
+        "external_user_visible": true,
+        "http_status": 200,
+        "page_id": "ai_content_disclaimer",
+        "path": "/support",
+        "required_tokens": [
+          "AI content",
+          "responsibility",
+          "review"
+        ],
+        "status": "template_only",
+        "visibility": "public"
+      },
+      {
+        "admin_session_required": false,
+        "evidence_refs": [
+          "replace_me:production/legal-support/ip_complaint"
+        ],
+        "external_user_visible": true,
+        "http_status": 200,
+        "page_id": "ip_complaint",
+        "path": "/legal/ip-complaints",
+        "required_tokens": [
+          "IP complaint",
+          "copyright",
+          "trademark",
+          "takedown"
+        ],
+        "status": "template_only",
+        "visibility": "public"
+      }
+    ],
+    "runtime_request_ids": [
+      "replace_me:production-legal-request-id"
+    ]
+  },
+  "local_devport_debug": false,
+  "operator_note": "Replace every replace_me:* evidence ref with sanitized production runtime/audit evidence, set status fields to pass only after the runtime probe has actually run, and write the final source JSON to the required ops/evidence/production/*-source.json path.",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_legal_support_policy",
+  "release_sha": "0123456789abcdef0123456789abcdef01234567",
+  "schema_version": "stage1.production_legal_support_source.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "template_only",
+  "support_billing": {
+    "audit_refs": [
+      "replace_me:audit://production/support-billing"
+    ],
+    "coverage": [
+      {
+        "evidence_refs": [
+          "replace_me:production/support-contact"
+        ],
+        "required_runtime_proof": "support-contact",
+        "required_tokens": [
+          "support"
+        ],
+        "status": "template_only"
+      },
+      {
+        "evidence_refs": [
+          "replace_me:production/billing-refund-policy"
+        ],
+        "required_runtime_proof": "billing-refund-policy",
+        "required_tokens": [
+          "refund",
+          "cancel"
+        ],
+        "status": "template_only"
+      },
+      {
+        "evidence_refs": [
+          "replace_me:production/support-sla"
+        ],
+        "required_runtime_proof": "support-sla",
+        "required_tokens": [
+          "support SLA",
+          "severity",
+          "response time"
+        ],
+        "status": "template_only"
+      },
+      {
+        "evidence_refs": [
+          "replace_me:production/support-gate-clearance"
+        ],
+        "required_runtime_proof": "support-gate-clearance",
+        "required_tokens": [
+          "external user",
+          "public"
+        ],
+        "status": "template_only"
+      }
+    ],
+    "page_probes": [
+      {
+        "admin_session_required": false,
+        "evidence_refs": [
+          "replace_me:production/legal-support/support_contact"
+        ],
+        "external_user_visible": true,
+        "http_status": 200,
+        "page_id": "support_contact",
+        "path": "/support",
+        "required_tokens": [
+          "support contact",
+          "report problem",
+          "privacy redaction",
+          "escalation"
+        ],
+        "status": "template_only",
+        "visibility": "public"
+      },
+      {
+        "admin_session_required": false,
+        "evidence_refs": [
+          "replace_me:production/legal-support/report_problem"
+        ],
+        "external_user_visible": true,
+        "http_status": 200,
+        "page_id": "report_problem",
+        "path": "/report-problem",
+        "required_tokens": [
+          "project",
+          "task",
+          "trace",
+          "export",
+          "quota"
+        ],
+        "status": "template_only",
+        "visibility": "public"
+      },
+      {
+        "admin_session_required": false,
+        "evidence_refs": [
+          "replace_me:production/legal-support/billing_policy"
+        ],
+        "external_user_visible": true,
+        "http_status": 200,
+        "page_id": "billing_policy",
+        "path": "/legal/billing-policy",
+        "required_tokens": [
+          "billing",
+          "cancellation",
+          "refund",
+          "credit",
+          "quota reset",
+          "past_due"
+        ],
+        "status": "template_only",
+        "visibility": "public"
+      },
+      {
+        "admin_session_required": false,
+        "evidence_refs": [
+          "replace_me:production/legal-support/support_sla"
+        ],
+        "external_user_visible": true,
+        "http_status": 200,
+        "page_id": "support_sla",
+        "path": "/support",
+        "required_tokens": [
+          "support SLA",
+          "severity",
+          "response time",
+          "escalation"
+        ],
+        "status": "template_only",
+        "visibility": "public"
+      }
+    ],
+    "paid_launch_policy_alignment": {
+      "billing_policy_visible": "replace_me:true",
+      "cancellation_policy_visible": "replace_me:true",
+      "evidence_refs": [
+        "replace_me:production/legal-support/paid-launch-policy-alignment"
+      ],
+      "refund_policy_visible": "replace_me:true",
+      "standalone_production_readiness_claim": "replace_me:false",
+      "status": "template_only",
+      "support_sla_visible": "replace_me:true"
+    },
+    "runtime_request_ids": [
+      "replace_me:production-support-request-id"
+    ]
+  },
+  "template_only": true
+}

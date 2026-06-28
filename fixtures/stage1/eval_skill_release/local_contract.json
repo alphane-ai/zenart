@@ -1,0 +1,97 @@
+{
+  "schema_version": "stage1.eval_skill_release.contract.v1",
+  "fixture_id": "stage1_eval_skill_release_local_contract",
+  "kind": "eval_skill_release_local_contract",
+  "blueprint_items": ["QA-6", "QA-7", "AD-9", "VF-5"],
+  "eval_contract": {
+    "package": "backend/internal/eval",
+    "required_suites": [
+      "batch_generation",
+      "provider_routing",
+      "edit_tools",
+      "export",
+      "billing_quota",
+      "safety"
+    ],
+    "required_functions": [
+      "RequiredSuites",
+      "ValidateSuite",
+      "ValidateFixture",
+      "ValidateStoredResult",
+      "GateResults",
+      "SafeResultProjection",
+      "StableHash"
+    ],
+    "stored_result_requirements": [
+      "pass_or_fail_status",
+      "deterministic_runner_sha256",
+      "source_fixture_digest",
+      "trace_export_qa_safety_coverage",
+      "fixture_coverage",
+      "read_without_eval_rerun",
+      "no_critical_safety_regressions_for_pass",
+      "secret_like_summary_runner_storage_rejection"
+    ]
+  },
+  "skillbook_contract": {
+    "package": "backend/internal/skillbook",
+    "required_functions": [
+      "EvaluateReleaseGate",
+      "ProjectForUser"
+    ],
+    "user_visible_requirements": [
+      "version_status_active_or_canary",
+      "review_passed",
+      "latest_eval_passed",
+      "eval_contract_complete",
+      "canary_gate_passed_for_canary",
+      "rollback_target_required_for_active",
+      "no_critical_safety_regressions",
+      "no_internal_prompt_fragments_projected",
+      "no_hidden_policy_projected",
+      "no_secret_like_template_metadata"
+    ]
+  },
+  "safe_user_projection_fields": [
+    "id",
+    "skill_id",
+    "name",
+    "description",
+    "category",
+    "capabilities",
+    "tags",
+    "version",
+    "canary",
+    "published_at"
+  ],
+  "forbidden_user_projection_fields": [
+    "prompt_fragment",
+    "prompt_fragments",
+    "internal_prompt",
+    "hidden_policy",
+    "raw_prompt",
+    "provider_payload",
+    "safety_payload"
+  ],
+  "focused_tests": {
+    "go": [
+      "TestGateResultsRequiresAllStage1Suites",
+      "TestGateResultsBlocksMissingSuiteFailedStatusAndSafetyRegression",
+      "TestValidateStoredResultRequiresCoverageRunnerDigestAndStoredRead",
+      "TestSafeResultProjectionRedactsSummaryAndRejectsSecretLikeFields",
+      "TestProjectForUserAllowsReviewedEvalPassedActiveVersion",
+      "TestProjectForUserAllowsPassedCanaryVersion",
+      "TestProjectForUserBlocksReviewEvalCanaryAndRollbackFailures",
+      "TestProjectForUserDoesNotExposePromptFragmentsOrHiddenPolicies",
+      "TestProjectForUserRejectsSecretLikeTemplateMetadata"
+    ]
+  },
+  "non_launch_status": {
+    "local_eval_skill_release_contract": "pass",
+    "staging_skill_release_eval_canary_evidence": "open",
+    "production_skill_canary_evidence": "open",
+    "can_clear_stage1_safety_qa_gate": false,
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_launch_gate": false
+  }
+}

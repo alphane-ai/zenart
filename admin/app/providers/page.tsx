@@ -3,17 +3,43 @@ import { PageHeader } from "@/components/PageHeader";
 import { RbacOverrideAttemptDecisionTable } from "@/components/RbacOverrideAttemptDecisionTable";
 import { RbacRuntimeDecisionTable } from "@/components/RbacRuntimeDecisionTable";
 import { StatusBadge } from "@/components/StatusBadge";
+import { ProviderRegistryControls } from "./ProviderRegistryControls";
 import {
   getAdminRbacEvidence,
   getAdminRbacOverrideAttemptDecisions,
   getAdminRbacRuntimeDecisions,
   getProductionProviderModeEvidence,
-  getProviderHealth
+  getProviderHealth,
+  getProviderRegistry,
+  getProviderStrategyGroups
 } from "@/lib/admin-api";
-import type { AdminRbacEvidence, ProductionProviderModeCoverage, ProductionProviderModeEvidence, ProviderHealth } from "@/lib/types";
+import type {
+  AdminRbacEvidence,
+  ProductionProviderModeCoverage,
+  ProductionProviderModeEvidence,
+  ProviderHealth,
+  ProviderRegistryEntry,
+  ProviderStrategyGroup
+} from "@/lib/types";
 
-export default async function ProviderHealthPage() {
-  const [providers, rbacEvidence, rbacRuntime, rbacAttemptDecisions, productionProviderModeEvidence] = await Promise.all([
+export default async function ProviderHealthPage({
+  searchParams
+}: {
+  searchParams?: Promise<{
+    registry_create?: string;
+    registry_update?: string;
+    registry_delete?: string;
+    strategy_create?: string;
+    strategy_update?: string;
+    provider_health_probe?: string;
+    provider_test?: string;
+    provider_id?: string;
+  }>;
+}) {
+  const params = (await searchParams) ?? {};
+  const [providerRegistry, providerStrategyGroups, providers, rbacEvidence, rbacRuntime, rbacAttemptDecisions, productionProviderModeEvidence] = await Promise.all([
+    getProviderRegistry(),
+    getProviderStrategyGroups(),
     getProviderHealth(),
     getAdminRbacEvidence(),
     getAdminRbacRuntimeDecisions(),
@@ -30,6 +56,77 @@ export default async function ProviderHealthPage() {
         title="Provider Health"
         description="Provider, model, spend-cap, error-rate, and routing action dashboard."
       />
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Provider Registry</h3>
+            <p>Admin registry view for provider modes, capabilities, health, routing, and secret-reference presence.</p>
+          </div>
+          <StatusBadge
+            value={providerRegistry.source === "api" ? "healthy" : "warning"}
+            label={providerRegistry.source === "api" ? "live api" : "fixture fallback"}
+          />
+        </div>
+        {providerRegistry.error ? <p className="muted">Registry API fallback: {providerRegistry.error}</p> : null}
+        <DataTable<ProviderRegistryEntry>
+          rows={providerRegistry.items}
+          columns={[
+            { key: "provider", header: "Provider", render: (row) => row.display_name },
+            { key: "id", header: "Provider ID", render: (row) => <span className="mono">{row.provider_id}</span> },
+            { key: "mode", header: "Mode", render: (row) => <StatusBadge value={row.mode} label={row.mode} /> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "models", header: "Models", render: (row) => row.capabilities.map((capability) => capability.model_id).join(", ") },
+            { key: "tools", header: "Tool Types", render: (row) => Array.from(new Set(row.capabilities.flatMap((capability) => capability.tool_types ?? []))).join(", ") || "none" },
+            { key: "batch", header: "Batch", render: (row) => (row.capabilities.some((capability) => capability.supports_batch) ? "yes" : "no") },
+            { key: "routing", header: "Routing", render: (row) => `weight ${row.routing.weight}, canary ${row.routing.canary_percent}%` },
+            { key: "concurrency", header: "Concurrency", render: (row) => row.routing.max_concurrency },
+            { key: "health", header: "Health", render: (row) => <StatusBadge value={row.health.available ? "available" : "blocked"} label={`${row.health.latency_ms} ms / ${row.health.error_rate_percent}%`} /> },
+            { key: "secret", header: "Secret Ref", render: (row) => (row.secret_present ? <span className="mono">{row.secret_ref}</span> : "not required") },
+            { key: "updated", header: "Updated", render: (row) => row.updated_at }
+          ]}
+        />
+      </section>
+      <ProviderRegistryControls
+        items={providerRegistry.items}
+        strategyGroups={providerStrategyGroups.items}
+        source={providerRegistry.source}
+        createState={params.registry_create}
+        updateState={params.registry_update}
+        deleteState={params.registry_delete}
+        healthProbeState={params.provider_health_probe}
+        updateProviderID={params.provider_id}
+        testState={params.provider_test}
+        testProviderID={params.provider_id}
+        strategyCreateState={params.strategy_create}
+        strategyUpdateState={params.strategy_update}
+      />
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Provider Strategy Groups</h3>
+            <p>Strategy groups bind tool surfaces to provider membership, weighted traffic, canary, failover, concurrency, and kill switch settings.</p>
+          </div>
+          <StatusBadge
+            value={providerStrategyGroups.source === "api" ? "healthy" : "warning"}
+            label={providerStrategyGroups.source === "api" ? "live api" : "fixture fallback"}
+          />
+        </div>
+        {providerStrategyGroups.error ? <p className="muted">Strategy group API fallback: {providerStrategyGroups.error}</p> : null}
+        <DataTable<ProviderStrategyGroup>
+          rows={providerStrategyGroups.items}
+          columns={[
+            { key: "group", header: "Group", render: (row) => row.display_name },
+            { key: "id", header: "Group ID", render: (row) => <span className="mono">{row.group_id}</span> },
+            { key: "tool", header: "Tool", render: (row) => row.tool_type },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} label={row.status} /> },
+            { key: "policy", header: "Policy", render: (row) => row.selection_policy },
+            { key: "members", header: "Members", render: (row) => row.members.map((member) => `${member.provider_id}:${member.weight}`).join(", ") },
+            { key: "fallback", header: "Fallback", render: (row) => (row.fallback_provider_ids ?? []).join(", ") || "none" },
+            { key: "kill", header: "Kill Switch", render: (row) => (row.kill_switch ? "on" : "off") },
+            { key: "updated", header: "Updated", render: (row) => row.updated_at }
+          ]}
+        />
+      </section>
       <section className="panel">
         <div className="panel-header">
           <div>

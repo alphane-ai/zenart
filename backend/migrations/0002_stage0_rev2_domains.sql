@@ -1,4 +1,4 @@
--- ZenArt Stage 0 Rev2 domain baseline.
+-- Zenari Stage 0 Rev2 domain baseline.
 -- Migration tool: backend/cmd/migrate custom forward-only SQL runner.
 -- Rollback safety: not automatically reversible; dropping these tables would destroy
 -- user/project/provenance data. Use restore-from-backup or a reviewed contract
@@ -684,8 +684,8 @@ INSERT INTO tenants(id, name) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO users(id, tenant_id, email, display_name) VALUES
-	('user_local_admin', 'tenant_local', 'admin@zenart.local', 'Local Admin'),
-	('user_local_user', 'tenant_local', 'user@zenart.local', 'Local User')
+	('user_local_admin', 'tenant_local', 'admin@zenari.ai', 'Local Admin'),
+	('user_local_user', 'tenant_local', 'user@zenari.ai', 'Local User')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO user_roles(user_id, role_name) VALUES
@@ -734,5 +734,5 @@ INSERT INTO projects(id, tenant_id, owner_id, name, status, workflow_id, brief) 
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO crawler_sources(id, tenant_id, name, url, approval_status, legal_metadata, robots_policy) VALUES
-	('crawler_source_stage0_allowed', NULL, 'Stage 0 Allowed Test Source', 'https://example.com/zenart-stage0', 'approved', '{"license":"test-fixture","owner":"platform"}'::jsonb, '{"robots":"allowed","direct_activation_allowed":false}'::jsonb)
+	('crawler_source_stage0_allowed', NULL, 'Stage 0 Allowed Test Source', 'https://example.com/zenari-stage0', 'approved', '{"license":"test-fixture","owner":"platform"}'::jsonb, '{"robots":"allowed","direct_activation_allowed":false}'::jsonb)
 ON CONFLICT (id) DO NOTHING;

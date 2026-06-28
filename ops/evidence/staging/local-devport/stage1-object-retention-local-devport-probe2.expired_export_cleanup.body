@@ -1,0 +1,22 @@
+{
+  "blocked": false,
+  "code": "audit_record_error",
+  "details": {
+    "taxonomy": {
+      "blocked": false,
+      "category": "internal",
+      "retryable": false,
+      "user_actionable": false
+    }
+  },
+  "field_errors": [],
+  "message": "object retention cleanup audit request record could not be written",
+  "request_id": "stage0-object-retention-cleanup-expired_export_cleanup",
+  "retryable": false,
+  "taxonomy": {
+    "blocked": false,
+    "category": "internal",
+    "retryable": false,
+    "user_actionable": false
+  }
+}

@@ -8,6 +8,7 @@ import {
   getAdminRbacOverrideAttemptDecisions,
   getAdminRbacRuntimeDecisions,
   getAdminReviewDecisions,
+  getEvalResults,
   getProductionSkillReleaseEvalCanaryEvidence,
   getReleaseEvidence,
   getSkillVersions
@@ -15,14 +16,16 @@ import {
 import type {
   AdminRbacEvidence,
   AdminReviewDecision,
+  EvalResult,
   ProductionSkillReleaseEvalCanaryCoverage,
   ReleaseEvidence,
   SkillVersion
 } from "@/lib/types";
 
 export default async function SkillReleasesPage() {
-  const [versions, reviews, evidence, rbacEvidence, rbacRuntime, rbacAttemptDecisions, productionSkillEvidence] = await Promise.all([
+  const [versions, evalResults, reviews, evidence, rbacEvidence, rbacRuntime, rbacAttemptDecisions, productionSkillEvidence] = await Promise.all([
     getSkillVersions(),
+    getEvalResults(),
     getAdminReviewDecisions(),
     getReleaseEvidence(),
     getAdminRbacEvidence(),
@@ -33,6 +36,7 @@ export default async function SkillReleasesPage() {
   const releaseRbacEvidence = rbacEvidence.filter((item) => item.surface === "skill_release");
   const releaseRbacRuntime = rbacRuntime.filter((item) => item.surface === "skill_release");
   const releaseRbacAttemptDecisions = rbacAttemptDecisions.filter((item) => item.surface === "skill_release");
+  const source = versions.some((row) => row.source === "api") || evalResults.some((row) => row.source === "api") ? "api" : "fixture";
 
   return (
     <>
@@ -46,13 +50,17 @@ export default async function SkillReleasesPage() {
             <h3>Release Queue</h3>
             <p>High-risk releases require a second reviewer before production activation.</p>
           </div>
+          <StatusBadge value={source === "api" ? "healthy" : "warning"} label={source === "api" ? "live api" : "fixture fallback"} />
         </div>
         <DataTable<SkillVersion>
           rows={versions}
           columns={[
             { key: "version", header: "Version", render: (row) => <span className="mono">{row.skillId}@{row.version}</span> },
             { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} /> },
+            { key: "source", header: "Source", render: (row) => <StatusBadge value={row.source === "api" ? "healthy" : "warning"} label={row.source === "api" ? "api" : "fixture"} /> },
             { key: "canary", header: "Canary", render: (row) => `${row.canaryPercent}%` },
+            { key: "gate", header: "Release Gate", render: (row) => <StatusBadge value={row.releaseGate?.eligibleForActive ? "healthy" : "blocked"} label={row.releaseGate?.blockingReason ?? "fixture gate"} /> },
+            { key: "last-eval", header: "Last Eval", render: (row) => <span className="mono">{row.releaseGate?.lastEvalResultId ?? row.evalSuiteId ?? "fixture-eval"}</span> },
             { key: "reviewer", header: "Reviewer", render: (row) => row.reviewer },
             {
               key: "second-review",
@@ -74,6 +82,45 @@ export default async function SkillReleasesPage() {
             { key: "rollback", header: "Rollback Plan", render: (row) => row.rollbackPlan }
           ]}
         />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Eval Result Store</h3>
+            <p>Stored eval result projections are read from tenant-scoped eval_results rows without re-running the eval suite.</p>
+          </div>
+          <StatusBadge value={evalResults.some((row) => row.source === "api") ? "healthy" : "warning"} label={evalResults.some((row) => row.source === "api") ? "live api" : "fixture fallback"} />
+        </div>
+        <DataTable<EvalResult>
+          rows={evalResults}
+          columns={[
+            { key: "result", header: "Result", render: (row) => <span className="mono">{row.resultId}</span> },
+            { key: "suite", header: "Suite", render: (row) => <span className="mono">{row.suiteId}</span> },
+            { key: "subject", header: "Subject", render: (row) => <span className="mono">{row.subjectType}:{row.subjectId}@{row.subjectVersion}</span> },
+            { key: "status", header: "Status", render: (row) => <StatusBadge value={row.status} /> },
+            { key: "fixtures", header: "Fixtures", render: (row) => `${row.passedFixtures}/${row.totalFixtures} pass, ${row.blockedFixtures} blocked` },
+            { key: "regression", header: "Regression", render: (row) => row.regressionPassRate },
+            { key: "safety", header: "Safety Regressions", render: (row) => row.criticalSafetyRegressions },
+            { key: "contracts", header: "Contracts", render: (row) => `${row.traceComplete ? "trace" : "trace missing"} / ${row.exportContractComplete ? "export" : "export missing"} / ${row.qaFixtureCoverageComplete ? "qa" : "qa missing"}` },
+            { key: "artifact", header: "Artifact", render: (row) => <span className="mono">{row.artifactRef}</span> },
+            { key: "source", header: "Source", render: (row) => <StatusBadge value={row.source === "api" ? "healthy" : "warning"} label={row.source === "api" ? "api" : "fixture"} /> }
+          ]}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>API Contract Anchors</h3>
+            <p>Read-only release management surfaces use the OpenAPI admin operations and skill_release:admin permission.</p>
+          </div>
+        </div>
+        <div className="evidence-grid">
+          {["listSkills", "listSkillVersions", "listEvalResults", "getEvalResultArtifact", "skill_release:admin"].map((item) => (
+            <span className="mono evidence-pill" key={item}>{item}</span>
+          ))}
+        </div>
       </section>
 
       <section className="panel">

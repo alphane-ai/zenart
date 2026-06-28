@@ -1,0 +1,18 @@
+HTTP/2 401 
+date: Fri, 26 Jun 2026 03:36:01 GMT
+content-type: application/json
+content-length: 467
+alt-svc: h3=":443"; ma=86400
+content-security-policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'
+cross-origin-resource-policy: same-site
+permissions-policy: camera=(), microphone=(), geolocation=(), payment=()
+referrer-policy: no-referrer
+server: cloudflare
+x-content-type-options: nosniff
+x-frame-options: DENY
+x-request-id: stage0-object-retention-cleanup-audit_refs
+cf-cache-status: DYNAMIC
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=YVfpnGsUZo3ABgwhDCKW2cngFxLbtkbXv%2FVhKQ8bNnArjBnVekF5THdA1OyVYhNORu69pXjBe1TxFttFeab4NjCH2vtwjz79nS1J8FHJG0vOPzTbCNvoXBhAwG4g0zRpKV60VZEKcMx2NmumfOUuEA%3D%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+cf-ray: a1192a522a7ae7f7-SEA
+

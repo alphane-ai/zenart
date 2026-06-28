@@ -1,0 +1,58 @@
+{
+  "schema_version": "stage1.safety-export-state-local-contract.v1",
+  "fixture_id": "stage1_safety_export_state_local_contract",
+  "kind": "blocked_export_product_ui_local_contract",
+  "blueprint_source": "Docs/Stage1_20260621_blueprint.md",
+  "blueprint_items": ["FE-12", "FE-16", "QA-4", "QA-5", "AS-10", "VF-2"],
+  "source_files": [
+    "web/lib/safety-export-state.ts",
+    "web/lib/safety-export-state.test.ts",
+    "web/lib/contracts.ts",
+    "web/components/workspace-app.tsx",
+    "web/components/workspace-app.smoke.test.tsx"
+  ],
+  "product_ui_contract": {
+    "blocked_export_download_cta_count": 0,
+    "blocked_export_share_cta_count": 0,
+    "blocked_reasons_visible": true,
+    "qa_block_findings_visible": true,
+    "safety_block_findings_visible": true,
+    "admin_review_required_count_visible": true,
+    "manifest_summary_visible": true,
+    "provenance_summary_visible": true,
+    "raw_provider_payload_projected": false,
+    "raw_safety_payload_projected": false,
+    "secret_like_value_projected": false
+  },
+  "required_ui_anchors": [
+    "data-safety-export-state-contract",
+    "data-safety-export-state-status",
+    "data-safety-export-blocked-count",
+    "data-safety-export-qa-block-count",
+    "data-safety-export-safety-block-count",
+    "data-safety-export-admin-review-required-count",
+    "data-safety-export-blocked-download-cta-count",
+    "data-safety-export-blocked-share-cta-count",
+    "data-safety-export-blocked-without-download-count",
+    "data-safety-export-blocked-without-share-count",
+    "data-safety-export-latest-blocked-reason",
+    "data-safety-export-blocked-reasons",
+    "data-safety-export-raw-provider-payload",
+    "data-safety-export-raw-safety-payload",
+    "data-safety-export-secret-like-projected",
+    "data-safety-export-share-cta"
+  ],
+  "focused_tests": [
+    "summarizes blocked safety exports without projecting raw payloads",
+    "marks entitlement and quota blocked exports as requiring review without spending quota",
+    "exposes Stage 1 safety export state and blocks download/share controls for unsafe exports"
+  ],
+  "non_launch_status": {
+    "local_safety_export_state_contract": "pass",
+    "staging_export_review_evidence": "open",
+    "real_signed_url_download_evidence": "open",
+    "real_rendered_export_assets": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_launch_gate": false
+  }
+}

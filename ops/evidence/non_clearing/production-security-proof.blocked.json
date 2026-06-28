@@ -1,0 +1,30 @@
+{
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "secure_session_cookie_ref_missing",
+    "csrf_same_site_ref_missing",
+    "secret_redaction_ref_missing",
+    "admin_surface_privacy_ref_missing",
+    "provider_key_containment_ref_missing",
+    "stripe_live_test_separation_ref_missing",
+    "rate_limit_spend_cap_ref_missing",
+    "csp_headers_ref_missing",
+    "rbac_tenant_isolation_ref_missing",
+    "audit_ref_missing"
+  ],
+  "canonical_source_written": false,
+  "cookie_persisted": false,
+  "environment": "production",
+  "generated_at": "2026-06-28T17:50:42+00:00",
+  "kind": "production_security_launch_proof",
+  "operator_next_command_after_pass": "python3 scripts/stage1_production_source_probe.py --security --release-sha $(git rev-parse HEAD) --security-proof <this-proof.json> --write-canonical-source",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "schema_version": "stage1.production_security_proof.blocked.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "blocked"
+}

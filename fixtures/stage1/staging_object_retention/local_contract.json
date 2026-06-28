@@ -1,0 +1,97 @@
+{
+  "schema_version": "stage1.staging_object_retention.contract.v1",
+  "fixture_id": "stage1_staging_object_retention_exact_contract",
+  "kind": "staging_object_retention_exact_evidence_contract",
+  "canonical_evidence_path": "ops/evidence/staging/object-storage-retention-cleanup.json",
+  "canonical_results_path": "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+  "preflight_evidence_path": "ops/evidence/staging/object-storage-retention-cleanup.preflight.json",
+  "preflight_results_path": "ops/evidence/staging/object-storage-retention-cleanup.preflight.ndjson",
+  "preflight_can_clear_staging_gate": false,
+  "local_devport_evidence_path": "ops/evidence/staging/local-devport/object-storage-retention-cleanup.local-devport.json",
+  "local_devport_results_path": "ops/evidence/staging/local-devport/object-storage-retention-cleanup.local-devport.ndjson",
+  "local_devport_can_clear_staging_gate": false,
+  "strict_schema_version": "stage0.rev2.staging.object_storage_retention_cleanup",
+  "release_gate_status": "contract_ready_exact_staging_object_retention_evidence_open",
+  "required_environment": "staging",
+  "required_release_gate_check_id": "staging_object_storage_signed_downloads",
+  "required_do_not_launch_condition_id": "object_storage_signed_retention_runtime_missing",
+  "required_release_sha_pattern": "^[0-9a-f]{40}$",
+  "required_checks": [
+    "retention_policy",
+    "expired_export_cleanup",
+    "orphan_cleanup",
+    "audit_refs"
+  ],
+  "required_split_evidence": [
+    "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json"
+  ],
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false
+  },
+  "strict_evidence_policy": {
+    "canonical_pass_path_required": true,
+    "release_sha_full_40_hex": true,
+    "release_sha_must_match_signed_url_split": true,
+    "admin_auth_required": true,
+    "admin_identity_required": true,
+    "csrf_required": true,
+    "request_id_echo_required": true,
+    "cleanup_audit_refs_required": true,
+    "audit_endpoint_cleanup_ref_linkage_required": true,
+    "gate_impact_can_clear_required": true,
+    "allow_blocked_status": false,
+    "allow_local_devport_debug": false,
+    "allow_local_devport_evidence": false,
+    "allow_dry_run": false,
+    "allow_preserved_do_not_launch_conditions": false,
+    "allow_raw_or_secret_payloads": false
+  },
+  "production_like_local_fixture_policy": {
+    "resolve_addr_env": "BASE_URL_RESOLVE_ADDR or STAGING_API_URL_RESOLVE_ADDR or STAGING_BASE_URL_RESOLVE_ADDR",
+    "ca_cert_env": "BASE_URL_CA_CERT or STAGING_API_URL_CA_CERT or STAGING_BASE_URL_CA_CERT",
+    "required_scheme": "https",
+    "can_clear_gate_from_noncanonical_paths": false
+  },
+  "preflight_policy": {
+    "mode_env": "OBJECT_RETENTION_MODE=preflight_stage1",
+    "does_not_run_cleanup": true,
+    "status_ready_does_not_clear_gate": true,
+    "can_clear_stage1_staging_runtime_gate": false,
+    "validates_input_readiness_only": true,
+    "requires_canonical_run_after_preflight": true
+  },
+  "strict_staging_target_policy": {
+    "canonical_pass_must_target_real_staging_host": true,
+    "reject_reserved_test_domains": true,
+    "reject_localhost_private_link_local_ips": true,
+    "reject_local_resolve_addr_for_canonical_pass": true,
+    "reserved_domain_examples": [
+      "example.test",
+      "example",
+      "invalid",
+      "localhost",
+      "local",
+      "test"
+    ]
+  },
+  "generator_safety_policy": {
+    "canonical_paths_are_never_written_before_candidate_validation": true,
+    "strict_validator_required_before_canonical_replace": true,
+    "pass_evidence_written_only_after_strict_validator_accepts": true,
+    "canonical_outputs_are_atomic": true,
+    "failed_strict_candidate_writes_blocked_evidence_only": true
+  },
+  "remaining_staging_evidence": [
+    "canonical object retention cleanup pass evidence at ops/evidence/staging/object-storage-retention-cleanup.json",
+    "canonical object retention cleanup pass results at ops/evidence/staging/object-storage-retention-cleanup.ndjson",
+    "release-SHA match to signed URL split evidence",
+    "admin-authenticated retention policy, expired export cleanup, orphan cleanup, and audit refs runtime probes"
+  ]
+}

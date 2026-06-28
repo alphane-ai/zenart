@@ -13,6 +13,10 @@ REPORT_PATH="$OUT_DIR/${RUN_ID}.json"
 LOG_PATH="$OUT_DIR/${RUN_ID}.log"
 IMAGE_PREFIX="${IMAGE_PREFIX:-zenari-stage0}"
 IMAGE_SET="${IMAGE_SET:-backend web admin}"
+# Stage1 release images are backend, web, and admin. The backend image carries
+# runtime-server and runtime-worker targets for rollback/drain evidence; worker
+# is not a standalone release image.
+RUNTIME_TARGETS="${RUNTIME_TARGETS:-runtime-server runtime-worker}"
 
 images_report_json() {
   python3 - "$IMAGE_PREFIX" "$GIT_SHA" "$LOG_PATH" "$IMAGE_SET" <<'PY'
@@ -29,6 +33,11 @@ targets = {
     "backend": "",
     "web": "",
     "admin": "",
+}
+runtime_targets = {
+    "backend": ["runtime-server", "runtime-worker"],
+    "web": [],
+    "admin": [],
 }
 contexts = {
     "backend": "backend",
@@ -59,6 +68,7 @@ for name in images:
         "digest": digest,
         "context": contexts.get(name, name),
         "target": targets.get(name, ""),
+        "runtime_targets": runtime_targets.get(name, []),
         "evidence_refs": [tag, log_path],
     }
 
@@ -86,6 +96,7 @@ images = [item for item in sys.argv[4].split() if item]
 status = sys.argv[5]
 targets = {"backend": "", "web": "", "admin": ""}
 contexts = {"backend": "backend", "web": "web", "admin": "admin"}
+runtime_targets = {"backend": ["runtime-server", "runtime-worker"], "web": [], "admin": []}
 print(json.dumps({
     name: {
         "status": status,
@@ -93,6 +104,7 @@ print(json.dumps({
         "digest": "",
         "context": contexts.get(name, name),
         "target": targets.get(name, ""),
+        "runtime_targets": runtime_targets.get(name, []),
         "evidence_refs": [log_path],
     }
     for name in images
@@ -111,6 +123,7 @@ PY
   "git_sha": "$GIT_SHA",
   "image_prefix": "$IMAGE_PREFIX",
   "image_set": $images_json,
+  "runtime_targets": "$(printf '%s' "$RUNTIME_TARGETS")",
   "images": $image_details_json,
   "log_path": "$LOG_PATH",
   "exit_code": $exit_code,

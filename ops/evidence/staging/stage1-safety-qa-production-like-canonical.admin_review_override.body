@@ -1,0 +1,13 @@
+{
+  "id": "export_65341b24b8b3ccc65d8970d2",
+  "tenant_id": "tenant_local",
+  "package_id": "package_65fa284ec4b725d469d1a949",
+  "project_id": "project_stage1_safety_qa_runtime",
+  "task_id": "task_63713a2b3a53afeb57074050",
+  "format": "zip",
+  "status": "pending",
+  "qa_status": "pending",
+  "created_at": "2026-06-23T11:47:23.431426+08:00",
+  "updated_at": "2026-06-23T03:47:24.156892Z",
+  "regenerated_at": "2026-06-23T03:47:24.156892Z"
+}

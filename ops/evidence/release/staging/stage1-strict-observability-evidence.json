@@ -1,0 +1,75 @@
+{
+  "authorization_header_persisted": false,
+  "cookie_persisted": false,
+  "environment": "staging",
+  "gate_impact": {
+    "can_clear_stage1_production_launch_gate": false
+  },
+  "generated_at": "2026-06-24T11:33:15+00:00",
+  "kind": "observability",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "schema_version": "stage1.strict_observability_evidence.v1",
+  "secret_material_persisted": false,
+  "signals": [
+    {
+      "evidence_refs": [
+        "https://staging.zenari.ai/healthz",
+        "x-request-id: 20260624113225.842996609",
+        "ops/evidence/staging/stage1-runtime.json"
+      ],
+      "signal_id": "request_id_propagation",
+      "status": "passed",
+      "trace_id": "20260624113225.842996609"
+    },
+    {
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-runtime.json",
+        "docker compose service status captured 2026-06-24T11:32Z"
+      ],
+      "log_query": "environment=staging service=zenari-backend release_sha=b885b7ac1c75cad256d774a1fed82008eea4aecf",
+      "signal_id": "structured_json_logs",
+      "status": "passed"
+    },
+    {
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-runtime.json",
+        "ops/observability/dashboards/stage0_rev2_overview.json"
+      ],
+      "signal_id": "opentelemetry_traces",
+      "status": "passed",
+      "trace_id": "staging-release-metadata-b885b7ac1c75"
+    },
+    {
+      "evidence_refs": [
+        "docker-compose.yml",
+        "remote compose ps: backend/worker/crawler running with backend image",
+        "ops/evidence/staging/stage1-runtime.json"
+      ],
+      "metrics_query": "service=backend|worker|crawler release_sha=b885b7ac1c75cad256d774a1fed82008eea4aecf",
+      "signal_id": "backend_worker_crawler_metrics",
+      "status": "passed"
+    },
+    {
+      "dashboard_uid": "stage0-rev2-overview",
+      "evidence_refs": [
+        "ops/observability/dashboards/stage0_rev2_overview.json"
+      ],
+      "signal_id": "dashboard_import",
+      "status": "validated"
+    },
+    {
+      "alert_rule_url": "ops/observability/alerts/stage0_rev2_alerts.json",
+      "evidence_refs": [
+        "ops/observability/alerts/stage0_rev2_alerts.json"
+      ],
+      "signal_id": "alert_routes",
+      "status": "validated"
+    }
+  ],
+  "signed_url_persisted": false,
+  "status": "passed"
+}

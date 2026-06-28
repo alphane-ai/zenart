@@ -10,7 +10,7 @@
         "alert_routes": [
           "ops/evidence/staging/20260526T1000Z-alert-runtime.json",
           "ops/observability/alerts/stage0_rev2_alerts.json",
-          "https://monitoring.zenart.internal/alerts/stage0-rev2"
+          "https://monitoring.zenari.internal/alerts/stage0-rev2"
         ],
         "backend_worker_crawler_metrics": [
           "ops/evidence/staging/20260527T1215Z-backend-worker-crawler-metrics.json",

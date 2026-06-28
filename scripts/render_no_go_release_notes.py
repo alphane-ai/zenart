@@ -28,6 +28,7 @@ STAGING_POST_DEPLOY_SMOKE = ROOT / "ops/evidence/staging/20260527T2125Z-post-dep
 STAGING_LEGAL_EXTERNAL_PAGES = ROOT / "ops/evidence/staging/legal-pages-external-user.json"
 STAGING_SUPPORT_CONTACT_VISIBILITY = ROOT / "ops/evidence/staging/support-contact-external-user.json"
 STAGING_OBJECT_RETENTION_BLOCKED = ROOT / "ops/evidence/staging/object-storage-retention-cleanup.blocked.json"
+STAGE1_STAGING_RUNTIME = ROOT / "ops/evidence/staging/stage1-runtime.json"
 PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT = ROOT / "ops/evidence/production/backup-rollback-split.blocked.json"
 CURRENT_RELEASE_EVIDENCE_BUNDLE = (
     ROOT / "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.json"
@@ -37,6 +38,26 @@ CI_CLOSURE_ARTIFACTS = [
     (ROOT / "ops/evidence/ci/stage0-rev2-pr-main-run.json", "PR/main workflow run evidence"),
     (ROOT / "ops/evidence/ci/stage0-rev2-playwright-smoke.json", "CI Playwright smoke evidence"),
     (ROOT / "ops/evidence/ci/stage0-rev2-docker-image-build.json", "CI Docker image build evidence"),
+]
+CI_EVIDENCE_LINES = [
+    (
+        "CI run",
+        ROOT / "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+        "PR/main workflow run evidence",
+        "after an installed `.github/workflows/stage0-rev2-ci.yml` PR/main run",
+    ),
+    (
+        "Docker image build",
+        ROOT / "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+        "CI Docker image build evidence",
+        "after an installed workflow build",
+    ),
+    (
+        "Playwright smoke",
+        ROOT / "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+        "CI Playwright smoke evidence",
+        "after an installed workflow run",
+    ),
 ]
 RUNTIME_CHECKLIST_GROUPS = {
     "Crawler governance runtime": [
@@ -50,7 +71,7 @@ RUNTIME_CHECKLIST_GROUPS = {
         "crawler runtime 强制 source blocklist。",
     ],
     "CI and staging runtime": [
-        "添加 PR/main CI 到 `.github/workflows`。（token-blocked：当前 token 缺 workflow scope；draft/evidence 已落在 `ops/ci/` 和 `fixtures/ops/`。）",
+        "添加 PR/main CI 到 `.github/workflows` 并安装 Stage 0 Rev2 + Stage 1 baseline workflow。",
         "CI 在已安装 PR/main workflow 中运行 Playwright smoke。",
         "CI 在已安装 PR/main workflow 中 build Docker images。",
         "执行 staging deploy。",
@@ -79,7 +100,7 @@ RUNTIME_CHECKLIST_GROUPS = {
         "Staging post-deploy smoke tests 通过。",
         "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。",
         "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。",
-        "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
+        "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
         "Production post-deploy launch-clearing smoke evidence 通过：exact production split evidence exists at `ops/evidence/production/rollback-incident-post-deploy-smoke.json`, cites passing CI and Private Beta/Staging gate fixtures, and clears `production_deploy_rollback_smoke_missing` without preserved blockers。",
     ],
 }
@@ -326,12 +347,12 @@ def staging_object_storage_retention_cleanup_summary() -> str:
             )
             cleanup_ref_count = len(cleanup_refs) if isinstance(cleanup_refs, list) else 0
             audit_ref_count = len(audit_refs) if isinstance(audit_refs, list) else 0
-            reason = "missing staging base URL or explicit probe URLs"
+            reason = "missing staging API URL or explicit probe URLs"
             if blocked_checks and all(
                 isinstance(item, str) and "missing_staging_base_url_or_explicit_probe_urls" in item
                 for item in blocked_checks
             ):
-                reason = "missing STAGING_BASE_URL or explicit retention/audit probe URLs"
+                reason = "missing STAGING_API_URL, STAGING_BASE_URL, or explicit retention/audit probe URLs"
             return (
                 f"`blocked` from `{STAGING_OBJECT_RETENTION_BLOCKED.relative_to(ROOT)}` with "
                 f"{blocked_count}/4 probes blocked by {reason}; canonical pass evidence is still missing at "
@@ -351,7 +372,37 @@ def staging_object_storage_retention_cleanup_summary() -> str:
     coverage = evidence.get("coverage", [])
     passed = sum(1 for item in coverage if item.get("status") == "pass")
     total = len(coverage)
+    base_url = str(evidence.get("base_url", ""))
+    csrf_origin = str(evidence.get("csrf", {}).get("origin", "")) if isinstance(evidence.get("csrf"), dict) else ""
+    if "example.test" in base_url or "example.test" in csrf_origin:
+        return (
+            f"canonical pass-shaped files exist at `{path.relative_to(ROOT)}` with {passed}/{total} "
+            "retention/cleanup probes, but their target is reserved `example.test` fixture evidence; "
+            "strict staging evidence remains required from a real deployed staging host"
+        )
     return f"staging status `{status}` from `{path.relative_to(ROOT)}` with {passed}/{total} retention/cleanup probes validator-visible"
+
+
+def stage1_staging_runtime_summary() -> str:
+    if not STAGE1_STAGING_RUNTIME.exists():
+        return (
+            "`missing`; run `scripts/generate_stage1_staging_runtime_evidence.py` and require strict child "
+            "validators before treating Stage 1 staging as launch-ready"
+        )
+    evidence = load_json(STAGE1_STAGING_RUNTIME)
+    readiness = evidence.get("runtime_input_readiness", {})
+    if not isinstance(readiness, dict):
+        readiness = {}
+    blockers = evidence.get("blockers", [])
+    first_blocker = blockers[0] if isinstance(blockers, list) and blockers else "none recorded"
+    return (
+        f"`{evidence.get('status', 'missing')}` / `{evidence.get('release_gate_decision', 'missing')}` from "
+        f"`{STAGE1_STAGING_RUNTIME.relative_to(ROOT)}`; readiness quota_replay="
+        f"`{str(readiness.get('quota_replay_ready', False)).lower()}`, object_storage="
+        f"`{str(readiness.get('object_storage_ready', False)).lower()}`, csrf="
+        f"`{str(readiness.get('csrf_ready', False)).lower()}`, staging_web="
+        f"`{str(readiness.get('staging_web_ready', False)).lower()}`; first blocker: {first_blocker}"
+    )
 
 
 def staging_legal_support_visibility_summary() -> str:
@@ -393,10 +444,24 @@ def release_evidence_bundle_summary() -> str:
     blockers = evidence.get("blocking_reason_count", len(evidence.get("blocking_reasons", [])))
     source = evidence.get("legal_support_evidence_source", "missing")
     path = CURRENT_RELEASE_EVIDENCE_BUNDLE.relative_to(ROOT)
+    object_retention_path = ROOT / "ops/evidence/staging/object-storage-retention-cleanup.json"
+    if object_retention_path.exists():
+        object_retention = load_json(object_retention_path)
+        retention_status = object_retention.get("status", "missing")
+        coverage = object_retention.get("coverage", [])
+        passed = sum(1 for item in coverage if item.get("status") == "pass")
+        total = len(coverage)
+        retention_text = (
+            f"object-retention cleanup `{retention_status}` from "
+            f"`{object_retention_path.relative_to(ROOT)}` with {passed}/{total} probes validator-visible"
+        )
+    else:
+        retention_text = (
+            "object-retention cleanup remains unverified and canonical pass evidence is still required"
+        )
     return (
         f"`{evidence.get('status', 'missing')}` / `{evidence.get('decision', 'missing')}` from `{path}` "
-        f"with {blockers} blocking reasons; legal/support source `{source}`; object-retention cleanup "
-        "remains unverified and canonical pass evidence is still required"
+        f"with {blockers} blocking reasons; legal/support source `{source}`; {retention_text}"
     )
 
 
@@ -417,13 +482,19 @@ def production_backup_rollback_split_summary() -> str:
         if isinstance(split.get("rollback_incident_post_deploy_smoke"), dict)
         else {}
     )
+    upstream = evidence.get("upstream_gates", {})
+    ci = upstream.get("ci", {}) if isinstance(upstream, dict) else {}
+    private_beta = upstream.get("private_beta_staging", {}) if isinstance(upstream, dict) else {}
+    ci_status = ci.get("gate_decision_status", "missing")
+    private_beta_status = private_beta.get("gate_decision_status", "missing")
     path = PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT.relative_to(ROOT)
     return (
         f"`{evidence.get('status', 'missing')}` from `{path}` with {blocked_count} blockers; "
         f"exact backup split `{backup.get('path', 'ops/evidence/production/backup-restore.json')}` "
         f"is `{backup.get('status', 'missing')}`, exact rollback/incident/post-deploy split "
         f"`{rollback.get('path', 'ops/evidence/production/rollback-incident-post-deploy-smoke.json')}` "
-        f"is `{rollback.get('status', 'missing')}`, and CI/private beta gates remain no-go"
+        f"is `{rollback.get('status', 'missing')}`, upstream CI gate is `{ci_status}`, and "
+        f"Private Beta/Staging gate is `{private_beta_status}`"
     )
 
 
@@ -506,6 +577,108 @@ def ci_gate_summary(ci_gate: dict) -> str:
     )
 
 
+def evidence_status(path: Path) -> str:
+    if not path.exists():
+        return "missing"
+    try:
+        evidence = load_json(path)
+    except (json.JSONDecodeError, OSError):
+        return "invalid"
+    return str(evidence.get("status", "missing"))
+
+
+def evidence_passed(status: str) -> bool:
+    return status in {"pass", "passed", "go", "ready"}
+
+
+def ci_evidence_line(label: str, path: Path, description: str, requirement: str) -> str:
+    status = evidence_status(path)
+    rel = path.relative_to(ROOT)
+    if evidence_passed(status):
+        return f"- {label}: `{status}` from `{rel}`; exact {description} is validator-visible."
+    if status == "missing":
+        return (
+            f"- {label}: `missing`; exact pass evidence is required at `{rel}` {requirement}; "
+            "required for CI/private beta/production decisions."
+        )
+    return (
+        f"- {label}: `{status}` from `{rel}`; rerun the installed CI workflow and strict validator before "
+        "using this artifact for CI/private beta/production decisions."
+    )
+
+
+def release_posture_line(gates: dict[str, dict]) -> str:
+    local_status = gates["local_alpha"].get("gate_decision", {}).get("status", "missing")
+    ci_status = gates["ci"].get("gate_decision", {}).get("status", "missing")
+    staging_status = gates["private_beta_staging"].get("gate_decision", {}).get("status", "missing")
+    production_status = gates["production_launch"].get("gate_decision", {}).get("status", "missing")
+    open_parts = []
+    if ci_status != "go":
+        open_parts.append("CI")
+    if staging_status != "go":
+        open_parts.append("Private Beta/Staging")
+    if production_status != "go":
+        open_parts.append("Production Launch")
+    open_parts.append("global Do-Not-Launch")
+    return (
+        f"- Release posture: Stage 0 Local Alpha is `{local_status}`; Local Alpha `{local_status}`, CI `{ci_status}`, Private Beta/Staging "
+        f"`{staging_status}`, Production Launch `{production_status}`; still open: "
+        f"{', '.join(open_parts)} until every gate fixture is `go` and no Do-Not-Launch condition is present."
+    )
+
+
+def production_backup_rollback_risk_line(gates: dict[str, dict]) -> str:
+    ci_status = gates["ci"].get("gate_decision", {}).get("status", "missing")
+    staging_status = gates["private_beta_staging"].get("gate_decision", {}).get("status", "missing")
+    production_status = gates["production_launch"].get("gate_decision", {}).get("status", "missing")
+    return (
+        "- Production backup/rollback risks: production split evidence must remain tied to strict production "
+        f"launch validation; current gate statuses are CI `{ci_status}`, Private Beta/Staging "
+        f"`{staging_status}`, Production Launch `{production_status}`."
+    )
+
+
+def operational_risk_line(gates: dict[str, dict]) -> str:
+    open_gate_labels = [
+        label
+        for label, gate_id in [
+            ("CI", "ci"),
+            ("Private Beta/Staging", "private_beta_staging"),
+            ("Production Launch", "production_launch"),
+        ]
+        if gates[gate_id].get("gate_decision", {}).get("status") != "go"
+    ]
+    open_text = ", ".join(open_gate_labels) if open_gate_labels else "none beyond global production no-go policy"
+    object_retention_status = evidence_status(ROOT / "ops/evidence/staging/object-storage-retention-cleanup.json")
+    object_retention_text = (
+        "object-retention cleanup evidence is attached"
+        if evidence_passed(object_retention_status)
+        else f"object-retention cleanup evidence is `{object_retention_status}` and remains required"
+    )
+    return (
+        "- Operational risks: staging rollback evidence remains absent; staging backup/restore, load, "
+        f"post-deploy smoke, and legal/support visibility evidence are attached; {object_retention_text}; "
+        f"open release gates: {open_text}."
+    )
+
+
+def go_no_go_conditions_line(gates: dict[str, dict]) -> str:
+    open_gates = [
+        label
+        for label, gate_id in [
+            ("CI", "ci"),
+            ("Private Beta/Staging", "private_beta_staging"),
+            ("Production Launch", "production_launch"),
+        ]
+        if gates[gate_id].get("gate_decision", {}).get("status") != "go"
+    ]
+    if open_gates:
+        gate_text = ", ".join(open_gates)
+    else:
+        gate_text = "Production Launch source evidence and Do-Not-Launch conditions"
+    return f"- Conditions: {gate_text} must be cleared before any production decision."
+
+
 def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: str) -> str:
     local_alpha = load_json(LOCAL_ALPHA_GATE)
     ci_gate = load_json(CI_GATE)
@@ -556,7 +729,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         "",
         "- User-facing changes: `n/a`",
         "- Admin/operator changes: `n/a`",
-        "- Backend/worker/crawler changes: `n/a`",
+        "- Backend runtime changes: `n/a`",
         "- Ops/config changes: current Stage 0 Rev2 ops evidence snapshot for observability, restore/load drill summary, staging/post-deploy smoke contract, and release gate no-go decision.",
         "",
         "## Migration List",
@@ -587,17 +760,18 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         "- Admin smoke: `scripts/playwright_smoke.sh` or staging smoke admin checks, evidence required for CI/staging/private beta.",
         "- Export/package smoke: `scripts/staging_smoke.sh` export/package checks with seeded records, evidence required.",
         "- Signed download smoke: `scripts/staging_smoke.sh` signed download check with seeded export, evidence required.",
-        "- Worker/crawler smoke: `scripts/staging_smoke.sh` worker task and crawler admin checks, evidence required.",
+        "- Backend runtime smoke: `scripts/staging_smoke.sh` worker task and crawler admin checks under the backend release image, evidence required.",
         "- Quota/rate-limit smoke: `scripts/staging_smoke.sh` quota/rate-limit check, evidence required.",
         "",
         "## Evidence",
         "",
         f"- CI gate: {ci_gate_summary(ci_gate)}.",
-        "- CI run: `missing`; exact pass evidence is required at `ops/evidence/ci/stage0-rev2-pr-main-run.json` after an installed `.github/workflows/stage0-rev2-ci.yml` PR/main run; required for CI/private beta/production decisions.",
-        "- Docker image build: `missing`; exact pass evidence is required at `ops/evidence/ci/stage0-rev2-docker-image-build.json` after an installed workflow build; required for CI/private beta/production decisions.",
-        "- Playwright smoke: `missing`; exact pass evidence is required at `ops/evidence/ci/stage0-rev2-playwright-smoke.json` after an installed workflow run; required before CI gate can close.",
+        *[
+            ci_evidence_line(label, path, description, requirement)
+            for label, path, description, requirement in CI_EVIDENCE_LINES
+        ],
         "- Migration run: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=migration`, and record status `passed` or `compatible` before private beta/production decisions.",
-        f"- Staging smoke: {staging_post_deploy_smoke_summary()}; staging post-deploy smoke is validator-visible through {staging_combined_preflight_summary()}, but the private beta gate remains `no-go` while object retention/cleanup remains blocked.",
+        f"- Staging smoke: {staging_post_deploy_smoke_summary()}; staging post-deploy smoke is validator-visible through {staging_combined_preflight_summary()}, and the Private Beta/Staging fixture status is `{private_beta.get('gate_decision', {}).get('status', 'missing')}` while object retention/cleanup remains subject to strict real-staging evidence validation.",
         f"- Load smoke: {load_smoke_summary(runtime)}; staging load evidence is attached in the release evidence line below.",
         "- Config diff: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=config_diff`, and record status `passed`, `reviewed`, or `no_diff` before private beta/production decisions.",
         f"- Observability smoke: local status `{local_status(runtime, 'observability_smoke')}` from `{observability_report}`; {staging_observability_summary()}; {staging_combined_preflight_summary()}.",
@@ -605,9 +779,10 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         f"- Load evidence: {staging_load_summary()}; production load evidence remains separate and required before production decisions.",
         f"- Object-storage signed URL: {staging_object_storage_signed_url_summary()}; object retention policy, expired export cleanup, orphan cleanup, and audit refs remain required before the object-storage gate can close.",
         f"- Object-storage retention cleanup: {staging_object_storage_retention_cleanup_summary()}.",
+        f"- Stage 1 aggregate staging runtime: {stage1_staging_runtime_summary()}.",
         f"- Legal/support external-user visibility: {staging_legal_support_visibility_summary()}.",
         f"- Release evidence bundle: {release_evidence_bundle_summary()}.",
-        "- Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
+        "- Rollback drill: `missing`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=rollback`, record status `passed` or `validated`, and include passed/validated evidence refs for backend image rollback, feature flag rollback, migration compatibility, worker drain, and post-rollback smoke.",
         f"- Production backup/rollback split preflight: {production_backup_rollback_split_summary()}.",
         *production_backup_rollback_split_detail_lines(),
         f"- Security scan: local status `{local_status(runtime, 'security_scan_smoke')}` from `{security_report}`; staging JSON must reference the release SHA, set `environment=staging`, set `kind=security_scan`, record status `passed`, and include passed/validated evidence refs for dependency, image/container, and committed-secret scans before private beta/production decisions.",
@@ -619,7 +794,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         gate_snapshot_line("Private Beta/Staging gate", PRIVATE_BETA_GATE, private_beta),
         gate_snapshot_line("Production Launch gate", PRODUCTION_GATE, production),
         global_do_not_launch_snapshot(gates),
-        "- Release posture: Local Alpha is the only closed gate; CI, Private Beta/Staging, Production Launch, and global Do-Not-Launch remain open until their exact fixture blockers above are cleared by runtime evidence.",
+        release_posture_line(gates),
         "",
         "## Rollback Plan",
         "",
@@ -638,9 +813,9 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         f"- Private beta do-not-launch conditions present: {comma_or_missing(private_beta_dnl)}.",
         f"- Open production blockers: `{PRODUCTION_GATE.relative_to(ROOT)}`: {comma_or_missing(production_blockers)}.",
         f"- Production do-not-launch conditions present: {comma_or_missing(production_dnl)}.",
-        "- Operational risks: staging rollback evidence remains absent; staging backup/restore, load, post-deploy smoke, and legal/support visibility evidence are attached, but object-retention, CI, and production gates remain open.",
-        "- Object-storage risks: signed URL staging evidence is attached, but retention/cleanup runtime evidence still blocks the object-storage release gate.",
-        "- Production backup/rollback risks: admin-visible production probe evidence is attached, but exact production split files remain absent and CI/private beta gates remain no-go.",
+        operational_risk_line(gates),
+        "- Object-storage risks: signed URL staging evidence is attached, but retention/cleanup still requires strict real-staging evidence; production object restore remains separately gated by production backup/restore evidence.",
+        production_backup_rollback_risk_line(gates),
         "- User/support risks: external-user legal/support pages and report-problem visibility are validated for staging; production legal/support policy remains separately gated.",
         "",
         "## Open Rev2 Runtime Checklist",
@@ -651,7 +826,7 @@ def render(release_sha: str, release_tag: str, owner: str, reviewer: str, date: 
         "",
         "- Decision: `no-go`",
         "- Approver: `pending`",
-        "- Conditions: CI installed workflow evidence, object retention cleanup evidence, staging migration/config/rollback/security evidence, production deployment evidence, release owner, and gate fixture blockers must be cleared before any private beta or production decision.",
+        go_no_go_conditions_line(gates),
         "- Follow-up deadline: `n/a`",
         "",
     ]

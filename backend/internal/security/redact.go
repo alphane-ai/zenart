@@ -60,6 +60,7 @@ var secretValuePatterns = []struct {
 	{SecretKindAuthorization, "api_key_authorization", regexp.MustCompile(`(?i)\bApiKey\s+[A-Za-z0-9._~+/\-=]{12,}`)},
 	{SecretKindPrivateKey, "pem_private_key", regexp.MustCompile(`(?s)-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----`)},
 	{SecretKindProviderKey, "openai_key", regexp.MustCompile(`\bsk-(?:proj-)?[A-Za-z0-9_-]{20,}\b`)},
+	{SecretKindProviderKey, "zai_key", regexp.MustCompile(`\b[0-9a-f]{32}\.[A-Za-z0-9_-]{16,}\b`)},
 	{SecretKindProviderKey, "stripe_key", regexp.MustCompile(`\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{16,}\b`)},
 	{SecretKindProviderKey, "slack_token", regexp.MustCompile(`\bxox[abprs]-[A-Za-z0-9-]{10,}\b`)},
 	{SecretKindAccessKey, "aws_access_key", regexp.MustCompile(`\b(?:AKIA|ASIA)[A-Z0-9]{16}\b`)},

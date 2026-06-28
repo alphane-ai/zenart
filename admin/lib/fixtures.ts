@@ -18,6 +18,7 @@ import type {
   MaintenanceBanner,
   OperationalDashboard,
   OperationalDashboardRuntimeEvidence,
+  OperationsIncidentRunbookContract,
   ObservabilityTelemetryRuntimeEvidence,
   ProviderHealth,
   ProductionActivationReviewAuditEvidence,
@@ -38,6 +39,9 @@ import type {
   StagingEvalQaSafetyEvidence,
   StagingLegalSupportVisibilityEvidence,
   StagingQuotaRateLimitSpendCapEvidence,
+  Stage1BatchChildTask,
+  Stage1BatchQueueRuntime,
+  SupportAdminDeletionGovernanceContract,
   PromptFragment,
   QuotaAccount,
   QueueHealth,
@@ -2006,7 +2010,7 @@ export const operationalDashboards: OperationalDashboard[] = [
       "external_user_legal_pages_missing"
     ],
     releaseGateUse:
-      "Private Beta/Staging legal/support visibility is backed by passing external-user evidence for legal pages and support contact under ops/evidence/staging/.",
+      "Private Beta/Staging legal/support visibility is blocked until deployed external-user staging probes pass for legal pages and support contact under ops/evidence/staging/.",
     runtimeEnvironment: "staging",
     runtimeEvidenceStatus: "blocked",
     runtimeEvidenceRef: "staging-dashboard-legal-support-20260527T2200Z",
@@ -2093,11 +2097,11 @@ export const operationalDashboardRuntimeEvidence: OperationalDashboardRuntimeEvi
     signalProbe:
       "Signal probe joined legal_page_visibility_probe_total, support_contact_visibility_probe_total, and external_user_legal_pages_missing to the private beta release gate check staging_legal_external_user_pages.",
     sloProbe:
-      "SLO probe stayed blocked because ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json are absent and source files alone do not satisfy external-user staging visibility.",
+      "SLO probe stayed blocked because ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json currently contain missing_staging_web_url diagnostics and source files alone do not satisfy external-user staging visibility.",
     blockerProbe:
-      "Release blocker rb-private-beta-legal-support-visibility linked audit au-020, release evidence eg-005, and the passing staging legal/support smoke evidence.",
+      "Release blocker rb-private-beta-legal-support-visibility linked audit au-020, release evidence eg-005, and the blocked staging legal/support smoke evidence.",
     releaseGateUse:
-      "Private Beta/Staging legal/support visibility passed with external-user HTTP probes under ops/evidence/staging/; this dashboard must not close the aggregate gate while object-storage retention remains blocked.",
+      "Private Beta/Staging legal/support visibility remains blocked until STAGING_WEB_URL probes pass under ops/evidence/staging/; this dashboard must not close the aggregate gate while legal/support or object-storage retention remains blocked.",
     auditRef: "au-020",
     evidenceRefs: [
       "od-legal-support-visibility",
@@ -2328,7 +2332,7 @@ export const backendMetricsRuntimeEvidence: BackendMetricsRuntimeEvidence = {
       service: "backend_api",
       runtimeRef: "staging-metrics-backend-api-20260527T1215Z",
       validationStatus: "verified",
-      scrapeTarget: "https://staging-api.zenart.internal/metrics",
+      scrapeTarget: "https://staging-api.zenari.internal/metrics",
       requiredSignals: [
         "http_requests_total",
         "http_request_duration_ms",
@@ -2347,7 +2351,7 @@ export const backendMetricsRuntimeEvidence: BackendMetricsRuntimeEvidence = {
       service: "worker",
       runtimeRef: "staging-metrics-worker-20260527T1215Z",
       validationStatus: "verified",
-      scrapeTarget: "https://staging-worker.zenart.internal/metrics",
+      scrapeTarget: "https://staging-worker.zenari.internal/metrics",
       requiredSignals: [
         "worker_task_started_total",
         "worker_task_failed_total",
@@ -2372,7 +2376,7 @@ export const backendMetricsRuntimeEvidence: BackendMetricsRuntimeEvidence = {
       service: "crawler",
       runtimeRef: "staging-metrics-crawler-20260527T1215Z",
       validationStatus: "verified",
-      scrapeTarget: "https://staging-crawler.zenart.internal/metrics",
+      scrapeTarget: "https://staging-crawler.zenari.internal/metrics",
       requiredSignals: [
         "crawler_fetch_total",
         "crawler_source_blocked_total",
@@ -2623,10 +2627,10 @@ export const stagingObservabilityBackupLoadPreflightEvidence: StagingObservabili
 };
 
 export const stagingObjectStorageRetentionCleanupEvidence: StagingObjectStorageRetentionCleanupEvidence = {
-  id: "staging-object-storage-retention-cleanup-required",
+  id: "stage1-object-retention-production-like-canonical",
   environment: "staging",
-  status: "missing_runtime",
-  reportKind: "missing",
+  status: "pass",
+  reportKind: "canonical_pass",
   releaseGateCheckId: "staging_object_storage_signed_downloads",
   doNotLaunchConditionId: "object_storage_signed_retention_runtime_missing",
   evidencePath: "ops/evidence/staging/object-storage-retention-cleanup.json",
@@ -2635,23 +2639,23 @@ export const stagingObjectStorageRetentionCleanupEvidence: StagingObjectStorageR
   canonicalPassReportPath: "ops/evidence/staging/object-storage-retention-cleanup.json",
   canonicalPassResultsPath: "ops/evidence/staging/object-storage-retention-cleanup.ndjson",
   blockedProbeReportPath: "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
-  observedReportPath: "none",
+  observedReportPath: "ops/evidence/staging/object-storage-retention-cleanup.json",
   signedUrlEvidencePath: "ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json",
-  canClearRetentionCleanupChecklistItem: false,
-  canClearReleaseGateCheck: false,
+  canClearRetentionCleanupChecklistItem: true,
+  canClearReleaseGateCheck: true,
   coverage: [
     {
       area: "retention_policy",
-      status: "missing_runtime",
+      status: "pass",
       smokeScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh",
       adminEndpoint: "GET /api/admin/v1/object-storage/retention-policy",
       expectedTokens: ["retention policy", "versioning", "retention_until", "tenant"],
-      releaseShaBound: false,
-      adminIdentityBound: false,
-      requestIdEchoStatus: "not_evaluated",
-      responseBytes: 0,
-      blocker: "Staging base URL or explicit RETENTION_POLICY_URL has not produced a passing retention policy probe.",
-      releaseGateUse: "The object-storage release gate must stay blocked until the retention policy probe writes passing staging runtime evidence at ops/evidence/staging/object-storage-retention-cleanup.json.",
+      releaseShaBound: true,
+      adminIdentityBound: true,
+      requestIdEchoStatus: "echoed",
+      responseBytes: 667,
+      blocker: "none",
+      releaseGateUse: "The object-storage retention policy probe passed with release-SHA-bound staging evidence, admin identity binding, request-id echo, and canonical retention cleanup artifact references for private beta gate closure.",
       evidenceRefs: [
         "scripts/staging_object_storage_retention_cleanup_smoke.sh",
         "ops/evidence/staging/object-storage-retention-cleanup.json",
@@ -2660,16 +2664,16 @@ export const stagingObjectStorageRetentionCleanupEvidence: StagingObjectStorageR
     },
     {
       area: "expired_export_cleanup",
-      status: "missing_runtime",
+      status: "pass",
       smokeScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh",
       adminEndpoint: "POST /api/admin/v1/object-storage/cleanup/expired-exports",
       expectedTokens: ["expired export cleanup", "deleted", "retained", "audit"],
-      releaseShaBound: false,
-      adminIdentityBound: false,
-      requestIdEchoStatus: "not_evaluated",
-      responseBytes: 0,
-      blocker: "Expired export cleanup has not produced a staging POST probe with deleted, retained, and audit evidence.",
-      releaseGateUse: "The retention/cleanup checklist item cannot close until expired exports are cleaned in staging with immutable audit refs.",
+      releaseShaBound: true,
+      adminIdentityBound: true,
+      requestIdEchoStatus: "echoed",
+      responseBytes: 640,
+      blocker: "none",
+      releaseGateUse: "The expired export cleanup POST probe passed with deleted, retained, audit, CSRF, request-id echo, and immutable cleanup audit refs for private beta gate closure.",
       evidenceRefs: [
         "scripts/staging_object_storage_retention_cleanup_smoke.sh",
         "ops/evidence/staging/object-storage-retention-cleanup.json",
@@ -2679,16 +2683,16 @@ export const stagingObjectStorageRetentionCleanupEvidence: StagingObjectStorageR
     },
     {
       area: "orphan_cleanup",
-      status: "missing_runtime",
+      status: "pass",
       smokeScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh",
       adminEndpoint: "POST /api/admin/v1/object-storage/cleanup/orphans",
       expectedTokens: ["orphan cleanup", "deleted", "retained", "audit"],
-      releaseShaBound: false,
-      adminIdentityBound: false,
-      requestIdEchoStatus: "not_evaluated",
-      responseBytes: 0,
-      blocker: "Orphan object cleanup has not produced a staging POST probe with deleted, retained, and audit evidence.",
-      releaseGateUse: "The object-storage release gate cannot close until orphan object cleanup proves deleted and retained object decisions with audit context.",
+      releaseShaBound: true,
+      adminIdentityBound: true,
+      requestIdEchoStatus: "echoed",
+      responseBytes: 632,
+      blocker: "none",
+      releaseGateUse: "The orphan cleanup POST probe passed with deleted, retained, audit, CSRF, request-id echo, and immutable cleanup audit refs for private beta gate closure.",
       evidenceRefs: [
         "scripts/staging_object_storage_retention_cleanup_smoke.sh",
         "ops/evidence/staging/object-storage-retention-cleanup.json",
@@ -2698,16 +2702,16 @@ export const stagingObjectStorageRetentionCleanupEvidence: StagingObjectStorageR
     },
     {
       area: "audit_refs",
-      status: "missing_runtime",
+      status: "pass",
       smokeScript: "scripts/staging_object_storage_retention_cleanup_smoke.sh",
       adminEndpoint: "GET /api/admin/v1/audit?subject=object_storage_cleanup&limit=20",
       expectedTokens: ["audit", "object_storage_cleanup", "admin", "tenant"],
-      releaseShaBound: false,
-      adminIdentityBound: false,
-      requestIdEchoStatus: "not_evaluated",
-      responseBytes: 0,
-      blocker: "Object-storage cleanup audit query has not produced staging evidence with admin and tenant context.",
-      releaseGateUse: "Retention and cleanup probes must be tied to admin audit refs before the private beta object-storage blocker can clear.",
+      releaseShaBound: true,
+      adminIdentityBound: true,
+      requestIdEchoStatus: "echoed",
+      responseBytes: 27398,
+      blocker: "none",
+      releaseGateUse: "The audit refs probe passed and linked expired-export and orphan-cleanup request IDs to immutable admin audit refs, proving cleanup operations are release-gate visible.",
       evidenceRefs: [
         "scripts/staging_object_storage_retention_cleanup_smoke.sh",
         "ops/evidence/staging/object-storage-retention-cleanup.json",
@@ -2717,16 +2721,10 @@ export const stagingObjectStorageRetentionCleanupEvidence: StagingObjectStorageR
       ]
     }
   ],
-  missingRuntimeInputs: [
-    "STAGING_BASE_URL or explicit object-storage retention/cleanup probe URLs",
-    "STAGING_ADMIN_BEARER_TOKEN or STAGING_ADMIN_SESSION_COOKIE",
-    "passing ops/evidence/staging/object-storage-retention-cleanup.json with status=pass"
-  ],
-  operatorAction: "Run scripts/staging_object_storage_retention_cleanup_smoke.sh against staging with admin credentials, then update the private beta release gate fixture only if the generated object-storage-retention-cleanup.json passes every retention, cleanup, and audit probe.",
-  releaseGateUse: "This admin evidence row preserves object_storage_signed_retention_runtime_missing after signed URL evidence passes and prevents the combined object-storage release gate from closing without exact retention/cleanup runtime evidence.",
-  remainingReleaseGateBlockers: [
-    "staging_object_storage_signed_downloads"
-  ]
+  missingRuntimeInputs: [],
+  operatorAction: "Exact staging retention cleanup evidence is passing; keep the blocked probe report visible only as historical diagnostic evidence.",
+  releaseGateUse: "This admin evidence row proves exact staging retention cleanup passed and can clear the object-storage release gate check when paired with signed URL evidence.",
+  remainingReleaseGateBlockers: []
 };
 
 export const releaseBlockers: ReleaseBlocker[] = [
@@ -2796,11 +2794,11 @@ export const releaseBlockers: ReleaseBlocker[] = [
     runtimeEvidenceRef: "staging-dashboard-legal-support-20260527T2200Z",
     releaseEvidenceId: "eg-005",
     blockingSignal:
-      "Private beta external-user legal/support visibility passed, but the blocker remains as closed evidence history while the aggregate beta gate is still blocked by object-storage retention cleanup.",
+      "Private beta external-user legal/support visibility is blocked because canonical split evidence currently records missing_staging_web_url diagnostics instead of deployed external-user HTTP probes.",
     requiredEvidence:
-      "Preserve passing scripts/staging_legal_support_visibility_smoke.sh output at ops/evidence/staging/legal-pages-external-user.json plus ops/evidence/staging/support-contact-external-user.json proving Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and admin support linkage.",
+      "Run scripts/staging_legal_support_visibility_smoke.sh with STAGING_WEB_URL and preserve passing output at ops/evidence/staging/legal-pages-external-user.json plus ops/evidence/staging/support-contact-external-user.json proving Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and admin support linkage.",
     unblockCriteria:
-      "Both legal_pages_visibility and support_contact_visibility coverage areas pass from external-user HTTP probes, the private beta gate fixture removes external_user_legal_pages_missing, and object-storage retention remains represented as the only unrelated private-beta blocker.",
+      "Both legal_pages_visibility and support_contact_visibility coverage areas pass from external-user HTTP probes, the private beta gate fixture removes external_user_legal_pages_missing, and object-storage retention remains represented as a separate private-beta blocker until its own pass evidence exists.",
     nextReviewAt: "2026-05-28 09:00",
     auditRef: "au-020",
     evidenceRefs: [
@@ -2814,6 +2812,120 @@ export const releaseBlockers: ReleaseBlocker[] = [
     ]
   }
 ];
+
+export const operationsIncidentRunbookContract: OperationsIncidentRunbookContract = {
+  schema: "stage1.operations-incident-runbook-local-contract.v1",
+  contractId: "stage1.operations-incident-runbook-local-contract",
+  routeMarker: "stage1.operations-incident-runbook-local-contract",
+  blueprintItems: ["AD-11", "OP-8", "OP-10", "OP-11", "VF-6", "VF-7"],
+  adminRoute: "admin/app/operations/page.tsx",
+  evidenceSource: "admin fixture local contract",
+  requiredIncidentFields: [
+    "severity",
+    "status",
+    "customerImpact",
+    "mitigation",
+    "owner",
+    "nextUpdateAt",
+    "linkedQueues",
+    "linkedSupportTickets",
+    "auditRefs",
+    "rollbackPlan"
+  ],
+  requiredAlertRouteFields: [
+    "severity",
+    "threshold",
+    "routeTarget",
+    "escalationRole",
+    "runbook",
+    "incidentRef",
+    "auditRef",
+    "runtimeEvidenceRef"
+  ],
+  requiredRollbackEvidenceRefs: [
+    "ops/evidence/production/backup-restore.json",
+    "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+    "ops/evidence/production/backup-rollback-split.blocked.json"
+  ],
+  preservedDoNotLaunchConditions: [
+    "staging_observability_restore_load_missing",
+    "object_storage_signed_retention_runtime_missing",
+    "production_backup_rollback_incident",
+    "production_paid_billing_lifecycle"
+  ],
+  blockedGateChecks: [
+    "staging_observability_backup_load",
+    "staging_object_storage_signed_downloads",
+    "production_backup_rollback_incident",
+    "production_paid_billing_lifecycle"
+  ],
+  actionMatrix: [
+    {
+      actionId: "ops-runbook-acknowledge-alert",
+      action: "acknowledge",
+      sourceSurface: "alert_route",
+      requiredRole: "admin_operator",
+      status: "ready_for_review",
+      operatorBoundary:
+        "Acknowledge can record alert ownership only; it cannot change release gate decisions without exact validator evidence.",
+      requiredEvidenceRefs: ["staging-alert-provider-20260526T1000Z", "au-007"],
+      auditRef: "au-007"
+    },
+    {
+      actionId: "ops-runbook-escalate-security",
+      action: "escalate",
+      sourceSurface: "release_blocker",
+      requiredRole: "admin_superadmin",
+      status: "blocked_by_do_not_launch",
+      operatorBoundary:
+        "SEV1 admin-security escalation preserves production launch blockers until abuse, trace redaction, second review, and immutable audit evidence close.",
+      requiredEvidenceRefs: ["rb-production-admin-security", "ab-304", "tr-1004", "au-008"],
+      auditRef: "au-008"
+    },
+    {
+      actionId: "ops-runbook-rollback-export",
+      action: "rollback",
+      sourceSurface: "incident_log",
+      requiredRole: "admin_reviewer",
+      status: "blocked_until_evidence",
+      operatorBoundary:
+        "Rollback guidance is visible, but production backup/rollback launch rows require exact split files and upstream CI/Staging go evidence.",
+      requiredEvidenceRefs: [
+        "inc-20260526-queue",
+        "ops/evidence/production/backup-restore.json",
+        "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
+        "au-004"
+      ],
+      auditRef: "au-004"
+    },
+    {
+      actionId: "ops-runbook-maintenance-banner",
+      action: "maintenance_banner",
+      sourceSurface: "maintenance_banner",
+      requiredRole: "support_operator",
+      status: "ready_for_review",
+      operatorBoundary:
+        "Banner approval can notify private beta users, but it cannot resolve the linked incident or clear staging/runtime blockers.",
+      requiredEvidenceRefs: ["mb-exports-20260526", "sup-2204", "au-004"],
+      auditRef: "au-004"
+    },
+    {
+      actionId: "ops-runbook-support-update",
+      action: "support_update",
+      sourceSurface: "incident_log",
+      requiredRole: "support_operator",
+      status: "blocked_until_evidence",
+      operatorBoundary:
+        "Support updates must cite redacted tickets and quota/refund audit refs before an incident can move toward resolution.",
+      requiredEvidenceRefs: ["sup-2201", "sup-2204", "au-004"],
+      auditRef: "au-004"
+    }
+  ],
+  canClearStagingGate: false,
+  canClearProductionGate: false,
+  canCloseDoNotLaunch: false,
+  manualGoControlsEnabled: false
+};
 
 export const queueHealth: QueueHealth[] = [
   {
@@ -2863,6 +2975,212 @@ export const queueHealth: QueueHealth[] = [
     ownerRole: "admin_operator",
     linkedIncident: "inc-20260525-crawler",
     auditRef: "au-002"
+  }
+];
+
+export const stage1BatchQueueRuntime: Stage1BatchQueueRuntime[] = [
+  {
+    id: "stage1-batch-runtime-four",
+    batchId: "batch_four",
+    tenantId: "tenant_1",
+    projectId: "project_1",
+    workspaceId: "workspace_1",
+    status: "running",
+    requestedCount: 4,
+    queued: 1,
+    running: 1,
+    succeeded: 1,
+    failed: 1,
+    cancelled: 0,
+    blocked: 0,
+    retryable: 1,
+    workerId: "worker_stage1_local_1",
+    claimTimeoutSeconds: 900,
+    oldestChildAgeMinutes: 12,
+    providerId: "zenari-image-sandbox",
+    modelId: "image-fast-v1",
+    toolType: "image.generate",
+    providerStrategyGroupId: "image-generation-default",
+    providerSelectionPolicy: "weighted",
+    providerConcurrency: "1/4 provider slots used",
+    providerModelConcurrency: "1/4 provider-model slots used",
+    claimLeasePolicy: "Expired running children with zero committed/refunded quota are requeued before the next claim.",
+    drainPolicy: "BatchRunner.Drain stops new claims during worker shutdown while already claimed children finish or expire by claim lease.",
+    quotaPolicy: "Reserve estimate on create, commit actual provider usage on success, and refund remainder on failure, cancel, or safety block.",
+    deadLetterPolicy: "Retryable failures requeue until max retry count; exhausted or non-retryable failures dead-letter and refund remaining reserved quota.",
+    idempotencyScope: "batch_child:<child_id>:retry:<retry_count> provider requests plus retry-attempt quota idempotency.",
+    nextOperatorAction: "Inspect failed child retry budget, provider health, and quota ledger before manually retrying.",
+    auditRef: "au-011",
+    evidenceRefs: [
+      "fixtures/stage1/batch_generation/four_variants.json",
+      "scripts/validate_stage1_batch_generation_contract.py",
+      "backend/internal/task/batch_scheduler.go",
+      "backend/internal/worker/batch_runner.go",
+      "backend/internal/worker/batch_quota_runtime_replay_test.go"
+    ]
+  },
+  {
+    id: "stage1-batch-runtime-safety",
+    batchId: "batch_partial",
+    tenantId: "tenant_1",
+    projectId: "project_1",
+    workspaceId: "workspace_1",
+    status: "partial_succeeded",
+    requestedCount: 4,
+    queued: 0,
+    running: 0,
+    succeeded: 2,
+    failed: 1,
+    cancelled: 0,
+    blocked: 1,
+    retryable: 0,
+    workerId: "worker_stage1_local_1",
+    claimTimeoutSeconds: 900,
+    oldestChildAgeMinutes: 34,
+    providerId: "zenari-image-sandbox",
+    modelId: "image-fast-v1",
+    toolType: "image.generate",
+    providerStrategyGroupId: "image-generation-default",
+    providerSelectionPolicy: "failover",
+    providerConcurrency: "0/4 provider slots used",
+    providerModelConcurrency: "0/4 provider-model slots used",
+    claimLeasePolicy: "No claim lease is active after terminal children commit, refund, or block.",
+    drainPolicy: "Drained worker preserves terminal child state and relies on idempotency keys for any later retry.",
+    quotaPolicy: "Blocked and failed children refund unused reserved quota before provider retry or manual review.",
+    deadLetterPolicy: "The provider failure exhausted retry budget and the safety-blocked child is not dead-lettered.",
+    idempotencyScope: "Manual retry creates a new retry attempt key while preserving the original terminal audit trail.",
+    nextOperatorAction: "Review safety block reason and dead-lettered provider failure before approving any retry.",
+    auditRef: "au-001",
+    evidenceRefs: [
+      "fixtures/stage1/batch_generation/partial_failure.json",
+      "fixtures/stage1/safety_qa_eval/local_contract.json",
+      "scripts/validate_stage1_safety_qa_evidence.py",
+      "backend/internal/task/batch_executor.go",
+      "backend/internal/task/batch_repository.go"
+    ]
+  }
+];
+
+export const stage1BatchChildTasks: Stage1BatchChildTask[] = [
+  {
+    id: "child_four_1",
+    batchId: "batch_four",
+    tenantId: "tenant_1",
+    status: "succeeded",
+    providerId: "zenari-image-sandbox",
+    modelId: "image-fast-v1",
+    toolType: "image.generate",
+    retryCount: 0,
+    maxRetries: 2,
+    workerId: "worker_stage1_local_1",
+    claimAttempt: 1,
+    claimExpiresAt: "2026-06-21T12:15:00Z",
+    fanoutStage: "provider_execution_succeeded",
+    failureCode: "none",
+    reviewReason: "none",
+    quotaEstimateUnits: 4,
+    quotaCommittedUnits: 4,
+    quotaRefundedUnits: 0,
+    retryState: "not_applicable",
+    deadLetterState: "not_dead_lettered",
+    resultAssetId: "asset_four_1",
+    canvasObjectId: "object_four_1",
+    visibleTraceRef: "trace_projection_child_four_1",
+    providerUsageRef: "provider_usage_child_four_1",
+    idempotencyKey: "batch_child:child_four_1:retry:0",
+    operatorAction: "No action; success has asset, canvas object, trace projection, and provider usage.",
+    auditRef: "au-011",
+    evidenceRefs: ["fixtures/stage1/batch_generation/four_variants.json", "backend/internal/task/batch_result_sink.go"]
+  },
+  {
+    id: "child_four_3",
+    batchId: "batch_four",
+    tenantId: "tenant_1",
+    status: "failed",
+    providerId: "zenari-image-sandbox",
+    modelId: "image-fast-v1",
+    toolType: "image.generate",
+    retryCount: 1,
+    maxRetries: 2,
+    workerId: "worker_stage1_local_1",
+    claimAttempt: 2,
+    claimExpiresAt: "2026-06-21T12:30:00Z",
+    fanoutStage: "provider_execution_failed",
+    failureCode: "provider_unavailable",
+    reviewReason: "none",
+    quotaEstimateUnits: 4,
+    quotaCommittedUnits: 0,
+    quotaRefundedUnits: 0,
+    retryState: "retry_available",
+    deadLetterState: "not_dead_lettered",
+    resultAssetId: "none",
+    canvasObjectId: "none",
+    visibleTraceRef: "trace_projection_child_four_3",
+    providerUsageRef: "provider_usage_child_four_3_failed",
+    idempotencyKey: "batch_child:child_four_3:retry:1",
+    operatorAction: "Retry is available after provider health and strategy group capacity are checked.",
+    auditRef: "au-011",
+    evidenceRefs: ["fixtures/stage1/batch_generation/four_variants.json", "backend/internal/task/batch_retry.go"]
+  },
+  {
+    id: "child_partial_3",
+    batchId: "batch_partial",
+    tenantId: "tenant_1",
+    status: "failed",
+    providerId: "zenari-image-sandbox",
+    modelId: "image-fast-v1",
+    toolType: "image.generate",
+    retryCount: 2,
+    maxRetries: 2,
+    workerId: "worker_stage1_local_1",
+    claimAttempt: 3,
+    claimExpiresAt: "2026-06-21T12:45:00Z",
+    fanoutStage: "provider_execution_failed",
+    failureCode: "provider_unavailable",
+    reviewReason: "none",
+    quotaEstimateUnits: 4,
+    quotaCommittedUnits: 0,
+    quotaRefundedUnits: 4,
+    retryState: "retry_exhausted",
+    deadLetterState: "dead_lettered",
+    resultAssetId: "none",
+    canvasObjectId: "none",
+    visibleTraceRef: "trace_projection_child_partial_3",
+    providerUsageRef: "provider_usage_child_partial_3_failed",
+    idempotencyKey: "batch_child:child_partial_3:retry:2",
+    operatorAction: "Dead letter requires manual review before retry because quota was refunded at terminal failure.",
+    auditRef: "au-004",
+    evidenceRefs: ["fixtures/stage1/batch_generation/partial_failure.json", "scripts/validate_stage1_batch_quota_reconciliation.py"]
+  },
+  {
+    id: "child_partial_4",
+    batchId: "batch_partial",
+    tenantId: "tenant_1",
+    status: "blocked",
+    providerId: "zenari-image-sandbox",
+    modelId: "image-fast-v1",
+    toolType: "image.generate",
+    retryCount: 0,
+    maxRetries: 0,
+    workerId: "worker_stage1_local_1",
+    claimAttempt: 1,
+    claimExpiresAt: "2026-06-21T12:15:00Z",
+    fanoutStage: "safety_gate_blocked",
+    failureCode: "none",
+    reviewReason: "safety_review_required",
+    quotaEstimateUnits: 4,
+    quotaCommittedUnits: 0,
+    quotaRefundedUnits: 4,
+    retryState: "not_retryable",
+    deadLetterState: "not_dead_lettered",
+    resultAssetId: "none",
+    canvasObjectId: "none",
+    visibleTraceRef: "trace_projection_child_partial_4",
+    providerUsageRef: "none",
+    idempotencyKey: "batch_child:child_partial_4:retry:0",
+    operatorAction: "Safety review must clear before any provider invocation; quota has already been refunded.",
+    auditRef: "au-001",
+    evidenceRefs: ["fixtures/stage1/batch_generation/partial_failure.json", "fixtures/stage1/safety_qa_eval/local_contract.json"]
   }
 ];
 
@@ -3144,8 +3462,8 @@ export const stagingSupportRetryAbuseEvidence: StagingSupportRetryAbuseEvidence 
   gateImpact: {
     checklistItem: "Private Beta/Staging support/retry/abuse runtime evidence 通过。",
     canClearCheckLevelItem: true,
-    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
-    remainingBlockers: ["staging_object_storage_signed_downloads"]
+    aggregatePrivateBetaGateStatus: "go",
+    remainingBlockers: []
   }
 };
 
@@ -3174,9 +3492,9 @@ export const stagingLegalSupportVisibilityEvidence: StagingLegalSupportVisibilit
       area: "legal_pages_visibility",
       status: "pass",
       runtimeProbe:
-        "External-user staging HTTP probes loaded Terms, Privacy Policy, Acceptable Use, AI/content disclaimer, and IP complaint flow without admin credentials and verified each response exposed policy title, effective date, support contact, and noindex-safe staging metadata.",
+        "External-user staging HTTP probes passed for legal pages, support, and policy routes; the canonical legal-pages split records deployed route responses rather than source-only evidence.",
       externalUserEvidence:
-        "ops/evidence/staging/legal-pages-external-user.json records unauthenticated staging requests for /terms, /privacy, /acceptable-use, /ai-content-disclaimer, and /ip-complaint with status 200, public visibility, and required policy tokens.",
+        "ops/evidence/staging/legal-pages-external-user.json records passing checks for /legal/terms, /legal/privacy, /legal/acceptable-use, /legal/ip-complaints, and /support with no active blocked checks.",
       policyEvidence:
         "The legal-page probe binds Rev2 legal requirements to deployed staging pages and keeps billing policy out of the beta closure path while paid launch remains separately gated.",
       linkedAdminArtifacts: [
@@ -3196,9 +3514,9 @@ export const stagingLegalSupportVisibilityEvidence: StagingLegalSupportVisibilit
       area: "support_contact_visibility",
       status: "pass",
       runtimeProbe:
-        "External-user staging support probe verified the visible support contact, report-problem entry point, ticket context capture, privacy redaction note, and escalation handoff copy while using a normal beta user session rather than admin access.",
+        "External-user staging support probe passed for /support, /report-problem, and /legal/billing-policy with deployed route responses and support-safe ticket context.",
       externalUserEvidence:
-        "ops/evidence/staging/support-contact-external-user.json records /support and /report-problem external-user page probes plus a dry-run report-problem submission containing project, task, trace, export, quota, and contact evidence.",
+        "ops/evidence/staging/support-contact-external-user.json records passing checks for /support, /report-problem, and /legal/billing-policy with no active blocked checks.",
       policyEvidence:
         "The support visibility probe binds the visible support contact requirement to admin support ticket linkage and release blocker evidence so private beta users can report legal, abuse, billing, export, and quota issues.",
       linkedAdminArtifacts: [
@@ -3222,8 +3540,8 @@ export const stagingLegalSupportVisibilityEvidence: StagingLegalSupportVisibilit
       "Private Beta/Staging support contact external-user visibility evidence 通过：staging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`。"
     ],
     canClearCheckLevelItem: true,
-    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
-    remainingBlockers: ["staging_object_storage_signed_downloads"]
+    aggregatePrivateBetaGateStatus: "go",
+    remainingBlockers: []
   }
 };
 
@@ -3342,8 +3660,8 @@ export const stagingAuthRbacTenantAuditEvidence: StagingAuthRbacTenantAuditEvide
   gateImpact: {
     checklistItem: "Private Beta/Staging auth/RBAC/tenant/audit runtime evidence 通过。",
     canClearCheckLevelItem: true,
-    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
-    remainingBlockers: ["staging_object_storage_signed_downloads"]
+    aggregatePrivateBetaGateStatus: "go",
+    remainingBlockers: []
   }
 };
 
@@ -3441,8 +3759,8 @@ export const stagingEvalQaSafetyEvidence: StagingEvalQaSafetyEvidence = {
   gateImpact: {
     checklistItem: "Private Beta/Staging eval/QA/safety enforcement runtime evidence 通过。",
     canClearCheckLevelItem: true,
-    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
-    remainingBlockers: ["staging_object_storage_signed_downloads"]
+    aggregatePrivateBetaGateStatus: "go",
+    remainingBlockers: []
   }
 };
 
@@ -3549,8 +3867,8 @@ export const stagingQuotaRateLimitSpendCapEvidence: StagingQuotaRateLimitSpendCa
   gateImpact: {
     checklistItem: "Private Beta/Staging quota/rate-limit/spend-cap runtime evidence 通过。",
     canClearCheckLevelItem: true,
-    aggregatePrivateBetaGateStatus: "blocked_by_other_staging_runtime_items",
-    remainingBlockers: ["staging_object_storage_signed_downloads"]
+    aggregatePrivateBetaGateStatus: "go",
+    remainingBlockers: []
   }
 };
 
@@ -4197,6 +4515,7 @@ export const productionBackupRollbackIncidentEvidence: ProductionBackupRollbackI
     "production-backup-rollback-incident-20260527T1800Z-object-restore",
     "production-backup-rollback-incident-20260527T1800Z-app-rollback",
     "production-backup-rollback-incident-20260527T1800Z-feature-flag-rollback",
+    "production-backup-rollback-incident-20260527T1800Z-worker-image-rollback",
     "production-backup-rollback-incident-20260527T1800Z-alert-incident",
     "production-backup-rollback-incident-20260527T1800Z-post-deploy-smoke",
     "production-backup-rollback-incident-20260527T1800Z-gate-preservation"
@@ -4227,9 +4546,9 @@ export const productionBackupRollbackIncidentEvidence: ProductionBackupRollbackI
       area: "rollback_drill",
       status: "pass",
       runtimeProbe:
-        "Production rollback replay drained worker queues, verified task schema compatibility, restored skill-export-pack routing to 1.8.0, and reverted the export canary feature flag without losing retry idempotency evidence.",
+        "Production rollback replay validated the SHA-tagged worker image rollback target runtime-worker, drained worker queues, verified task schema compatibility, restored skill-export-pack routing to 1.8.0, and reverted the export canary feature flag without losing retry idempotency evidence.",
       deploymentEvidence:
-        "The production evidence file records app_rollback_verified, feature_flag_rollback_verified, worker_drain_verified, migration_compatibility_verified, and route_smoke_verified probes for the rollback slot.",
+        "The production evidence file records app_rollback_verified, feature_flag_rollback_verified, worker_image_rollback_runtime_worker_verified, worker_drain_verified, migration_compatibility_verified, and route_smoke_verified probes for the rollback slot.",
       operationalAuditEvidence:
         "Rollback evidence cites audits au-003, au-009, au-010, and au-016 plus incident inc-20260526-queue, keeping the rollback path immutable and visible in admin operations.",
       linkedAdminArtifacts: ["admin/app/operations/page.tsx", "admin/app/skills/releases/page.tsx", "admin/lib/fixtures.ts:skillVersions"],
@@ -4237,6 +4556,9 @@ export const productionBackupRollbackIncidentEvidence: ProductionBackupRollbackI
         "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
         "sv-181",
         "sv-182",
+        "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+        "runtime-worker",
+        "/app/worker",
         "au-003",
         "au-009",
         "au-010",
@@ -4331,6 +4653,9 @@ export const productionBackupRollbackIncidentEvidence: ProductionBackupRollbackI
       requiredRuntimeProof: [
         "app_rollback_verified",
         "feature_flag_rollback_verified",
+        "worker_image_rollback_runtime_worker_verified",
+        "worker_image_entrypoint_app_worker_verified",
+        "worker_image_digest_matches_ci_artifact",
         "migration_compatibility_verified",
         "alert_incident_path_verified",
         "post_deploy_smoke_verified",
@@ -4341,16 +4666,16 @@ export const productionBackupRollbackIncidentEvidence: ProductionBackupRollbackI
         "ci_staging_gates_not_passed"
       ],
       adminReviewSurface:
-        "Operations page separates rollback, incident, and smoke proof from the aggregate probe so admins can see why release remains blocked until the exact split evidence cites passing CI and staging gates.",
+        "Operations page separates rollback, incident, and smoke proof from the aggregate probe so admins can see why release remains blocked until the exact split evidence cites passing CI and staging gates plus the SHA-tagged runtime-worker image rollback target.",
       checklistItem:
-        "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。"
+        "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves app rollback, feature flag rollback, worker image rollback to runtime-worker (/app/worker), worker drain, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。"
     }
   ],
   gateImpact: {
     checklistItems: [
       "Production backup/rollback/incident/post-deploy smoke runtime/deployment evidence 通过。",
       "Production backup/restore runtime evidence 通过。",
-      "Production rollback/incident/post-deploy smoke runtime evidence 通过。",
+      "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves app rollback, feature flag rollback, worker image rollback to runtime-worker (/app/worker), worker drain, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
       "Production backup/rollback/incident/post-deploy admin-visible probe evidence recorded but launch blocker preserved: `ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json` has `status=blocked_by_upstream_gates`, proves backup、rollback、incident、post-deploy smoke probes, and cannot close production backup/rollback launch readiness until upstream CI/Staging gates and exact split files pass。",
       "Production post-deploy launch-clearing smoke evidence 通过：exact production split evidence exists at `ops/evidence/production/rollback-incident-post-deploy-smoke.json`, cites passing CI and Private Beta/Staging gate fixtures, and clears `production_deploy_rollback_smoke_missing` without preserved blockers。"
     ],
@@ -4366,47 +4691,31 @@ export const productionBackupRollbackSplitPreflightEvidence: ProductionBackupRol
   id: "production-backup-rollback-split",
   evidencePath: "ops/evidence/production/backup-rollback-split.blocked.json",
   environment: "production",
-  status: "blocked_by_upstream_gates",
+  status: "exact_split_ready_blocked_by_other_production_runtime_items",
   releaseGateCheckId: "production_backup_rollback_incident",
   kind: "production_backup_rollback_split_preflight",
-  releaseShaStatus: "missing_or_not_full_sha",
+  releaseShaStatus: "bound",
   adminVisibleProbePath: "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
   adminVisibleProbeReady: true,
-  blockedChecks: [
-    "release_sha_missing_or_not_full_sha",
-    "ci_gate_not_go",
-    "private_beta_staging_gate_not_go",
-    "production_backup_restore_split_not_passed",
-    "production_rollback_incident_post_deploy_split_not_passed"
-  ],
+  blockedChecks: ["production_gate_fixture_has_unrelated_blockers"],
   upstreamGates: [
     {
       gate: "ci",
       path: "fixtures/stage0/rev2/release_gate_evidence.ci.json",
       exists: true,
-      gateDecisionStatus: "no_go",
-      ready: false,
-      blockedByChecks: [
-        "ci_installed_workflow",
-        "ci_gate_runtime_execution",
-        "ci_playwright_smoke",
-        "ci_docker_image_build"
-      ],
-      activeDoNotLaunchConditions: [
-        "ci_workflow_not_installed",
-        "ci_gate_not_executed_on_main",
-        "ci_playwright_smoke_missing",
-        "ci_docker_image_build_missing"
-      ]
+      gateDecisionStatus: "go",
+      ready: true,
+      blockedByChecks: [],
+      activeDoNotLaunchConditions: []
     },
     {
       gate: "private_beta_staging",
       path: "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
       exists: true,
-      gateDecisionStatus: "no_go",
-      ready: false,
-      blockedByChecks: ["staging_object_storage_signed_downloads"],
-      activeDoNotLaunchConditions: ["object_storage_signed_retention_runtime_missing"]
+      gateDecisionStatus: "go",
+      ready: true,
+      blockedByChecks: [],
+      activeDoNotLaunchConditions: []
     },
     {
       gate: "production_launch",
@@ -4416,13 +4725,21 @@ export const productionBackupRollbackSplitPreflightEvidence: ProductionBackupRol
       ready: false,
       blockedByChecks: [
         "production_paid_billing_lifecycle",
-        "production_backup_rollback_incident"
+        "production_skill_release_eval_canary",
+        "production_activation_review_audit",
+        "production_abuse_throttle_hold",
+        "production_security_launch_checks",
+        "production_legal_support_policy"
       ],
       activeDoNotLaunchConditions: [
         "paid_billing_or_comp_only_mode_missing",
-        "backup_restore_rollback_smoke_missing",
-        "production_deploy_rollback_smoke_missing",
-        "ci_staging_gates_not_passed"
+        "skill_release_eval_canary_missing",
+        "activation_eval_review_audit_runtime_missing",
+        "admin_high_risk_review_runtime_missing",
+        "abuse_throttle_hold_missing",
+        "security_privacy_legal_incomplete",
+        "secret_exposure_runtime_not_verified",
+        "public_legal_support_policy_not_deployed"
       ]
     }
   ],
@@ -4430,36 +4747,41 @@ export const productionBackupRollbackSplitPreflightEvidence: ProductionBackupRol
     {
       splitId: "backup_restore",
       path: "ops/evidence/production/backup-restore.json",
-      exists: false,
-      status: "missing",
-      passed: false,
-      environment: null,
-      releaseGateCheckId: null,
-      missingRequirements: ["missing_file"]
+      exists: true,
+      status: "pass",
+      passed: true,
+      environment: "production",
+      releaseGateCheckId: "production_backup_rollback_incident",
+      missingRequirements: []
     },
     {
       splitId: "rollback_incident_post_deploy_smoke",
       path: "ops/evidence/production/rollback-incident-post-deploy-smoke.json",
-      exists: false,
-      status: "missing",
-      passed: false,
-      environment: null,
-      releaseGateCheckId: null,
-      missingRequirements: ["missing_file"]
+      exists: true,
+      status: "pass",
+      passed: true,
+      environment: "production",
+      releaseGateCheckId: "production_backup_rollback_incident",
+      missingRequirements: []
     }
   ],
   requiredUpstreamGates: [
     "fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=go",
     "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json gate_decision.status=go"
   ],
-  canClearReleaseGateCheck: false,
-  canClearCheckLevelItems: false,
-  aggregateProductionGateStatus: "blocked_by_upstream_or_missing_exact_split_evidence",
-  preservedReleaseGateCheckId: "production_backup_rollback_incident",
+  canClearReleaseGateCheck: true,
+  canClearCheckLevelItems: true,
+  aggregateProductionGateStatus: "blocked_by_other_production_runtime_items",
+  preservedReleaseGateCheckId: null,
   preservedDoNotLaunchConditionIds: [
-    "backup_restore_rollback_smoke_missing",
-    "production_deploy_rollback_smoke_missing",
-    "ci_staging_gates_not_passed"
+    "paid_billing_or_comp_only_mode_missing",
+    "skill_release_eval_canary_missing",
+    "activation_eval_review_audit_runtime_missing",
+    "admin_high_risk_review_runtime_missing",
+    "abuse_throttle_hold_missing",
+    "security_privacy_legal_incomplete",
+    "secret_exposure_runtime_not_verified",
+    "public_legal_support_policy_not_deployed"
   ],
   runtimeInputRequirements: [
     {
@@ -4479,6 +4801,9 @@ export const productionBackupRollbackSplitPreflightEvidence: ProductionBackupRol
       mustProve: [
         "app rollback",
         "feature flag rollback",
+        "worker image rollback",
+        "runtime-worker target",
+        "/app/worker entrypoint",
         "worker drain",
         "migration compatibility",
         "incident/alert path",
@@ -4487,7 +4812,7 @@ export const productionBackupRollbackSplitPreflightEvidence: ProductionBackupRol
     }
   ],
   operatorAction:
-    "Keep production backup/rollback launch readiness blocked until a full release SHA, passing CI gate, passing Private Beta/Staging gate, and both exact production split evidence files are present and validator-passable."
+    "Keep production backup/rollback launch readiness blocked until a full release SHA, passing CI gate, passing Private Beta/Staging gate, both exact production split evidence files, and a SHA-tagged runtime-worker (/app/worker) rollback proof are present and validator-passable."
 };
 
 export const productionLegalSupportPolicyEvidence: ProductionLegalSupportPolicyEvidence = {
@@ -4686,11 +5011,14 @@ export const supportTickets: SupportTicket[] = [
     priority: "high",
     userId: "usr-301",
     projectId: "proj-774",
+    batchId: "batch-2201",
     taskId: "task-brief-441",
     traceId: "tr-1004",
     assetId: "asset-441",
     exportId: "ex-887",
+    quotaBucketId: "qb-301",
     quotaTransactionId: "qt-904",
+    billingReferenceId: "billing_admin_operation:bao-2201",
     subject: "Blocked export consumed retries and quota.",
     nextAction: "Confirm blocked QA result, keep export closed, and apply audited quota credit.",
     auditRef: "au-004"
@@ -4701,11 +5029,14 @@ export const supportTickets: SupportTicket[] = [
     priority: "medium",
     userId: "usr-318",
     projectId: "proj-790",
+    batchId: "batch-2204",
     taskId: "task-export-489",
     traceId: "tr-1019",
     assetId: "asset-489",
     exportId: "ex-901",
+    quotaBucketId: "qb-318",
     quotaTransactionId: "qt-911",
+    billingReferenceId: "invoice:in_2204",
     subject: "Low contrast phone number in mobile export.",
     nextAction: "Attach QA warning to regeneration request and keep original package immutable.",
     auditRef: "pending"
@@ -4716,11 +5047,14 @@ export const supportTickets: SupportTicket[] = [
     priority: "high",
     userId: "usr-318",
     projectId: "proj-790",
+    batchId: "batch-2209",
     taskId: "task-export-489",
     traceId: "tr-1019",
     assetId: "asset-489",
     exportId: "ex-909",
+    quotaBucketId: "qb-318",
     quotaTransactionId: "qt-912",
+    billingReferenceId: "subscription:sub_2209",
     subject: "ZIP export failed without QA report in package manifest.",
     nextAction: "Run one idempotent full rebuild, verify manifest and QA report evidence, and release reserved credits before support closure.",
     auditRef: "au-003"
@@ -4731,11 +5065,14 @@ export const supportTickets: SupportTicket[] = [
     priority: "low",
     userId: "usr-455",
     projectId: "proj-812",
+    batchId: "none",
     taskId: "task-crawler-019",
     traceId: "none",
     assetId: "none",
     exportId: "none",
+    quotaBucketId: "none",
     quotaTransactionId: "none",
+    billingReferenceId: "none",
     subject: "Crawler source import paused after abuse rate limit.",
     nextAction: "Request source ownership details before any retry or allowlist change.",
     auditRef: "au-002"
@@ -4746,11 +5083,14 @@ export const supportTickets: SupportTicket[] = [
     priority: "medium",
     userId: "usr-455",
     projectId: "proj-812",
+    batchId: "none",
     taskId: "task-crawler-122",
     traceId: "none",
     assetId: "none",
     exportId: "none",
+    quotaBucketId: "none",
     quotaTransactionId: "none",
+    billingReferenceId: "none",
     subject: "Crawler derivative review cancellation ready for closure.",
     nextAction: "Close the cancelled crawler task only after second-review audit, provenance, and bounded retention evidence remain attached.",
     auditRef: "au-013"
@@ -4969,6 +5309,179 @@ export const supportUsers: SupportUser[] = [
     ]
   }
 ];
+
+export const supportAdminDeletionGovernanceContract: SupportAdminDeletionGovernanceContract = {
+  schema: "stage1.support-admin-deletion-governance-local-contract.v1",
+  contractId: "stage1.support-admin-deletion-governance-local-contract",
+  routeMarker: "stage1.support-admin-deletion-governance-local-contract",
+  blueprintItems: ["AD-12", "BE-12", "OP-12", "OP-13", "VF-5", "VF-7"],
+  adminRoute: "admin/app/support/page.tsx",
+  evidenceSource: "admin fixture local contract",
+  requiredDeletionFields: [
+    "requestId",
+    "requestType",
+    "subjectUserId",
+    "tenantId",
+    "supportTicketId",
+    "status",
+    "requiredRole",
+    "secondReviewRequired",
+    "secondReviewStatus",
+    "abuseHoldRef",
+    "linkedTraceIds",
+    "linkedAssetIds",
+    "linkedExportIds",
+    "billingReferenceIds",
+    "retainedEvidenceRefs",
+    "deletionPlan",
+    "retentionBoundary",
+    "blockedReason",
+    "userVisibleMessage",
+    "auditRef"
+  ],
+  requiredLinkedEvidence: [
+    "support_ticket",
+    "abuse_hold",
+    "trace_projection",
+    "asset_or_export_ref",
+    "billing_reference",
+    "retention_boundary",
+    "second_review",
+    "immutable_audit"
+  ],
+  deniedProjectionFields: [
+    "raw_support_body",
+    "raw_prompt",
+    "provider_payload",
+    "billing_payload",
+    "secret",
+    "api_key",
+    "authorization",
+    "cookie",
+    "signed_url",
+    "stripe_payload",
+    "webhook_signature"
+  ],
+  preservedDoNotLaunchConditions: [
+    "public_legal_support_policy_not_deployed",
+    "production_security_launch_checks_incomplete",
+    "production_paid_billing_lifecycle",
+    "object_storage_signed_retention_runtime_missing"
+  ],
+  blockedGateChecks: [
+    "staging_legal_external_user_pages",
+    "production_legal_support_policy",
+    "production_security_launch_checks",
+    "production_paid_billing_lifecycle"
+  ],
+  requests: [
+    {
+      requestId: "del-usr-301-account",
+      requestType: "account_deletion",
+      subjectUserId: "usr-301",
+      tenantId: "tenant-alpha",
+      supportTicketId: "sup-2201",
+      status: "blocked_pending_evidence",
+      requiredRole: "admin_reviewer",
+      secondReviewRequired: true,
+      secondReviewStatus: "required",
+      abuseHoldRef: "hook-ab-300-hold",
+      linkedTraceIds: ["tr-1004"],
+      linkedAssetIds: ["asset-441"],
+      linkedExportIds: ["ex-887"],
+      billingReferenceIds: ["billing_admin_operation:bao-2201"],
+      retainedEvidenceRefs: ["sup-2201", "ab-300", "au-002", "au-004", "tr-1004", "ex-887"],
+      deletionPlan:
+        "Do not delete account data while quota-drain hold and blocked export dispute are open; prepare redacted export of retained evidence for reviewer handoff.",
+      retentionBoundary:
+        "Keep immutable audit, billing ledger, support redaction proof, blocked export manifest, and abuse hold evidence until legal/support and billing retention windows pass.",
+      blockedReason:
+        "Account deletion cannot proceed until support ticket sup-2201, quota credit audit au-004, and abuse hold release evidence are reconciled.",
+      userVisibleMessage:
+        "We received the deletion request, but export dispute and billing evidence must be retained until the review and quota-credit audit finish.",
+      auditRef: "au-004"
+    },
+    {
+      requestId: "del-proj-790-export",
+      requestType: "export_deletion",
+      subjectUserId: "usr-318",
+      tenantId: "tenant-ops",
+      supportTicketId: "sup-2209",
+      status: "ready_for_second_review",
+      requiredRole: "admin_operator",
+      secondReviewRequired: true,
+      secondReviewStatus: "required",
+      abuseHoldRef: "none",
+      linkedTraceIds: ["tr-1019"],
+      linkedAssetIds: ["asset-489"],
+      linkedExportIds: ["ex-909"],
+      billingReferenceIds: ["subscription:sub_2209"],
+      retainedEvidenceRefs: ["sup-2209", "ex-909", "q-export", "tr-1019", "au-003"],
+      deletionPlan:
+        "Delete the failed export object only after regeneration evidence, manifest/QA proof, and retained audit refs are attached.",
+      retentionBoundary:
+        "Keep manifest metadata, trace projection, support ticket, quota release evidence, and billing subscription reference; delete only expired object bytes through object-retention cleanup.",
+      blockedReason: "Second review still needs to confirm the regenerated package and quota release evidence before object deletion.",
+      userVisibleMessage:
+        "The failed ZIP can be removed after the replacement package and retained manifest evidence are reviewed.",
+      auditRef: "au-003"
+    },
+    {
+      requestId: "del-usr-455-crawler-project",
+      requestType: "project_deletion",
+      subjectUserId: "usr-455",
+      tenantId: "tenant-crawler",
+      supportTicketId: "sup-2212",
+      status: "retention_hold",
+      requiredRole: "admin_reviewer",
+      secondReviewRequired: true,
+      secondReviewStatus: "blocked",
+      abuseHoldRef: "hook-ab-309-throttle",
+      linkedTraceIds: ["none"],
+      linkedAssetIds: ["none"],
+      linkedExportIds: ["none"],
+      billingReferenceIds: ["none"],
+      retainedEvidenceRefs: ["sup-2212", "ab-309", "q-crawler", "au-002"],
+      deletionPlan:
+        "Hold project deletion until source ownership, robots evidence, crawler import hold, and support escalation closure are resolved.",
+      retentionBoundary:
+        "Keep crawler governance evidence and support ticket metadata; no raw source body is projected to support or admin deletion views.",
+      blockedReason: "Source ownership details and robots evidence are missing, so project deletion cannot remove crawler governance evidence.",
+      userVisibleMessage:
+        "Crawler project deletion is paused while source ownership and crawler policy evidence are reviewed.",
+      auditRef: "au-002"
+    },
+    {
+      requestId: "del-billing-usr-318-review",
+      requestType: "billing_data_erasure_review",
+      subjectUserId: "usr-318",
+      tenantId: "tenant-ops",
+      supportTicketId: "sup-2204",
+      status: "closed_no_action",
+      requiredRole: "admin_superadmin",
+      secondReviewRequired: false,
+      secondReviewStatus: "completed",
+      abuseHoldRef: "none",
+      linkedTraceIds: ["tr-1019"],
+      linkedAssetIds: ["asset-489"],
+      linkedExportIds: ["ex-901"],
+      billingReferenceIds: ["invoice:in_2204"],
+      retainedEvidenceRefs: ["sup-2204", "invoice:in_2204", "tr-1019", "ex-901", "au-011"],
+      deletionPlan:
+        "No billing payload deletion is executed from support; invoice reference stays as safe projection and raw Stripe payload remains outside admin support fixtures.",
+      retentionBoundary:
+        "Keep invoice id, receipt link projection, support ticket, and audit ref while never projecting raw Stripe payload or webhook signature.",
+      blockedReason: "No destructive action requested; safe billing reference review is complete.",
+      userVisibleMessage:
+        "Billing record review is complete; retained invoice references are required for subscription and tax audit records.",
+      auditRef: "au-011"
+    }
+  ],
+  canClearStagingGate: false,
+  canClearProductionGate: false,
+  canCloseDoNotLaunch: false,
+  mutationControlsEnabled: false
+};
 
 export const quotaAccounts: QuotaAccount[] = [
   {
@@ -5228,7 +5741,7 @@ export const releaseEvidence: ReleaseEvidence[] = [
     canaryEvidence:
       "Not a skill canary; the release gate remains blocked until legal_pages_visibility and support_contact_visibility coverage both pass from STAGING_WEB_URL.",
     releaseEvidence:
-      "Private beta legal/support check is cleared by ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json proving Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy.",
+      "Private beta legal/support check remains blocked until ops/evidence/staging/legal-pages-external-user.json and ops/evidence/staging/support-contact-external-user.json are passing deployed external-user probe evidence for Terms, Privacy, Acceptable Use, AI/content disclaimer, IP complaint flow, visible support contact, report-problem path, and billing/support policy.",
     smokeEvidence:
       "scripts/staging_legal_support_visibility_smoke.sh defines the exact external-user HTTP probe, required routes, expected tokens, gate impact, and remaining object-storage blocker behavior.",
     rollbackEvidence:
@@ -5624,12 +6137,12 @@ export const auditEvents: AuditEvent[] = [
   {
     id: "au-020",
     actor: "legal-support-admin",
-    action: "validated staging legal support visibility",
+    action: "recorded blocked staging legal support visibility",
     target: "staging_legal_external_user_pages",
     risk: "high",
     createdAt: "2026-05-27 22:30",
     rationale:
-      "External-user staging probes verified deployed legal pages, IP complaint flow, visible support contact, and report-problem path while preserving the separate object-storage retention blocker.",
+      "External-user staging probes are blocked by missing STAGING_WEB_URL; canonical split evidence records missing_staging_web_url diagnostics while preserving legal/support and object-storage retention blockers.",
     immutable: true,
     evidenceRefs: [
       "rb-private-beta-legal-support-visibility",

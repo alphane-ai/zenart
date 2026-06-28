@@ -1,4 +1,4 @@
-# ZenArt Stage 0 Rev2 Ops Runbook
+# Zenari Stage 0 Rev2 Ops Runbook
 
 Authoritative source: `Docs/stage0_blueprint_rev2.md`
 

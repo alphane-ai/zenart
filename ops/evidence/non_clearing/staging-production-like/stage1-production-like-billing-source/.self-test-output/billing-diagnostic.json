@@ -1,0 +1,20 @@
+{
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "billing_proof.lifecycle.stripe_live_test_separation.status must pass"
+  ],
+  "canonical_source_written": false,
+  "cookie_persisted": false,
+  "environment": "production",
+  "generated_at": "2026-06-26T05:49:26+00:00",
+  "kind": "production_billing_source_probe",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "schema_version": "stage1.production_source_probe.blocked.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "blocked"
+}

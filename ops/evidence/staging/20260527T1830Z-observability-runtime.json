@@ -76,7 +76,7 @@
         "ops/evidence/staging/20260526T1000Z-alert-runtime.json",
         "ops/observability/alerts/stage0_rev2_alerts.json"
       ],
-      "alert_rule_url": "https://monitoring.zenart.internal/alerts/stage0-rev2",
+      "alert_rule_url": "https://monitoring.zenari.internal/alerts/stage0-rev2",
       "audit_ref": "au-008"
     }
   ],

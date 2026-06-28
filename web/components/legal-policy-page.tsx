@@ -20,7 +20,7 @@ export function LegalPolicyPage({ policy }: { policy: LegalPolicy }) {
       </nav>
 
       <section className="legal-hero">
-        <span className="eyebrow">ZenArt Stage 0</span>
+        <span className="eyebrow">zenari.ai Stage 1</span>
         <h1>{policy.title}</h1>
         <p>{policy.summary}</p>
         <div className="legal-meta">

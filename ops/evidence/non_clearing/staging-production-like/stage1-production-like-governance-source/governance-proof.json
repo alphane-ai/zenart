@@ -1,0 +1,130 @@
+{
+  "schema_version": "stage1.production_like_governance_release_proof.v1",
+  "environment": "staging_production_like",
+  "does_not_clear_production_gate": true,
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "activation": {
+    "release_gate_check_id": "production_activation_review_audit",
+    "runtime_request_ids": [
+      "staging-auth-rbac-tenant-audit-20260527T1515Z-rbac-overrides",
+      "staging-auth-rbac-tenant-audit-20260527T1515Z-audit-immutability"
+    ],
+    "audit_refs": [
+      "ops/evidence/non_clearing/staging-production-like/20260527T1515Z-auth-rbac-tenant-audit.json",
+      "admin/tests/admin-governance.test.mjs"
+    ],
+    "high_risk_rbac": {
+      "status": "pass",
+      "evidence_refs": ["ops/evidence/non_clearing/staging-production-like/20260527T1515Z-auth-rbac-tenant-audit.json"],
+      "all_high_risk_surfaces_covered": true
+    },
+    "reviewer_rationale": {
+      "status": "pass",
+      "evidence_refs": ["admin/tests/admin-governance.test.mjs"],
+      "rationale_required": true,
+      "rationale_captured": true
+    },
+    "second_review": {
+      "status": "pass",
+      "evidence_refs": ["admin/lib/fixtures.ts", "admin/tests/admin-governance.test.mjs"],
+      "required_for_high_risk": true,
+      "distinct_reviewer_enforced": true
+    },
+    "audit_immutability": {
+      "status": "pass",
+      "evidence_refs": ["ops/evidence/non_clearing/staging-production-like/20260527T1515Z-auth-rbac-tenant-audit.json"],
+      "immutable_audit_refs": true
+    },
+    "activation_gates": {
+      "status": "pass",
+      "evidence_refs": ["admin/lib/fixtures.ts", "Docs/researches/stage1_gap_inventory.md"],
+      "skill": true,
+      "crawler": true,
+      "prompt": true,
+      "provider": true,
+      "quota": true,
+      "safety": true,
+      "export": true
+    }
+  },
+  "abuse": {
+    "release_gate_check_id": "production_abuse_throttle_hold",
+    "runtime_request_ids": [
+      "staging-quota-rate-limit-spend-cap-20260527T2015Z-api-throttle",
+      "staging-quota-rate-limit-spend-cap-20260527T2015Z-emergency-kill-switch"
+    ],
+    "audit_refs": [
+      "ops/evidence/non_clearing/staging-production-like/20260527T2015Z-quota-rate-limit-spend-cap.json",
+      "admin/tests/admin-governance.test.mjs"
+    ],
+    "account_hold": {
+      "status": "pass",
+      "evidence_refs": ["admin/tests/admin-governance.test.mjs"],
+      "hold_enforced": true
+    },
+    "rate_limit": {
+      "status": "pass",
+      "evidence_refs": ["ops/evidence/non_clearing/staging-production-like/20260527T2015Z-quota-rate-limit-spend-cap.json"],
+      "rate_limit_enforced": true
+    },
+    "spend_cap_or_kill_switch": {
+      "status": "pass",
+      "evidence_refs": ["ops/evidence/non_clearing/staging-production-like/20260527T2015Z-quota-rate-limit-spend-cap.json"],
+      "spend_cap_ready": true,
+      "kill_switch_ready": true
+    },
+    "rbac_audit": {
+      "status": "pass",
+      "evidence_refs": ["ops/evidence/non_clearing/staging-production-like/20260527T1515Z-auth-rbac-tenant-audit.json"],
+      "rbac_enforced": true,
+      "immutable_audit_refs": true
+    }
+  },
+  "skill": {
+    "release_gate_check_id": "production_skill_release_eval_canary",
+    "runtime_request_ids": [
+      "stage1-production-like-skill-canary-admin-contract",
+      "stage1-production-like-skill-eval-release-contract"
+    ],
+    "audit_refs": [
+      "scripts/validate_stage1_skill_eval_release_contract.py",
+      "scripts/validate_stage1_eval_skill_release_contract.py",
+      "admin/tests/admin-governance.test.mjs"
+    ],
+    "owner_risk": {
+      "status": "pass",
+      "evidence_refs": ["admin/lib/fixtures.ts"],
+      "owner_id": "stage1-skill-owner",
+      "risk_level": "medium"
+    },
+    "eval_suite": {
+      "status": "pass",
+      "evidence_refs": ["scripts/validate_stage1_eval_skill_release_contract.py"],
+      "eval_passed": true,
+      "suite_id": "stage1-skill-release-eval-suite"
+    },
+    "safety_refs": {
+      "status": "pass",
+      "evidence_refs": ["ops/evidence/non_clearing/staging-production-like/stage1-safety-qa-eval.json"],
+      "safety_refs_complete": true
+    },
+    "canary_metrics": {
+      "status": "pass",
+      "evidence_refs": ["scripts/validate_stage1_skill_eval_release_contract.py"],
+      "metrics_within_threshold": true,
+      "sample_size": 25
+    },
+    "rollback_target": {
+      "status": "pass",
+      "evidence_refs": ["admin/lib/fixtures.ts"],
+      "rollback_target_id": "stage1-skill-release-rollback-target",
+      "route_smoke_passed": true
+    },
+    "release_notes": {
+      "status": "pass",
+      "evidence_refs": ["ops/release/stage1_release_candidate_metadata_draft.md"],
+      "release_notes_id": "stage1-production-like-skill-release-notes",
+      "go_no_go_recorded": true
+    }
+  }
+}

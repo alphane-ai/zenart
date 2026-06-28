@@ -328,7 +328,7 @@ for (const snippet of [
   "rejectedReferenceExportedCount",
   "uploadRequestContractCount",
   "tenant-scoped-dev-preview",
-  "X-ZenArt-CSRF"
+  "X-Zenari-CSRF"
 ]) {
   if (!devStateSource.includes(snippet)) {
     fail(`reference upload builder missing source contract ${snippet}`);

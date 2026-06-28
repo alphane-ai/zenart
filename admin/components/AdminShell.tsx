@@ -19,6 +19,7 @@ const navGroups = [
       ["Provider Health", "/providers"],
       ["Queue / Dead-letter", "/queues"],
       ["Operations Gate", "/operations"],
+      ["Release Readiness", "/release"],
       ["Export Jobs", "/exports"],
       ["Trace Detail", "/traces"],
       ["Feedback Queue", "/feedback"],
@@ -44,7 +45,7 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
     <div className="admin-frame">
       <aside className="sidebar" aria-label="Admin navigation">
         <Link className="brand" href="/">
-          <strong>ZenArt Admin</strong>
+          <strong>zenari.ai Admin</strong>
           <span>Stage 0 Rev2 operations</span>
         </Link>
 

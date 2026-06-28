@@ -1,0 +1,32 @@
+{
+  "items": [
+    {
+      "id": "child_5118f3e89814da1bf6f3a4a4",
+      "batch_id": "batch_fc46555b13958bc5d27cbd9c",
+      "tenant_id": "tenant_local",
+      "status": "queued",
+      "provider_id": "zenari-image-sandbox",
+      "model_id": "glm-4.5",
+      "tool_type": "image.generate",
+      "seed": "batch_fc46555b13958bc5d27cbd9c_01",
+      "retry_count": 0,
+      "max_retries": 2,
+      "quota_estimate_units": 4,
+      "quota_committed_units": 0,
+      "quota_refunded_units": 0,
+      "trace_id": "trace_child_3b5f33c26a8f1e22d4204b50",
+      "visible_trace_ref": "trace_projection_96cfcb8dc34b8696e4e169c1",
+      "metadata": {
+        "fanout_index": "0",
+        "routing_considered": "zenari-image-sandbox",
+        "routing_fallback_providers": "dev",
+        "routing_selection_policy": "weighted",
+        "routing_selection_reason": "weighted_slot",
+        "routing_strategy_group_id": "image-generation-default",
+        "source": "api"
+      },
+      "created_at": "2026-06-23T05:33:11.03973+08:00",
+      "updated_at": "2026-06-23T05:33:11.03973+08:00"
+    }
+  ]
+}

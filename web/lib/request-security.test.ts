@@ -8,8 +8,31 @@ import {
   buildCsrfRequestHeaders,
   buildSessionSecurityContractEvidence,
   defaultSameSiteCsrfContract,
-  isCsrfProtectedMethod
+  isCsrfProtectedMethod,
 } from "./request-security";
+
+const generatedUnsafeOperationIds = Object.entries(apiOperations)
+  .filter(([, operation]) => isCsrfProtectedMethod(operation.method))
+  .map(([operationId]) => operationId);
+const generatedSafeOperationIds = Object.entries(apiOperations)
+  .filter(([, operation]) => !isCsrfProtectedMethod(operation.method))
+  .map(([operationId]) => operationId);
+const generatedUnsafeIdempotencyRequiredOperationIds = Object.entries(
+  apiOperations,
+)
+  .filter(
+    ([, operation]) =>
+      isCsrfProtectedMethod(operation.method) && operation.idempotencyRequired,
+  )
+  .map(([operationId]) => operationId);
+const generatedUnsafeIdempotencyExemptOperationIds = Object.entries(
+  apiOperations,
+)
+  .filter(
+    ([, operation]) =>
+      isCsrfProtectedMethod(operation.method) && !operation.idempotencyRequired,
+  )
+  .map(([operationId]) => operationId);
 
 describe("same-site CSRF request contract", () => {
   it("marks only state-changing methods as CSRF protected", () => {
@@ -23,27 +46,37 @@ describe("same-site CSRF request contract", () => {
   });
 
   it("adds the same-site CSRF header to unsafe requests while preserving unrelated caller headers", () => {
-    expect(buildCsrfRequestHeaders("GET", { Accept: "application/json" })).toEqual({
-      Accept: "application/json"
-    });
-    expect(buildCsrfRequestHeaders("HEAD", { Accept: "application/json" })).toEqual({
-      Accept: "application/json"
-    });
-    expect(buildCsrfRequestHeaders("OPTIONS", { Accept: "application/json" })).toEqual({
-      Accept: "application/json"
-    });
-    expect(buildCsrfRequestHeaders("POST", { Accept: "application/json" })).toEqual({
+    expect(
+      buildCsrfRequestHeaders("GET", { Accept: "application/json" }),
+    ).toEqual({
       Accept: "application/json",
-      [defaultSameSiteCsrfContract.headerName]: defaultSameSiteCsrfContract.headerValue
+    });
+    expect(
+      buildCsrfRequestHeaders("HEAD", { Accept: "application/json" }),
+    ).toEqual({
+      Accept: "application/json",
+    });
+    expect(
+      buildCsrfRequestHeaders("OPTIONS", { Accept: "application/json" }),
+    ).toEqual({
+      Accept: "application/json",
+    });
+    expect(
+      buildCsrfRequestHeaders("POST", { Accept: "application/json" }),
+    ).toEqual({
+      Accept: "application/json",
+      [defaultSameSiteCsrfContract.headerName]:
+        defaultSameSiteCsrfContract.headerValue,
     });
     expect(
       buildCsrfRequestHeaders("PATCH", {
         Accept: "application/json",
-        [defaultSameSiteCsrfContract.headerName]: "caller-token"
-      })
+        [defaultSameSiteCsrfContract.headerName]: "caller-token",
+      }),
     ).toEqual({
       Accept: "application/json",
-      [defaultSameSiteCsrfContract.headerName]: defaultSameSiteCsrfContract.headerValue
+      [defaultSameSiteCsrfContract.headerName]:
+        defaultSameSiteCsrfContract.headerValue,
     });
   });
 
@@ -51,40 +84,44 @@ describe("same-site CSRF request contract", () => {
     expect(
       buildCsrfRequestHeaders("GET", {
         Accept: "application/json",
-        "X-ZenArt-CSRF": "stale-token",
-        "x-zenart-csrf": "lowercase-stale-token"
-      })
+        "X-Zenari-CSRF": "stale-token",
+        "x-zenari-csrf": "lowercase-stale-token",
+      }),
     ).toEqual({
-      Accept: "application/json"
+      Accept: "application/json",
     });
     expect(
       buildCsrfRequestHeaders("POST", {
         Accept: "application/json",
-        "X-ZenArt-CSRF": "stale-token",
-        "x-zenart-csrf": "lowercase-stale-token",
-        "X-Client-Trace": "trace-001"
-      })
+        "X-Zenari-CSRF": "stale-token",
+        "x-zenari-csrf": "lowercase-stale-token",
+        "X-Client-Trace": "trace-001",
+      }),
     ).toEqual({
       Accept: "application/json",
       "X-Client-Trace": "trace-001",
-      [defaultSameSiteCsrfContract.headerName]: defaultSameSiteCsrfContract.headerValue
+      [defaultSameSiteCsrfContract.headerName]:
+        defaultSameSiteCsrfContract.headerValue,
     });
   });
 
   it("builds machine-checkable secure-cookie and same-site CSRF evidence for generated operations", () => {
-    const evidence = buildSessionSecurityContractEvidence(createSessionContract(), apiOperations);
+    const evidence = buildSessionSecurityContractEvidence(
+      createSessionContract(),
+      apiOperations,
+    );
 
     expect(evidence).toMatchObject({
       schema_version: "stage0.rev2.session-csrf-client-evidence",
       status: "pass",
-      cookieName: "__Host-zenart_session",
+      cookieName: "__Host-zenari_session",
       cookieAttributes: {
         httpOnly: true,
         secure: true,
         sameSite: "lax",
         path: "/",
         domain: "",
-        hostOnly: true
+        hostOnly: true,
       },
       hostPrefixInvariant: {
         prefix: "__Host-",
@@ -93,111 +130,50 @@ describe("same-site CSRF request contract", () => {
         pathRoot: true,
         hostOnly: true,
         status: "pass",
-        failureReasons: []
+        failureReasons: [],
       },
-      setCookieContract: "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly",
+      setCookieContract:
+        "__Host-zenari_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly",
       acceptedSameSiteValues: ["lax", "strict"],
       rejectedSameSiteValues: ["none"],
       sameSiteAcceptanceMatrix: [
         { sameSite: "lax", status: "pass", failureReason: "" },
         { sameSite: "strict", status: "pass", failureReason: "" },
-        { sameSite: "none", status: "fail", failureReason: "cookie-same-site" }
+        { sameSite: "none", status: "fail", failureReason: "cookie-same-site" },
       ],
       sameSiteRequirement: "lax-or-strict",
       csrfStrategy: "same-site-origin-check",
-      csrfHeaderName: "X-ZenArt-CSRF",
+      csrfHeaderName: "X-Zenari-CSRF",
       credentialMode: "include",
       originPolicy: "same-site-only",
       missingCsrfOperationIds: [],
       cookieFailureReasons: [],
-      csrfFailureReasons: []
+      csrfFailureReasons: [],
     });
-    expect(evidence.protectedOperationIds).toEqual([
-      "deleteSession",
-      "updateAccount",
-      "createProject",
-      "updateProject",
-      "createChatSession",
-      "createChatMessage",
-      "createCandidateSet",
-      "selectDirection",
-      "createCanvasNode",
-      "createCanvasVersion",
-      "createUpload",
-      "createPackage",
-      "createExport",
-      "createShareLink",
-      "createSupportTicket"
-    ]);
+    expect(evidence.protectedOperationIds).toEqual(generatedUnsafeOperationIds);
   });
 
   it("builds per-operation generated client request evidence for unsafe operations", () => {
-    const evidence = buildGeneratedApiCsrfRequestContractEvidence(apiOperations);
+    const evidence =
+      buildGeneratedApiCsrfRequestContractEvidence(apiOperations);
 
     expect(evidence).toMatchObject({
       schema_version: "stage0.rev2.generated-api-csrf-contract",
       status: "pass",
       credentialMode: "include",
-      csrfHeaderName: "X-ZenArt-CSRF",
+      csrfHeaderName: "X-Zenari-CSRF",
       csrfHeaderValue: "same-site-origin-check",
       sameSiteRequirement: "lax-or-strict",
       originPolicy: "same-site-only",
       protectedMethods: ["POST", "PUT", "PATCH", "DELETE"],
-      unsafeOperationCount: 15,
-      safeOperationCount: 17,
-      unsafeOperationIds: [
-        "deleteSession",
-        "updateAccount",
-        "createProject",
-        "updateProject",
-        "createChatSession",
-        "createChatMessage",
-        "createCandidateSet",
-        "selectDirection",
-        "createCanvasNode",
-        "createCanvasVersion",
-        "createUpload",
-        "createPackage",
-        "createExport",
-        "createShareLink",
-        "createSupportTicket"
-      ],
-      safeOperationIds: [
-        "getSession",
-        "getAccount",
-        "listProjects",
-        "getProject",
-        "getWorkspace",
-        "listChatMessages",
-        "getTask",
-        "listCandidateSets",
-        "listCandidateAssets",
-        "listCanvasNodes",
-        "listCanvasFrames",
-        "listCanvasVersions",
-        "listAssets",
-        "listPackages",
-        "getExport",
-        "getQuota",
-        "getSubscription"
-      ],
-      unsafeIdempotencyRequiredOperationIds: [
-        "updateAccount",
-        "createProject",
-        "updateProject",
-        "createChatSession",
-        "createChatMessage",
-        "createCandidateSet",
-        "selectDirection",
-        "createCanvasNode",
-        "createCanvasVersion",
-        "createUpload",
-        "createPackage",
-        "createExport",
-        "createShareLink",
-        "createSupportTicket"
-      ],
-      unsafeIdempotencyExemptOperationIds: ["deleteSession"],
+      unsafeOperationCount: generatedUnsafeOperationIds.length,
+      safeOperationCount: generatedSafeOperationIds.length,
+      unsafeOperationIds: generatedUnsafeOperationIds,
+      safeOperationIds: generatedSafeOperationIds,
+      unsafeIdempotencyRequiredOperationIds:
+        generatedUnsafeIdempotencyRequiredOperationIds,
+      unsafeIdempotencyExemptOperationIds:
+        generatedUnsafeIdempotencyExemptOperationIds,
       missingUnsafeOperationIds: [],
       methodCoverage: {
         schema_version: "stage0.rev2.generated-api-csrf-method-coverage",
@@ -206,46 +182,41 @@ describe("same-site CSRF request contract", () => {
         safeMethods: ["GET", "HEAD", "OPTIONS"],
         coveredUnsafeMethods: ["DELETE", "PATCH", "POST", "PUT"],
         coveredSafeMethods: ["GET"],
-        unsafeMethodCoverage: ["POST:covered", "PUT:covered", "PATCH:covered", "DELETE:covered"],
-        safeMethodCoverage: ["GET:covered", "HEAD:not-generated", "OPTIONS:not-generated"],
-        failureReasons: []
+        unsafeMethodCoverage: [
+          "POST:covered",
+          "PUT:covered",
+          "PATCH:covered",
+          "DELETE:covered",
+        ],
+        safeMethodCoverage: [
+          "GET:covered",
+          "HEAD:not-generated",
+          "OPTIONS:not-generated",
+        ],
+        failureReasons: [],
       },
-      failureReasons: []
+      failureReasons: [],
     });
-    expect(evidence.unsafeRequestContracts.map((contract) => contract.operationId)).toEqual([
-      "deleteSession",
-      "updateAccount",
-      "createProject",
-      "updateProject",
-      "createChatSession",
-      "createChatMessage",
-      "createCandidateSet",
-      "selectDirection",
-      "createCanvasNode",
-      "createCanvasVersion",
-      "createUpload",
-      "createPackage",
-      "createExport",
-      "createShareLink",
-      "createSupportTicket"
-    ]);
+    expect(
+      evidence.unsafeRequestContracts.map((contract) => contract.operationId),
+    ).toEqual(generatedUnsafeOperationIds);
     expect(evidence.unsafeRequestContracts).toContainEqual({
       operationId: "createUpload",
       method: "POST",
       path: "/uploads",
       credentials: "include",
-      csrfHeaderName: "X-ZenArt-CSRF",
+      csrfHeaderName: "X-Zenari-CSRF",
       csrfHeaderValue: "same-site-origin-check",
-      idempotencyHeaderRequired: true
+      idempotencyHeaderRequired: true,
     });
     expect(evidence.unsafeRequestContracts).toContainEqual({
       operationId: "deleteSession",
       method: "DELETE",
       path: "/session",
       credentials: "include",
-      csrfHeaderName: "X-ZenArt-CSRF",
+      csrfHeaderName: "X-Zenari-CSRF",
       csrfHeaderValue: "same-site-origin-check",
-      idempotencyHeaderRequired: false
+      idempotencyHeaderRequired: false,
     });
     expect(evidence.safeRequestContracts).toContainEqual({
       operationId: "getSession",
@@ -254,7 +225,7 @@ describe("same-site CSRF request contract", () => {
       credentials: "include",
       csrfHeaderName: "not-required",
       csrfHeaderValue: "not-required",
-      idempotencyHeaderRequired: false
+      idempotencyHeaderRequired: false,
     });
     expect(evidence.safeRequestContracts).toContainEqual({
       operationId: "getSubscription",
@@ -263,16 +234,41 @@ describe("same-site CSRF request contract", () => {
       credentials: "include",
       csrfHeaderName: "not-required",
       csrfHeaderValue: "not-required",
-      idempotencyHeaderRequired: false
+      idempotencyHeaderRequired: false,
+    });
+    expect(evidence.safeRequestContracts).toContainEqual({
+      operationId: "listBillingInvoices",
+      method: "GET",
+      path: "/billing/invoices",
+      credentials: "include",
+      csrfHeaderName: "not-required",
+      csrfHeaderValue: "not-required",
+      idempotencyHeaderRequired: false,
     });
   });
 
   it("keeps HEAD and OPTIONS same-site credentialed but outside CSRF unsafe inventory", () => {
     const operations = {
-      getSession: { method: "GET", path: "/session", idempotencyRequired: false },
-      headSession: { method: "HEAD", path: "/session", idempotencyRequired: false },
-      optionsSession: { method: "OPTIONS", path: "/session", idempotencyRequired: false },
-      createUpload: { method: "POST", path: "/uploads", idempotencyRequired: true }
+      getSession: {
+        method: "GET",
+        path: "/session",
+        idempotencyRequired: false,
+      },
+      headSession: {
+        method: "HEAD",
+        path: "/session",
+        idempotencyRequired: false,
+      },
+      optionsSession: {
+        method: "OPTIONS",
+        path: "/session",
+        idempotencyRequired: false,
+      },
+      createUpload: {
+        method: "POST",
+        path: "/uploads",
+        idempotencyRequired: true,
+      },
     } as const;
 
     const evidence = buildGeneratedApiCsrfRequestContractEvidence(operations);
@@ -289,12 +285,21 @@ describe("same-site CSRF request contract", () => {
         safeMethods: ["GET", "HEAD", "OPTIONS"],
         coveredUnsafeMethods: ["POST"],
         coveredSafeMethods: ["GET", "HEAD", "OPTIONS"],
-        unsafeMethodCoverage: ["POST:covered", "PUT:missing", "PATCH:missing", "DELETE:missing"],
+        unsafeMethodCoverage: [
+          "POST:covered",
+          "PUT:missing",
+          "PATCH:missing",
+          "DELETE:missing",
+        ],
         safeMethodCoverage: ["GET:covered", "HEAD:covered", "OPTIONS:covered"],
-        failureReasons: ["missing-unsafe-method-PUT", "missing-unsafe-method-PATCH", "missing-unsafe-method-DELETE"]
+        failureReasons: [
+          "missing-unsafe-method-PUT",
+          "missing-unsafe-method-PATCH",
+          "missing-unsafe-method-DELETE",
+        ],
       },
       missingUnsafeOperationIds: [],
-      failureReasons: ["csrf-method-coverage"]
+      failureReasons: ["csrf-method-coverage"],
     });
     expect(evidence.safeRequestContracts).toEqual([
       {
@@ -304,7 +309,7 @@ describe("same-site CSRF request contract", () => {
         credentials: "include",
         csrfHeaderName: "not-required",
         csrfHeaderValue: "not-required",
-        idempotencyHeaderRequired: false
+        idempotencyHeaderRequired: false,
       },
       {
         operationId: "headSession",
@@ -313,7 +318,7 @@ describe("same-site CSRF request contract", () => {
         credentials: "include",
         csrfHeaderName: "not-required",
         csrfHeaderValue: "not-required",
-        idempotencyHeaderRequired: false
+        idempotencyHeaderRequired: false,
       },
       {
         operationId: "optionsSession",
@@ -322,8 +327,8 @@ describe("same-site CSRF request contract", () => {
         credentials: "include",
         csrfHeaderName: "not-required",
         csrfHeaderValue: "not-required",
-        idempotencyHeaderRequired: false
-      }
+        idempotencyHeaderRequired: false,
+      },
     ]);
     expect(buildCsrfRequestHeaders("HEAD")).toEqual({});
     expect(buildCsrfRequestHeaders("OPTIONS")).toEqual({});
@@ -333,28 +338,32 @@ describe("same-site CSRF request contract", () => {
     const strictSession = createSessionContract();
     strictSession.cookie = {
       ...strictSession.cookie,
-      sameSite: "strict"
+      sameSite: "strict",
     };
 
-    expect(buildSessionSecurityContractEvidence(strictSession, apiOperations)).toMatchObject({
+    expect(
+      buildSessionSecurityContractEvidence(strictSession, apiOperations),
+    ).toMatchObject({
       status: "pass",
       cookieAttributes: {
-        sameSite: "strict"
+        sameSite: "strict",
       },
       sameSiteRequirement: "lax-or-strict",
-      cookieFailureReasons: []
+      cookieFailureReasons: [],
     });
 
     const noneSession = createSessionContract();
     noneSession.cookie = {
       ...noneSession.cookie,
-      sameSite: "none"
+      sameSite: "none",
     };
 
-    expect(buildSessionSecurityContractEvidence(noneSession, apiOperations)).toMatchObject({
+    expect(
+      buildSessionSecurityContractEvidence(noneSession, apiOperations),
+    ).toMatchObject({
       status: "fail",
       sameSiteRequirement: "lax-or-strict",
-      cookieFailureReasons: ["cookie-same-site"]
+      cookieFailureReasons: ["cookie-same-site"],
     });
   });
 
@@ -362,14 +371,16 @@ describe("same-site CSRF request contract", () => {
     const domainScopedSession = createSessionContract();
     domainScopedSession.cookie = {
       ...domainScopedSession.cookie,
-      domain: ".zenart.local"
+      domain: ".zenari.local",
     };
 
-    expect(buildSessionSecurityContractEvidence(domainScopedSession, apiOperations)).toMatchObject({
+    expect(
+      buildSessionSecurityContractEvidence(domainScopedSession, apiOperations),
+    ).toMatchObject({
       status: "fail",
       cookieAttributes: {
-        domain: ".zenart.local",
-        hostOnly: false
+        domain: ".zenari.local",
+        hostOnly: false,
       },
       hostPrefixInvariant: {
         prefix: "__Host-",
@@ -378,23 +389,29 @@ describe("same-site CSRF request contract", () => {
         pathRoot: true,
         hostOnly: false,
         status: "fail",
-        failureReasons: ["cookie-domain"]
+        failureReasons: ["cookie-domain"],
       },
-      setCookieContract: "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;Domain=.zenart.local",
-      cookieFailureReasons: ["cookie-domain"]
+      setCookieContract:
+        "__Host-zenari_session;HttpOnly;Secure;SameSite=lax;Path=/;Domain=.zenari.local",
+      cookieFailureReasons: ["cookie-domain"],
     });
   });
 
   it("keeps the user route smoke artifact pinned to the session/CSRF client contract", () => {
     const artifactEvidence = userRouteSmoke.securityEvidence.find(
-      (entry) => entry.schemaVersion === "stage0.rev2.session-csrf-client-evidence"
+      (entry) =>
+        entry.schemaVersion === "stage0.rev2.session-csrf-client-evidence",
     );
-    const runtimeEvidence = buildSessionSecurityContractEvidence(createSessionContract(), apiOperations);
-    const generatedRuntimeEvidence = buildGeneratedApiCsrfRequestContractEvidence(apiOperations);
+    const runtimeEvidence = buildSessionSecurityContractEvidence(
+      createSessionContract(),
+      apiOperations,
+    );
+    const generatedRuntimeEvidence =
+      buildGeneratedApiCsrfRequestContractEvidence(apiOperations);
     const runtimePairingDigest = buildSecureCookieSameSiteRuntimePairingDigest(
       createSessionContract(),
       generatedRuntimeEvidence,
-      runtimeEvidence
+      runtimeEvidence,
     );
 
     expect(artifactEvidence).toMatchObject({
@@ -415,10 +432,14 @@ describe("same-site CSRF request contract", () => {
         hostPrefixStatusAttribute: "data-session-cookie-host-prefix-status",
         hostPrefixPresentAttribute: "data-session-cookie-host-prefix-present",
         hostPrefixSecureAttribute: "data-session-cookie-host-prefix-secure",
-        hostPrefixPathRootAttribute: "data-session-cookie-host-prefix-path-root",
-        hostPrefixHostOnlyAttribute: "data-session-cookie-host-prefix-host-only",
-        hostPrefixFailureCountAttribute: "data-session-cookie-host-prefix-failure-count",
-        hostPrefixFailureReasonsAttribute: "data-session-cookie-host-prefix-failure-reasons",
+        hostPrefixPathRootAttribute:
+          "data-session-cookie-host-prefix-path-root",
+        hostPrefixHostOnlyAttribute:
+          "data-session-cookie-host-prefix-host-only",
+        hostPrefixFailureCountAttribute:
+          "data-session-cookie-host-prefix-failure-count",
+        hostPrefixFailureReasonsAttribute:
+          "data-session-cookie-host-prefix-failure-reasons",
         expectedHttpOnly: String(runtimeEvidence.cookieAttributes.httpOnly),
         expectedSecure: String(runtimeEvidence.cookieAttributes.secure),
         expectedSameSite: runtimeEvidence.cookieAttributes.sameSite,
@@ -428,12 +449,23 @@ describe("same-site CSRF request contract", () => {
         expectedHostOnly: String(runtimeEvidence.cookieAttributes.hostOnly),
         expectedHostPrefix: runtimeEvidence.hostPrefixInvariant.prefix,
         expectedHostPrefixStatus: runtimeEvidence.hostPrefixInvariant.status,
-        expectedHostPrefixPresent: String(runtimeEvidence.hostPrefixInvariant.prefixPresent),
-        expectedHostPrefixSecure: String(runtimeEvidence.hostPrefixInvariant.secure),
-        expectedHostPrefixPathRoot: String(runtimeEvidence.hostPrefixInvariant.pathRoot),
-        expectedHostPrefixHostOnly: String(runtimeEvidence.hostPrefixInvariant.hostOnly),
-        expectedHostPrefixFailureCount: String(runtimeEvidence.hostPrefixInvariant.failureReasons.length),
-        expectedHostPrefixFailureReasons: runtimeEvidence.hostPrefixInvariant.failureReasons.join(",")
+        expectedHostPrefixPresent: String(
+          runtimeEvidence.hostPrefixInvariant.prefixPresent,
+        ),
+        expectedHostPrefixSecure: String(
+          runtimeEvidence.hostPrefixInvariant.secure,
+        ),
+        expectedHostPrefixPathRoot: String(
+          runtimeEvidence.hostPrefixInvariant.pathRoot,
+        ),
+        expectedHostPrefixHostOnly: String(
+          runtimeEvidence.hostPrefixInvariant.hostOnly,
+        ),
+        expectedHostPrefixFailureCount: String(
+          runtimeEvidence.hostPrefixInvariant.failureReasons.length,
+        ),
+        expectedHostPrefixFailureReasons:
+          runtimeEvidence.hostPrefixInvariant.failureReasons.join(","),
       },
       csrf: {
         strategyAttribute: "data-session-csrf-strategy",
@@ -441,7 +473,8 @@ describe("same-site CSRF request contract", () => {
         credentialModeAttribute: "data-session-csrf-credential-mode",
         originPolicyAttribute: "data-session-csrf-origin-policy",
         sameSiteRequirementAttribute: "data-session-csrf-same-site-requirement",
-        missingOperationCountAttribute: "data-session-csrf-missing-operation-count",
+        missingOperationCountAttribute:
+          "data-session-csrf-missing-operation-count",
         cookieFailureCountAttribute: "data-session-cookie-failure-count",
         cookieFailureReasonsAttribute: "data-session-cookie-failure-reasons",
         csrfFailureCountAttribute: "data-session-csrf-failure-count",
@@ -451,51 +484,75 @@ describe("same-site CSRF request contract", () => {
         expectedCredentialMode: runtimeEvidence.credentialMode,
         expectedSameSiteRequirement: runtimeEvidence.sameSiteRequirement,
         expectedOriginPolicy: runtimeEvidence.originPolicy,
-        expectedMissingOperationCount: String(runtimeEvidence.missingCsrfOperationIds.length),
-        expectedCookieFailureCount: String(runtimeEvidence.cookieFailureReasons.length),
-        expectedCsrfFailureCount: String(runtimeEvidence.csrfFailureReasons.length)
+        expectedMissingOperationCount: String(
+          runtimeEvidence.missingCsrfOperationIds.length,
+        ),
+        expectedCookieFailureCount: String(
+          runtimeEvidence.cookieFailureReasons.length,
+        ),
+        expectedCsrfFailureCount: String(
+          runtimeEvidence.csrfFailureReasons.length,
+        ),
       },
       backendRuntimePairing: {
-        schemaVersion: "stage0.rev2.secure-cookie-same-site-csrf-runtime-pairing",
+        schemaVersion:
+          "stage0.rev2.secure-cookie-same-site-csrf-runtime-pairing",
         contractAttribute: "data-session-backend-runtime-pairing",
         statusAttribute: "data-session-backend-runtime-pairing-status",
         digestAttribute: "data-session-backend-runtime-pairing-digest",
         setCookieContractAttribute: "data-session-backend-set-cookie-contract",
-        csrfValidationContractAttribute: "data-session-backend-csrf-validation-contract",
-        unsafeRequestContractCountAttribute: "data-session-backend-unsafe-request-contract-count",
-        missingUnsafeOperationCountAttribute: "data-session-backend-missing-unsafe-operation-count",
-        cookieFailureCountAttribute: "data-session-backend-cookie-failure-count",
+        csrfValidationContractAttribute:
+          "data-session-backend-csrf-validation-contract",
+        unsafeRequestContractCountAttribute:
+          "data-session-backend-unsafe-request-contract-count",
+        missingUnsafeOperationCountAttribute:
+          "data-session-backend-missing-unsafe-operation-count",
+        cookieFailureCountAttribute:
+          "data-session-backend-cookie-failure-count",
         csrfFailureCountAttribute: "data-session-backend-csrf-failure-count",
         expectedContract: "secure-cookie-same-site-csrf-runtime",
         expectedStatus: "pass",
         expectedDigest: runtimePairingDigest,
-        expectedSetCookieContract: "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly",
-        expectedCsrfValidationContract: "POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict",
-        expectedUnsafeRequestContractCount: "15",
-        expectedMissingUnsafeOperationCount: String(runtimeEvidence.missingCsrfOperationIds.length),
-        expectedCookieFailureCount: String(runtimeEvidence.cookieFailureReasons.length),
-        expectedCsrfFailureCount: String(runtimeEvidence.csrfFailureReasons.length)
-      }
+        expectedSetCookieContract:
+          "__Host-zenari_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly",
+        expectedCsrfValidationContract:
+          "POST,PUT,PATCH,DELETE:X-Zenari-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict",
+        expectedUnsafeRequestContractCount: String(
+          generatedRuntimeEvidence.unsafeRequestContracts.length,
+        ),
+        expectedMissingUnsafeOperationCount: String(
+          runtimeEvidence.missingCsrfOperationIds.length,
+        ),
+        expectedCookieFailureCount: String(
+          runtimeEvidence.cookieFailureReasons.length,
+        ),
+        expectedCsrfFailureCount: String(
+          runtimeEvidence.csrfFailureReasons.length,
+        ),
+      },
     });
   });
 
   it("fails closed with explicit reasons when secure-cookie or CSRF fields drift", () => {
     const insecureSession = createSessionContract();
     insecureSession.cookie = {
-      name: "zenart_session",
+      name: "zenari_session",
       httpOnly: false,
       secure: false,
       sameSite: "none",
       path: "/app",
-      domain: ".zenart.local"
+      domain: ".zenari.local",
     };
     insecureSession.csrf = {
       ...defaultSameSiteCsrfContract,
       headerName: "X-Unsafe-CSRF",
-      protectedMethods: []
+      protectedMethods: [],
     };
 
-    const evidence = buildSessionSecurityContractEvidence(insecureSession, apiOperations);
+    const evidence = buildSessionSecurityContractEvidence(
+      insecureSession,
+      apiOperations,
+    );
 
     expect(evidence.status).toBe("fail");
     expect(evidence.cookieFailureReasons).toEqual([
@@ -504,7 +561,7 @@ describe("same-site CSRF request contract", () => {
       "cookie-secure",
       "cookie-same-site",
       "cookie-path",
-      "cookie-domain"
+      "cookie-domain",
     ]);
     expect(evidence.hostPrefixInvariant).toEqual({
       prefix: "__Host-",
@@ -513,54 +570,40 @@ describe("same-site CSRF request contract", () => {
       pathRoot: false,
       hostOnly: false,
       status: "fail",
-      failureReasons: ["cookie-prefix", "cookie-secure", "cookie-path", "cookie-domain"]
+      failureReasons: [
+        "cookie-prefix",
+        "cookie-secure",
+        "cookie-path",
+        "cookie-domain",
+      ],
     });
-    expect(evidence.csrfFailureReasons).toEqual(["csrf-header", "csrf-operation-coverage"]);
-    expect(evidence.missingCsrfOperationIds).toEqual([
-      "deleteSession",
-      "updateAccount",
-      "createProject",
-      "updateProject",
-      "createChatSession",
-      "createChatMessage",
-      "createCandidateSet",
-      "selectDirection",
-      "createCanvasNode",
-      "createCanvasVersion",
-      "createUpload",
-      "createPackage",
-      "createExport",
-      "createShareLink",
-      "createSupportTicket"
+    expect(evidence.csrfFailureReasons).toEqual([
+      "csrf-header",
+      "csrf-operation-coverage",
     ]);
+    expect(evidence.missingCsrfOperationIds).toEqual(
+      generatedUnsafeOperationIds,
+    );
   });
 
   it("fails generated client request evidence when the same-site contract drifts", () => {
-    const evidence = buildGeneratedApiCsrfRequestContractEvidence(apiOperations, {
-      ...defaultSameSiteCsrfContract,
-      headerName: "X-Unsafe-CSRF",
-      credentialMode: "include",
-      protectedMethods: []
-    });
+    const evidence = buildGeneratedApiCsrfRequestContractEvidence(
+      apiOperations,
+      {
+        ...defaultSameSiteCsrfContract,
+        headerName: "X-Unsafe-CSRF",
+        credentialMode: "include",
+        protectedMethods: [],
+      },
+    );
 
     expect(evidence.status).toBe("fail");
-    expect(evidence.failureReasons).toEqual(["csrf-header", "csrf-operation-coverage"]);
-    expect(evidence.missingUnsafeOperationIds).toEqual([
-      "deleteSession",
-      "updateAccount",
-      "createProject",
-      "updateProject",
-      "createChatSession",
-      "createChatMessage",
-      "createCandidateSet",
-      "selectDirection",
-      "createCanvasNode",
-      "createCanvasVersion",
-      "createUpload",
-      "createPackage",
-      "createExport",
-      "createShareLink",
-      "createSupportTicket"
+    expect(evidence.failureReasons).toEqual([
+      "csrf-header",
+      "csrf-operation-coverage",
     ]);
+    expect(evidence.missingUnsafeOperationIds).toEqual(
+      generatedUnsafeOperationIds,
+    );
   });
 });

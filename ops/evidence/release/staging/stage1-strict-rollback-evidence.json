@@ -1,0 +1,67 @@
+{
+  "authorization_header_persisted": false,
+  "cookie_persisted": false,
+  "environment": "staging",
+  "gate_impact": {
+    "can_clear_stage1_production_launch_gate": false
+  },
+  "generated_at": "2026-06-24T11:33:15+00:00",
+  "kind": "rollback",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "schema_version": "stage1.strict_rollback_evidence.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "validated",
+  "steps": [
+    {
+      "evidence_refs": [
+        "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+        "docker-compose.yml"
+      ],
+      "id": "image_rollback",
+      "rollback_report": "release image set is closed to backend/web/admin; previous image refs are controlled by CI evidence",
+      "status": "validated"
+    },
+    {
+      "evidence_refs": [
+        ".env.example",
+        "Docs/Stage1_20260621_blueprint.md"
+      ],
+      "id": "feature_flag_rollback",
+      "rollback_report": "WORKER_BATCH_ENABLED=false and provider kill switches are documented rollback controls",
+      "status": "validated"
+    },
+    {
+      "evidence_refs": [
+        "backend/migrations",
+        "ops/evidence/release/staging/stage1-strict-migration-evidence.json"
+      ],
+      "id": "migration_compatibility",
+      "rollback_report": "forward repair migration compatibility is documented for Stage 1 candidate",
+      "status": "validated"
+    },
+    {
+      "evidence_refs": [
+        "backend/cmd/worker/main_test.go",
+        "docker-compose.yml",
+        "ops/evidence/staging/stage1-runtime.json"
+      ],
+      "id": "worker_drain",
+      "rollback_report": "worker is a backend runtime entrypoint and drain evidence belongs to backend runtime",
+      "status": "validated"
+    },
+    {
+      "evidence_refs": [
+        "https://staging.zenari.ai/healthz",
+        "ops/evidence/staging/stage1-runtime.json"
+      ],
+      "id": "post_rollback_smoke",
+      "smoke_report": "staging health endpoint returned HTTP 200 with request id 20260624113225.842996609",
+      "status": "validated"
+    }
+  ]
+}
