@@ -386,6 +386,7 @@ jobs:
               "schema_version": "stage1.ci_docker_image_build.v1",
               "kind": "ci_docker_image_build",
               "release_gate_check_id": "ci_docker_image_build",
+              "image_set": ["web", "admin", "backend"],
               "images": {
                   name: {
                       "status": "pass",
