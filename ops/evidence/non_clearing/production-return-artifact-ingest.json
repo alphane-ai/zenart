@@ -1,0 +1,207 @@
+{
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "production_proof_bundle: wrote Stage 1 production proof bundle summary to ops/evidence/non_clearing/production-proof-bundle.json",
+    "strict_production_launch_validation: stage1 production launch validation failed: evidence contains blocked/debug-only gate signal(s): ['evidence.blockers is not empty', 'evidence.components[1].blockers is not empty', 'evidence.components[4].blockers is not empty', 'evidence.components[5].blockers is not empty', 'evidence.components[6].blockers is not empty', 'evidence.components[7].blockers is not empty', 'evidence.components[8].blockers is not empty', 'evidence.do_not_launch_conditions is not empty', 'evidence.release_gate_fixtures[3].active_do_not_launch_conditions is not empty', 'evidence.release_gate_fixtures[3].blocked_by_checks is not empty', 'evidence.release_gate_fixtures[3].blockers is not empty']",
+    "generate_next_blockers_summary: wrote Stage 1 next blockers summary to ops/evidence/non_clearing/stage1-next-blockers-summary.json wrote Stage 1 next blockers markdown to ops/evidence/non_clearing/stage1-next-blockers-summary.md"
+  ],
+  "canonical_sources_requested": false,
+  "cookie_persisted": false,
+  "env_file": ".env",
+  "environment": "production",
+  "gate_impact": {
+    "can_clear_stage1_production_launch_gate": false,
+    "can_close_do_not_launch": false,
+    "non_clearing_refresh_preserves_no_go_until_strict_pass": true,
+    "requires_release_queue_validator": "python3 scripts/validate_stage1_release_evidence_closure_queue.py --allow-preflight",
+    "requires_strict_validator": "python3 scripts/validate_stage1_production_launch.py"
+  },
+  "generated_at": "2026-06-28T21:51:39+00:00",
+  "kind": "stage1_production_return_artifact_ingest",
+  "output_refs": {
+    "production_launch_source_pipeline": "ops/evidence/non_clearing/production-launch-source-pipeline.json",
+    "production_non_clearing_refresh": "ops/evidence/non_clearing/production-non-clearing-refresh.json",
+    "production_proof_bundle": "ops/evidence/non_clearing/production-proof-bundle.json",
+    "release_evidence_closure_queue": "ops/evidence/release/staging/stage1-evidence-closure-queue.preflight.json",
+    "stage1_next_blockers_summary": "ops/evidence/non_clearing/stage1-next-blockers-summary.json",
+    "summary": "ops/evidence/non_clearing/production-return-artifact-ingest.json"
+  },
+  "production_input_coverage": {
+    "blocking_input_count": 58,
+    "first_missing_or_invalid_inputs": [
+      "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+      "CLOUDFLARE_API_TOKEN or CF_API_TOKEN",
+      "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID",
+      "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID",
+      "STAGE1_PROD_BILLING_PRICE_ID",
+      "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID",
+      "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID",
+      "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID",
+      "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID",
+      "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID",
+      "STAGE1_PROD_BILLING_SEAT_QUANTITY",
+      "STAGE1_PROD_BILLING_SYNCED_QUANTITY"
+    ],
+    "groups": {
+      "billing": {
+        "configured_variable_names": [],
+        "invalid_required_input_count": 3,
+        "missing_required_input_count": 17,
+        "required_configured": 0,
+        "required_invalid": 3,
+        "required_missing": 17,
+        "required_total": 20
+      },
+      "governance": {
+        "configured_variable_names": [],
+        "invalid_required_input_count": 0,
+        "missing_required_input_count": 26,
+        "required_configured": 0,
+        "required_invalid": 0,
+        "required_missing": 26,
+        "required_total": 26
+      },
+      "production_dns": {
+        "configured_variable_names": [
+          "PRODUCTION_DNS_TARGET",
+          "PRODUCTION_WEB_URL"
+        ],
+        "invalid_required_input_count": 0,
+        "missing_required_input_count": 2,
+        "required_configured": 2,
+        "required_invalid": 0,
+        "required_missing": 2,
+        "required_total": 4
+      },
+      "security": {
+        "configured_variable_names": [],
+        "invalid_required_input_count": 0,
+        "missing_required_input_count": 10,
+        "required_configured": 0,
+        "required_invalid": 0,
+        "required_missing": 10,
+        "required_total": 10
+      }
+    },
+    "required_completion_percent": 3.3,
+    "required_configured": 2,
+    "required_invalid": 3,
+    "required_missing": 55,
+    "required_total": 60,
+    "schema_version": "stage1.production_proof_bundle.input_variable_coverage.v1",
+    "source": "ops/evidence/non_clearing/production-proof-bundle.json",
+    "value_redaction": "variable_names_only"
+  },
+  "production_web_url": "https://zenari.ai",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "release_sha": "ddb10bc71ceafd1e0af3992abeb73f4c0df217ec",
+  "schema_version": "stage1.production_return_artifact_ingest.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "staging_web_url": "https://staging.zenari.ai",
+  "status": "blocked",
+  "step_summary": {
+    "blocked": 3,
+    "completion_percent": 72.7,
+    "failed": 0,
+    "passed": 8,
+    "total": 11,
+    "unexpected_exit_count": 0
+  },
+  "steps": [
+    {
+      "command": "python3 scripts/run_stage1_production_proof_bundle.py --env .env --release-sha ddb10bc71ceafd1e0af3992abeb73f4c0df217ec --production-web-url https://zenari.ai --summary ops/evidence/non_clearing/production-proof-bundle.json --pipeline-summary ops/evidence/non_clearing/production-launch-source-pipeline.json",
+      "exit_code": 2,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production proof bundle summary to ops/evidence/non_clearing/production-proof-bundle.json",
+      "status": "blocked",
+      "step_id": "production_proof_bundle"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_proof_bundle.py --summary ops/evidence/non_clearing/production-proof-bundle.json",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production proof bundle validation passed",
+      "status": "pass",
+      "step_id": "validate_production_proof_bundle"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_launch_source_pipeline.py --summary ops/evidence/non_clearing/production-launch-source-pipeline.json",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production launch source pipeline validation passed",
+      "status": "pass",
+      "step_id": "validate_production_launch_source_pipeline"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_launch.py",
+      "exit_code": 1,
+      "expected_exit": true,
+      "output_summary": "stage1 production launch validation failed: evidence contains blocked/debug-only gate signal(s): ['evidence.blockers is not empty', 'evidence.components[1].blockers is not empty', 'evidence.components[4].blockers is not empty', 'evidence.components[5].blockers is not empty', 'evidence.components[6].blockers is not empty', 'evidence.components[7].blockers is not empty', 'evidence.components[8].blockers is not empty', 'evidence.do_not_launch_conditions is not empty', 'evidence.release_gate_fixtures[3].active_do_not_launch_conditions is not empty', 'evidence.release_gate_fixtures[3].blocked_by_checks is not empty', 'evidence.release_gate_fixtures[3].blockers is not empty']",
+      "status": "blocked",
+      "step_id": "strict_production_launch_validation"
+    },
+    {
+      "command": "python3 scripts/refresh_stage1_production_non_clearing_evidence.py --env .env --production-web-url https://zenari.ai --staging-web-url https://staging.zenari.ai --timeout 10.0 --summary ops/evidence/non_clearing/production-non-clearing-refresh.json --proof-bundle-summary ops/evidence/non_clearing/production-proof-bundle.json --pipeline-summary ops/evidence/non_clearing/production-launch-source-pipeline.json",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production non-clearing refresh to ops/evidence/non_clearing/production-non-clearing-refresh.json stage1 6/14=42.9%; production_inputs 2/60=3.3%; release=no_go",
+      "status": "pass",
+      "step_id": "production_non_clearing_refresh"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_non_clearing_refresh.py --summary ops/evidence/non_clearing/production-non-clearing-refresh.json",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production non-clearing refresh validation passed",
+      "status": "pass",
+      "step_id": "validate_production_non_clearing_refresh"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_release_evidence_closure_queue.py --output ops/evidence/release/staging/stage1-evidence-closure-queue.preflight.json",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 release evidence closure queue preflight to ops/evidence/release/staging/stage1-evidence-closure-queue.preflight.json",
+      "status": "pass",
+      "step_id": "generate_release_closure_queue_initial"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_next_blockers_summary.py --output ops/evidence/non_clearing/stage1-next-blockers-summary.json",
+      "exit_code": 2,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 next blockers summary to ops/evidence/non_clearing/stage1-next-blockers-summary.json wrote Stage 1 next blockers markdown to ops/evidence/non_clearing/stage1-next-blockers-summary.md",
+      "status": "blocked",
+      "step_id": "generate_next_blockers_summary"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_next_blockers_summary.py --summary ops/evidence/non_clearing/stage1-next-blockers-summary.json",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 next blockers summary validation passed",
+      "status": "pass",
+      "step_id": "validate_next_blockers_summary"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_release_evidence_closure_queue.py --output ops/evidence/release/staging/stage1-evidence-closure-queue.preflight.json",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 release evidence closure queue preflight to ops/evidence/release/staging/stage1-evidence-closure-queue.preflight.json",
+      "status": "pass",
+      "step_id": "generate_release_closure_queue_final"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_release_evidence_closure_queue.py --allow-preflight",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 release evidence closure queue validation passed",
+      "status": "pass",
+      "step_id": "validate_release_closure_queue"
+    }
+  ],
+  "strict_production_launch_validator_passed": false,
+  "unexpected_steps": []
+}

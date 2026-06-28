@@ -131,6 +131,14 @@ def write_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def load_json(path: Path) -> dict[str, Any]:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
 def scrub(text: str) -> str:
     cleaned = RAW_SECRET_RE.sub("[redacted]", text.strip())
     return " ".join(line.strip() for line in cleaned.splitlines() if line.strip())[:1200]
@@ -175,6 +183,54 @@ def run_step(step_id: str, command: list[str], expected_exit_codes: set[int], ti
 
 def pct(numerator: int, denominator: int) -> float:
     return round((numerator / denominator) * 100, 1) if denominator else 0.0
+
+
+def int_field(data: dict[str, Any], key: str) -> int:
+    value = data.get(key)
+    return value if isinstance(value, int) and value >= 0 else 0
+
+
+def input_group_summary(group: Any) -> dict[str, Any]:
+    group_data = group if isinstance(group, dict) else {}
+    missing = group_data.get("missing_required_inputs")
+    invalid = group_data.get("invalid_required_inputs")
+    configured = group_data.get("configured_variable_names")
+    return {
+        "required_total": int_field(group_data, "required_total"),
+        "required_configured": int_field(group_data, "required_configured"),
+        "required_missing": int_field(group_data, "required_missing"),
+        "required_invalid": int_field(group_data, "required_invalid"),
+        "missing_required_input_count": len(missing) if isinstance(missing, list) else 0,
+        "invalid_required_input_count": len(invalid) if isinstance(invalid, list) else 0,
+        "configured_variable_names": [str(item) for item in configured] if isinstance(configured, list) else [],
+    }
+
+
+def production_input_coverage_summary(proof_bundle_path: Path) -> dict[str, Any]:
+    proof_bundle = load_json(proof_bundle_path)
+    coverage = proof_bundle.get("input_variable_coverage")
+    coverage_data = coverage if isinstance(coverage, dict) else {}
+    groups = coverage_data.get("groups")
+    groups_data = groups if isinstance(groups, dict) else {}
+    first_missing = coverage_data.get("first_missing_or_invalid_inputs")
+    return {
+        "source": display_path(proof_bundle_path),
+        "schema_version": coverage_data.get("schema_version", "missing"),
+        "value_redaction": coverage_data.get("value_redaction", "variable_names_only"),
+        "blocking_input_count": int_field(coverage_data, "blocking_input_count"),
+        "required_total": int_field(coverage_data, "required_total"),
+        "required_configured": int_field(coverage_data, "required_configured"),
+        "required_missing": int_field(coverage_data, "required_missing"),
+        "required_invalid": int_field(coverage_data, "required_invalid"),
+        "required_completion_percent": coverage_data.get("required_completion_percent", 0.0),
+        "first_missing_or_invalid_inputs": [str(item) for item in first_missing] if isinstance(first_missing, list) else [],
+        "groups": {
+            "production_dns": input_group_summary(groups_data.get("production_dns")),
+            "billing": input_group_summary(groups_data.get("billing")),
+            "security": input_group_summary(groups_data.get("security")),
+            "governance": input_group_summary(groups_data.get("governance")),
+        },
+    }
 
 
 def command_sequence(args: argparse.Namespace, release_sha: str) -> list[tuple[str, list[str], set[int], float | None]]:
@@ -302,6 +358,7 @@ def build_summary(args: argparse.Namespace, release_sha: str, steps: list[dict[s
             "unexpected_exit_count": len(unexpected),
             "completion_percent": pct(sum(1 for step in steps if step.get("status") == "pass"), len(steps)),
         },
+        "production_input_coverage": production_input_coverage_summary(args.proof_bundle_summary),
         "steps": steps,
         "blocked_checks": [
             f"{step['step_id']}: {step['output_summary'] or 'exit_' + str(step['exit_code'])}"

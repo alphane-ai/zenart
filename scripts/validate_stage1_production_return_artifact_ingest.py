@@ -143,6 +143,7 @@ def validate_code_anchors() -> None:
     for snippet in (
         "stage1.production_return_artifact_ingest.v1",
         "production-return-artifact-ingest.json",
+        "production_input_coverage",
         "run_stage1_production_proof_bundle.py",
         "validate_stage1_production_proof_bundle.py",
         "validate_stage1_production_launch_source_pipeline.py",
@@ -209,6 +210,36 @@ def validate_summary(data: dict[str, Any]) -> None:
         step_summary["passed"] + step_summary["blocked"] + step_summary["failed"] == step_summary["total"],
         "step_summary counters must add up",
     )
+
+    coverage = data.get("production_input_coverage")
+    require(isinstance(coverage, dict), "production_input_coverage must be object")
+    require_string(coverage.get("source"), "production_input_coverage.source")
+    require(coverage.get("value_redaction") == "variable_names_only", "production_input_coverage.value_redaction mismatch")
+    for key in ("blocking_input_count", "required_total", "required_configured", "required_missing", "required_invalid"):
+        require_counter(coverage.get(key), f"production_input_coverage.{key}")
+    require_percent(coverage.get("required_completion_percent"), "production_input_coverage.required_completion_percent")
+    first_missing = coverage.get("first_missing_or_invalid_inputs")
+    require(isinstance(first_missing, list), "production_input_coverage.first_missing_or_invalid_inputs must be list")
+    for idx, item in enumerate(first_missing):
+        require_string(item, f"production_input_coverage.first_missing_or_invalid_inputs[{idx}]")
+    groups = coverage.get("groups")
+    require(isinstance(groups, dict), "production_input_coverage.groups must be object")
+    for group_id in ("production_dns", "billing", "security", "governance"):
+        group = groups.get(group_id)
+        require(isinstance(group, dict), f"production_input_coverage.groups.{group_id} must be object")
+        for key in (
+            "required_total",
+            "required_configured",
+            "required_missing",
+            "required_invalid",
+            "missing_required_input_count",
+            "invalid_required_input_count",
+        ):
+            require_counter(group.get(key), f"production_input_coverage.groups.{group_id}.{key}")
+        configured = group.get("configured_variable_names")
+        require(isinstance(configured, list), f"production_input_coverage.groups.{group_id}.configured_variable_names must be list")
+        for idx, item in enumerate(configured):
+            require_string(item, f"production_input_coverage.groups.{group_id}.configured_variable_names[{idx}]")
 
     steps = data.get("steps")
     require(isinstance(steps, list) and steps, "steps must be non-empty list")

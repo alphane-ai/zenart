@@ -399,8 +399,8 @@ test("release readiness exposes production non-clearing refresh without manual g
   await expect(refresh.getByText("6/14", { exact: true })).toBeVisible();
   await expect(refresh.getByText("42.9% complete")).toBeVisible();
   await expect(refresh.getByText("External resources", { exact: true })).toBeVisible();
-  await expect(refresh.getByText("5/7", { exact: true })).toBeVisible();
-  await expect(refresh.getByText("71.4% ready")).toBeVisible();
+  await expect(refresh.getByText("6/7", { exact: true })).toBeVisible();
+  await expect(refresh.getByText("85.7% ready")).toBeVisible();
   await expect(refresh.getByText("Production inputs", { exact: true })).toBeVisible();
   await expect(refresh.getByText("2/60", { exact: true })).toBeVisible();
   await expect(refresh.getByText("3.3% configured")).toBeVisible();

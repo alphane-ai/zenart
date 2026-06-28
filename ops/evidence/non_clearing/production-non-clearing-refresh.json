@@ -35,7 +35,7 @@
     "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete",
     "strict_launch_validator": "python3 scripts/validate_stage1_production_launch.py"
   },
-  "generated_at": "2026-06-28T17:51:11+00:00",
+  "generated_at": "2026-06-28T21:51:39+00:00",
   "kind": "stage1_production_non_clearing_refresh",
   "non_clearing_refresh": true,
   "output_refs": {
@@ -51,8 +51,8 @@
   "production_web_url": "https://zenari.ai",
   "progress": {
     "external_resources": {
-      "ready": 5,
-      "ready_percent": 71.4,
+      "ready": 6,
+      "ready_percent": 85.7,
       "total": 7
     },
     "production_action_lanes": [
