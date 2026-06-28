@@ -21,7 +21,7 @@
   "raw_stripe_payload_persisted": false,
   "raw_support_body_projected": false,
   "release_gate_check_id": "ci_gate_runtime_execution",
-  "release_sha": "55ef88a19b8e176d910c5b292bc934865470a4d0",
+  "release_sha": "42a1f8391818025f0dcccfcbea5a0880b9e3e825",
   "schema_version": "stage1.ci_pr_main_run.v1",
   "secret_material_persisted": false,
   "signed_url_persisted": false,
@@ -69,8 +69,8 @@
   },
   "workflow_run": {
     "conclusion": "success",
-    "run_id": "28336476964",
-    "run_url": "https://github.com/alphane-ai/zenart/actions/runs/28336476964",
+    "run_id": "28337686861",
+    "run_url": "https://github.com/alphane-ai/zenart/actions/runs/28337686861",
     "workflow_file": ".github/workflows/stage0-rev2-ci.yml"
   }
 }

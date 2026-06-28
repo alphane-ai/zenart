@@ -7,7 +7,7 @@
   "canonical_artifacts_written": true,
   "dry_run": false,
   "environment": "ci",
-  "generated_at": "2026-06-28T21:31:07+00:00",
+  "generated_at": "2026-06-28T22:17:47+00:00",
   "github_token_persisted": false,
   "kind": "stage1_ci_artifact_fetch_preflight",
   "published_artifacts": [
@@ -107,8 +107,8 @@
     "run_discovery": {
       "mode": "explicit_run"
     },
-    "run_id": "28336476964",
-    "run_url": "https://github.com/alphane-ai/zenart/actions/runs/28336476964",
+    "run_id": "28337686861",
+    "run_url": "https://github.com/alphane-ai/zenart/actions/runs/28337686861",
     "source": "github_actions_api"
   },
   "status": "ready",

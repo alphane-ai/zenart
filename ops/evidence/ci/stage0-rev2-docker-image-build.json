@@ -6,8 +6,8 @@
   "dry_run": false,
   "environment": "ci",
   "evidence_refs": [
-    "ops/evidence/ci/docker-image-build-run/20260628T212709Z-docker-build-55ef88a19b8e176d910c5b292bc934865470a4d0-2295.json",
-    "ops/evidence/ci/docker-image-build-run/20260628T212709Z-docker-build-55ef88a19b8e176d910c5b292bc934865470a4d0-2295.log",
+    "ops/evidence/ci/docker-image-build-run/20260628T221324Z-docker-build-42a1f8391818025f0dcccfcbea5a0880b9e3e825-2323.json",
+    "ops/evidence/ci/docker-image-build-run/20260628T221324Z-docker-build-42a1f8391818025f0dcccfcbea5a0880b9e3e825-2323.log",
     "scripts/docker_build_smoke.sh",
     ".github/workflows/stage0-rev2-ci.yml"
   ],
@@ -24,35 +24,35 @@
   "images": {
     "admin": {
       "context": "admin",
-      "digest": "sha256:bb2401224d5d854d75aee37f51445b96e4795413b17349df5f386012752c4c61",
+      "digest": "sha256:3c8a2213a1bd94305aa160c38b725aa45cb18d8c83c2550f64482cd8c7143745",
       "evidence_refs": [
-        "ghcr.io/alphane-ai/zenari-admin:55ef88a19b8e176d910c5b292bc934865470a4d0",
-        "ops/evidence/ci/docker-image-build-run/20260628T212709Z-docker-build-55ef88a19b8e176d910c5b292bc934865470a4d0-2295.log"
+        "ghcr.io/alphane-ai/zenari-admin:42a1f8391818025f0dcccfcbea5a0880b9e3e825",
+        "ops/evidence/ci/docker-image-build-run/20260628T221324Z-docker-build-42a1f8391818025f0dcccfcbea5a0880b9e3e825-2323.log"
       ],
       "status": "pass",
-      "tag": "ghcr.io/alphane-ai/zenari-admin:55ef88a19b8e176d910c5b292bc934865470a4d0",
+      "tag": "ghcr.io/alphane-ai/zenari-admin:42a1f8391818025f0dcccfcbea5a0880b9e3e825",
       "target": ""
     },
     "backend": {
       "context": "backend",
-      "digest": "sha256:9179a938639011a9a0eb2a84f395e643507a981cd45ad14a47ad0b14edbf0064",
+      "digest": "sha256:2195e3e1c325207381da5116b5f0ae634d53ad326a9f435dfd5ed1b1a69fde41",
       "evidence_refs": [
-        "ghcr.io/alphane-ai/zenari-backend:55ef88a19b8e176d910c5b292bc934865470a4d0",
-        "ops/evidence/ci/docker-image-build-run/20260628T212709Z-docker-build-55ef88a19b8e176d910c5b292bc934865470a4d0-2295.log"
+        "ghcr.io/alphane-ai/zenari-backend:42a1f8391818025f0dcccfcbea5a0880b9e3e825",
+        "ops/evidence/ci/docker-image-build-run/20260628T221324Z-docker-build-42a1f8391818025f0dcccfcbea5a0880b9e3e825-2323.log"
       ],
       "status": "pass",
-      "tag": "ghcr.io/alphane-ai/zenari-backend:55ef88a19b8e176d910c5b292bc934865470a4d0",
+      "tag": "ghcr.io/alphane-ai/zenari-backend:42a1f8391818025f0dcccfcbea5a0880b9e3e825",
       "target": ""
     },
     "web": {
       "context": "web",
-      "digest": "sha256:7956d518fbce265d7113036f3d87a5ae8fd05a4b3f5c1c30581c97e26f3f937f",
+      "digest": "sha256:f4f776d7ae469ae75d129bd8b549f1544be52e3c1d3e12bf8482c6467cae1223",
       "evidence_refs": [
-        "ghcr.io/alphane-ai/zenari-web:55ef88a19b8e176d910c5b292bc934865470a4d0",
-        "ops/evidence/ci/docker-image-build-run/20260628T212709Z-docker-build-55ef88a19b8e176d910c5b292bc934865470a4d0-2295.log"
+        "ghcr.io/alphane-ai/zenari-web:42a1f8391818025f0dcccfcbea5a0880b9e3e825",
+        "ops/evidence/ci/docker-image-build-run/20260628T221324Z-docker-build-42a1f8391818025f0dcccfcbea5a0880b9e3e825-2323.log"
       ],
       "status": "pass",
-      "tag": "ghcr.io/alphane-ai/zenari-web:55ef88a19b8e176d910c5b292bc934865470a4d0",
+      "tag": "ghcr.io/alphane-ai/zenari-web:42a1f8391818025f0dcccfcbea5a0880b9e3e825",
       "target": ""
     }
   },
@@ -63,11 +63,11 @@
   "raw_stripe_payload_persisted": false,
   "raw_support_body_projected": false,
   "release_gate_check_id": "ci_docker_image_build",
-  "release_sha": "55ef88a19b8e176d910c5b292bc934865470a4d0",
+  "release_sha": "42a1f8391818025f0dcccfcbea5a0880b9e3e825",
   "schema_version": "stage1.ci_docker_image_build.v1",
   "secret_material_persisted": false,
   "signed_url_persisted": false,
-  "source_report": "ops/evidence/ci/docker-image-build-run/20260628T212709Z-docker-build-55ef88a19b8e176d910c5b292bc934865470a4d0-2295.json",
+  "source_report": "ops/evidence/ci/docker-image-build-run/20260628T221324Z-docker-build-42a1f8391818025f0dcccfcbea5a0880b9e3e825-2323.json",
   "status": "pass",
   "trigger": {
     "base_ref": "main",
@@ -77,8 +77,8 @@
   },
   "workflow_run": {
     "conclusion": "success",
-    "run_id": "28336476964",
-    "run_url": "https://github.com/alphane-ai/zenart/actions/runs/28336476964",
+    "run_id": "28337686861",
+    "run_url": "https://github.com/alphane-ai/zenart/actions/runs/28337686861",
     "workflow_file": ".github/workflows/stage0-rev2-ci.yml"
   }
 }
