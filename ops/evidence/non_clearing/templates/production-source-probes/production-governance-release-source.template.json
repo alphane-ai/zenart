@@ -114,7 +114,7 @@
   "cookie_persisted": false,
   "dry_run": false,
   "environment": "production",
-  "generated_at": "2026-06-28T17:48:17+00:00",
+  "generated_at": "2026-06-28T18:26:25+00:00",
   "kind": "production_governance_release_source",
   "local_devport_debug": false,
   "operator_note": "Replace every replace_me:* evidence ref with sanitized production runtime/audit evidence, set status fields to pass only after the runtime probe has actually run, and write the final source JSON to the required ops/evidence/production/*-source.json path.",

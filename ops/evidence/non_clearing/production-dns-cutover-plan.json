@@ -3,8 +3,7 @@
   "authorization_header_persisted": false,
   "blocked_checks": [
     "CLOUDFLARE_ZONE_ID_or_CF_ZONE_ID",
-    "CLOUDFLARE_API_TOKEN_or_CF_API_TOKEN",
-    "CLOUDFLARE_ZONE_DNS_SCOPE_PREFLIGHT_FAILED"
+    "CLOUDFLARE_API_TOKEN_or_CF_API_TOKEN"
   ],
   "can_clear_production_legal_support_policy": false,
   "can_clear_stage1_production_launch_gate": false,
@@ -13,10 +12,10 @@
   "cloudflare_scope_preflight": {
     "api_token_configured": false,
     "checks": [],
-    "reason": "cloudflare_dns_credentials_missing",
-    "requested": true,
+    "reason": "verify_cloudflare_not_requested",
+    "requested": false,
     "required_scope": "Zone DNS Read and Zone DNS Edit for zenari.ai",
-    "status": "blocked",
+    "status": "not_run",
     "zone_id_configured": false
   },
   "cloudflare_zone": {
@@ -75,8 +74,8 @@
       "exit_code": 0,
       "host": "staging.zenari.ai",
       "records": [
-        "172.67.219.243",
-        "104.21.62.40"
+        "104.21.62.40",
+        "172.67.219.243"
       ],
       "rrtype": "A",
       "status": "pass"
@@ -102,7 +101,7 @@
     "dns_readiness": "ops/evidence/non_clearing/production-dns-readiness.json",
     "legal_support_operator_packet": "ops/evidence/non_clearing/production-legal-support-operator-packet.json"
   },
-  "generated_at": "2026-06-28T17:49:38+00:00",
+  "generated_at": "2026-06-28T18:27:30+00:00",
   "kind": "stage1_production_dns_cutover_plan",
   "manual_dns_observation": {
     "apex_expected": "52.237.80.117",

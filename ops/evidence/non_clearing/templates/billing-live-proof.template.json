@@ -2,7 +2,7 @@
   "authorization_header_persisted": false,
   "cookie_persisted": false,
   "environment": "production",
-  "generated_at": "2026-06-28T17:48:16+00:00",
+  "generated_at": "2026-06-28T18:26:25+00:00",
   "kind": "production_live_billing_proof_template",
   "lifecycle": {
     "audit_refs": {

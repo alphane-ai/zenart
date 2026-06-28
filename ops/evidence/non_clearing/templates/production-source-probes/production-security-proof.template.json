@@ -43,7 +43,7 @@
   },
   "dry_run": false,
   "environment": "production",
-  "generated_at": "2026-06-28T17:48:17+00:00",
+  "generated_at": "2026-06-28T18:26:25+00:00",
   "kind": "production_security_launch_proof_template",
   "local_devport_debug": false,
   "operator_note": "Replace replace_me values with sanitized production security runtime evidence refs and booleans. Set each section status to pass only after the production probe actually ran. This is input for scripts/stage1_production_source_probe.py --security; it is not a canonical production source file.",

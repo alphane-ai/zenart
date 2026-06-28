@@ -648,6 +648,16 @@ def validate_artifacts(
         validate_sidecar(path, report["release_sha"], spec["schema_version"], spec["kind"])
 
 
+def release_sha_for_check(evidence_path: Path, release_sha_override: str) -> str:
+    if release_sha_override.strip():
+        return release_sha_override
+    parsed = json.loads(evidence_path.read_text(encoding="utf-8"))
+    release_sha = str(parsed.get("release_sha") or "").strip().lower()
+    if re.fullmatch(r"[0-9a-f]{40}", release_sha) is None:
+        raise DraftMetadataError("existing evidence release SHA must be a full 40-character lowercase hex SHA")
+    return release_sha
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--notes", default=str(DEFAULT_NOTES), help="release notes draft output path")
@@ -681,10 +691,11 @@ def main() -> int:
     sidecar_paths = {slot: path if path.is_absolute() else ROOT / path for slot, path in sidecar_paths.items()}
 
     try:
-        report = build_report(notes_path, sidecar_paths, args.release_sha)
         if args.check:
+            report = build_report(notes_path, sidecar_paths, release_sha_for_check(evidence_path, args.release_sha))
             validate_artifacts(report, notes_path, evidence_path, sidecar_paths)
         else:
+            report = build_report(notes_path, sidecar_paths, args.release_sha)
             for slot, path in sidecar_paths.items():
                 write_json(path, build_sidecar(slot, report["release_sha"]))
             notes = render_notes(report)

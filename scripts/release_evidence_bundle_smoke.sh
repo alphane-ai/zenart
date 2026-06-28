@@ -46,7 +46,7 @@ if data.get("kind") != "stage1_release_metadata_preflight":
 evidence_refs = data.get("evidence_refs", {})
 values = {
     "RELEASE_SHA": data.get("release_sha", ""),
-    "RELEASE_NOTES_SHA": data.get("current_git_head", data.get("release_sha", "")),
+    "RELEASE_NOTES_SHA": data.get("release_sha", ""),
     "RELEASE_TAG": data.get("release_tag", ""),
     "RELEASE_NOTES_PATH": data.get("release_notes_path", ""),
     "IMAGE_REFS": ",".join(data.get("image_refs", [])) if isinstance(data.get("image_refs"), list) else "",

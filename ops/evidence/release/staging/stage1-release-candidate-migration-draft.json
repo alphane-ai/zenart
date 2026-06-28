@@ -9,7 +9,7 @@
   "environment": "staging_metadata_draft",
   "expand_contract_compatibility": "local_contract_only",
   "kind": "migration",
-  "migration_count": 22,
+  "migration_count": 23,
   "migration_files": [
     {
       "exists": true,
@@ -142,9 +142,15 @@
       "filename": "0022_stage1_provider_usage_batch_task_refs.sql",
       "first_line": "-- zenari.ai Stage 1 provider usage task-reference repair.",
       "path": "backend/migrations/0022_stage1_provider_usage_batch_task_refs.sql"
+    },
+    {
+      "exists": true,
+      "filename": "0023_stage1_local_admin_devport_seed_repair.sql",
+      "first_line": "-- zenari.ai Stage 1 local admin devport seed repair.",
+      "path": "backend/migrations/0023_stage1_local_admin_devport_seed_repair.sql"
     }
   ],
-  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
   "schema_version": "stage1.release_candidate_migration_draft.v1",
   "status": "blocked",
   "strict_usable": false,

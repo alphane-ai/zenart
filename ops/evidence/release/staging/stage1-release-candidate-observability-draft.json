@@ -8,7 +8,7 @@
   "can_clear_stage1_staging_runtime_gate": false,
   "environment": "staging_metadata_draft",
   "kind": "observability",
-  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
   "required_strict_components": [
     "request_id_propagation",
     "structured_json_logs",
