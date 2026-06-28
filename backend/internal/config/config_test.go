@@ -8,6 +8,7 @@ import (
 
 func TestLoadDefaults(t *testing.T) {
 	t.Setenv("DATABASE_URL", "")
+	t.Setenv("REDIS_ADDR", "")
 	t.Setenv("OBJECT_STORAGE_PROVIDER", "")
 	t.Setenv("OBJECT_STORAGE_ENDPOINT", "")
 	t.Setenv("OBJECT_STORAGE_PUBLIC_ENDPOINT", "")
