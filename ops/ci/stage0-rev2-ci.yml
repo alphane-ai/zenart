@@ -172,6 +172,8 @@ jobs:
 
       - name: Backend fmt, vet, unit, integration, and build
         working-directory: backend
+        env:
+          ZENARI_ENV: local
         run: |
           test -z "$(gofmt -l $(find . -name '*.go' -not -path './vendor/*'))"
           go test ./...
