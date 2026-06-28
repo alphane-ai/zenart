@@ -242,6 +242,8 @@ def validate_code_anchors() -> None:
             "stage1_external_resource_readiness_preflight",
             "stage1-r2-bucket-readiness.preflight.json",
             "stage1-ci-exact.preflight.json",
+            "release_gate_evidence.ci.json",
+            "ci_release_gate_fixture_state",
             "load_r2_readiness",
             "load_ci_exact_preflight",
             "r2_readiness_ready",
@@ -422,6 +424,7 @@ def validate_preflight_evidence(data: dict[str, Any]) -> None:
     require(isinstance(source.get("production_launch"), dict), "source_aggregates.production_launch missing")
     require(isinstance(source.get("r2_bucket_readiness"), dict), "source_aggregates.r2_bucket_readiness missing")
     require(isinstance(source.get("ci_exact_preflight"), dict), "source_aggregates.ci_exact_preflight missing")
+    require(isinstance(source.get("ci_release_gate_fixture"), dict), "source_aggregates.ci_release_gate_fixture missing")
     require(isinstance(source.get("llm_openai_compatible_selftest"), dict), "source_aggregates.llm_openai_compatible_selftest missing")
     require(isinstance(source["r2_bucket_readiness"].get("path"), str) and source["r2_bucket_readiness"].get("path"), "source_aggregates.r2_bucket_readiness path missing")
     require(
@@ -431,6 +434,10 @@ def validate_preflight_evidence(data: dict[str, Any]) -> None:
     require(
         str(source["ci_exact_preflight"].get("path", "")).endswith("stage1-ci-exact.preflight.json"),
         "source_aggregates.ci_exact_preflight path mismatch",
+    )
+    require(
+        str(source["ci_release_gate_fixture"].get("path", "")).endswith("fixtures/stage0/rev2/release_gate_evidence.ci.json"),
+        "source_aggregates.ci_release_gate_fixture path mismatch",
     )
     require(
         str(source["llm_openai_compatible_selftest"].get("path", "")).endswith("openai-compatible-provider-selftest.json"),

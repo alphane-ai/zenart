@@ -77,15 +77,15 @@
     "production_source_probe_runbook": "ops/evidence/non_clearing/production-source-probe-runbook.json"
   },
   "external_resource_readiness": {
-    "blocked": 1,
-    "current_loop_breaker": "R2, Stripe sandbox, and z.ai glm-5.2 are ready; remaining non-ready resources: current-SHA exact CI artifacts, production source probes.",
+    "blocked": 0,
+    "current_loop_breaker": "R2, Stripe sandbox, z.ai glm-5.2, staging evidence inputs/artifacts, CI exact artifacts, and Azure origin are ready; the remaining production loop is source probes: live Stripe billing, production security, production legal/support HTTPS, and production governance release.",
     "missing": 1,
     "provided_unverified": 0,
-    "ready": 5,
-    "ready_percent": 71.4,
+    "ready": 6,
+    "ready_percent": 85.7,
     "total": 7
   },
-  "generated_at": "2026-06-28T18:29:06+00:00",
+  "generated_at": "2026-06-28T21:15:39+00:00",
   "kind": "stage1_next_blockers_summary",
   "non_clearing_refresh": {
     "blocked": 3,
@@ -94,6 +94,22 @@
     "total": 38
   },
   "operator_action_packet": [
+    {
+      "agent_command_after_return": "python3 scripts/ingest_stage1_production_return_artifacts.py || test $? -eq 2",
+      "blind_handoff_note": "R2, Stripe sandbox, z.ai glm-5.2, staging evidence inputs/artifacts, CI exact artifacts, and Azure origin are ready; the remaining production loop is source probes: live Stripe billing, production security, production legal/support HTTPS, and production governance release.",
+      "can_clear_stage1_production_launch_gate": false,
+      "can_clear_stage1_staging_runtime_gate": false,
+      "can_close_do_not_launch": false,
+      "evidence_ref": "ops/evidence/non_clearing/stage1-next-blockers-summary.json",
+      "gate_impact": "non_clearing_operator_shortlist_only",
+      "item_id": "production_source_probes_missing",
+      "order": 0,
+      "owner": "agent_after_operator_input",
+      "required_return_artifact": "sanitized live production source evidence for billing, security, legal/support HTTPS, and governance.",
+      "requires_external_input": true,
+      "status": "blocked",
+      "validation_after_return": "python3 scripts/validate_stage1_next_blockers_summary.py"
+    },
     {
       "agent_command_after_return": "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
       "blind_handoff_note": "Do not paste R2 S3 credentials here; DNS needs Cloudflare DNS permission or manual DNS records, then resolver/HTTPS proof.",
@@ -405,12 +421,14 @@
   },
   "status": "blocked",
   "top_priority_action": {
-    "action_id": "production_dns_https",
-    "command": "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
-    "external_input": "production proof inputs and source evidence",
-    "lane": "production_dns_https",
+    "action_id": "production_source_probes_missing",
+    "command": "python3 scripts/ingest_stage1_production_return_artifacts.py || test $? -eq 2",
+    "external_input": "sanitized live production source evidence for billing, security, legal/support HTTPS, and governance.",
+    "lane": "production_launch_inputs",
+    "parallel_blocker": "none",
+    "parallel_command": "none",
     "requires_external_input": true,
     "status": "blocked",
-    "why": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known"
+    "why": "R2, Stripe sandbox, z.ai glm-5.2, staging evidence inputs/artifacts, CI exact artifacts, and Azure origin are ready; the remaining production loop is source probes: live Stripe billing, production security, production legal/support HTTPS, and production governance release."
   }
 }

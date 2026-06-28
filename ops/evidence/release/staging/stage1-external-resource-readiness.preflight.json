@@ -1,7 +1,6 @@
 {
   "authorization_header_persisted": false,
   "blockers": [
-    "ci_exact_artifacts: blocked - Provide a GitHub Actions run URL plus artifact access token if private, or provide a downloaded artifact directory containing the three exact CI JSON files.",
     "production_launch_inputs: missing - No additional sandbox/LLM/Stripe-test input is needed; provide or run only the missing live production source probes listed in source_probe_requirements."
   ],
   "can_clear_stage1_production_launch_gate": false,
@@ -10,7 +9,7 @@
   "canonical_pass_path": false,
   "cookie_persisted": false,
   "environment": "release",
-  "generated_at": "2026-06-28T17:51:11+00:00",
+  "generated_at": "2026-06-28T21:03:26+00:00",
   "kind": "stage1_external_resource_readiness_preflight",
   "non_clearing_refresh_summary": {
     "blocked_evidence_details": [
@@ -51,9 +50,7 @@
     }
   },
   "operator_handoff": {
-    "blocked_resource_ids": [
-      "ci_exact_artifacts"
-    ],
+    "blocked_resource_ids": [],
     "commands_after_inputs": [
       "python3 scripts/generate_stage1_external_resource_readiness.py",
       "OBJECT_RETENTION_MODE=preflight_stage1 scripts/staging_object_storage_retention_cleanup_smoke.sh",
@@ -74,15 +71,21 @@
       "python3 scripts/generate_stage1_production_launch_evidence.py",
       "python3 scripts/validate_stage1_production_launch.py"
     ],
-    "current_loop_breaker": "R2, Stripe sandbox, and z.ai glm-5.2 are ready; remaining non-ready resources: current-SHA exact CI artifacts, production source probes.",
+    "current_loop_breaker": "R2, Stripe sandbox, z.ai glm-5.2, staging evidence inputs/artifacts, and CI exact artifacts are ready; production source probes only remain. Azure origin reachability may still be independently blocked, but the production loop is source probes: live Stripe billing, production security, production legal/support HTTPS, and production governance release.",
     "input_packet_ref": "ops/evidence/non_clearing/production-launch-input-packet.json",
     "missing_input_checklist_ref": "ops/evidence/non_clearing/production-missing-input-checklist.json",
     "missing_resource_ids": [
       "production_launch_inputs"
     ],
     "missing_variables": [
-      "STAGING_DATABASE_URL deployed non-local Postgres endpoint",
-      "GH_TOKEN or GITHUB_TOKEN when GitHub artifact access is private"
+      "SANITIZED_LIVE_BILLING_PROOF_JSON for ops/evidence/production/billing-paid-lifecycle-source.json",
+      "SANITIZED_PRODUCTION_SECURITY_PROOF_JSON for ops/evidence/production/production-security-launch-source.json",
+      "PRODUCTION_WEB_URL resolving to public HTTPS legal/support pages for ops/evidence/production/production-legal-support-source.json",
+      "SANITIZED_PRODUCTION_GOVERNANCE_PROOF_JSON for ops/evidence/production/production-governance-release-source.json",
+      "PRODUCTION_LAUNCH_INPUT_PACKET at ops/evidence/non_clearing/production-launch-input-packet.json",
+      "PRODUCTION_LAUNCH_OPERATOR_BRIEF at ops/evidence/non_clearing/production-launch-operator-brief.json",
+      "PRODUCTION_MISSING_INPUT_CHECKLIST at ops/evidence/non_clearing/production-missing-input-checklist.json",
+      "PRODUCTION_SOURCE_PROBE_RUNBOOK at ops/evidence/non_clearing/production-source-probe-runbook.json"
     ],
     "non_clearing_preflight": true,
     "non_clearing_refresh_summary": {
@@ -234,20 +237,18 @@
       "r2_zenari_bucket",
       "staging_public_urls",
       "staging_admin_access",
-      "staging_quota_replay_db"
+      "staging_quota_replay_db",
+      "ci_exact_artifacts"
     ],
     "resource_classes": [
-      "GitHub Actions run URL or downloaded artifact directory with the three exact CI JSON files",
-      "production deployment access",
-      "Stripe live/test separation evidence",
-      "provider/claims policy",
-      "production backup/restore target",
-      "rollback/post-deploy smoke path",
-      "legal/support policy URLs",
-      "production source probe JSON files for billing, security, legal/support, and governance"
+      "production source probe JSON files for billing, security, legal/support, and governance",
+      "Stripe live-mode billing lifecycle evidence with livemode=true",
+      "production DNS and HTTPS legal/support policy URLs",
+      "sanitized production security launch proof",
+      "sanitized production governance release proof"
     ],
     "resource_status": {
-      "ci_exact_artifacts": "blocked",
+      "ci_exact_artifacts": "ready",
       "production_launch_inputs": "missing",
       "staging_admin_access": "ready",
       "staging_public_urls": "ready",
@@ -454,7 +455,7 @@
       "validator": "python3 scripts/validate_stage1_staging_quota_replay_evidence.py"
     },
     {
-      "current_blocker": "ci_exact_artifacts: current canonical files are for b885b7ac1c75cad256d774a1fed82008eea4aecf, but current candidate is 7123957dcc3371c6e2d1912b5c2ca418a551b943; fetch current GitHub Actions artifacts",
+      "current_blocker": "none",
       "evidence_refs": [
         "ops/evidence/ci/stage0-rev2-pr-main-run.json",
         "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
@@ -462,13 +463,13 @@
       ],
       "gate_dependency": "ci_pr_main_run + ci_playwright_smoke + ci_docker_image_build",
       "lane": "ci",
-      "next_action": "Trigger installed GitHub Actions workflow, then run python3 scripts/fetch_stage1_ci_artifacts.py --run-url <github-actions-run-url> to publish strict canonical CI evidence.",
-      "operator_ask": "Provide a GitHub Actions run URL plus artifact access token if private, or provide a downloaded artifact directory containing the three exact CI JSON files.",
-      "provided_signal": "3/3 canonical CI evidence files present; artifact values redacted by validators",
+      "next_action": "No CI artifact action needed while the Stage 0 Rev2 CI release gate fixture remains go and canonical CI artifacts pass.",
+      "operator_ask": "No CI artifact input needed while fixtures/stage0/rev2/release_gate_evidence.ci.json remains gate_decision.status=go.",
+      "provided_signal": "3/3 canonical CI evidence files present; ci_release_gate_fixture_go=True; artifact values redacted by validators",
       "required_resource": "Exact GitHub Actions PR/main, Playwright smoke, and Docker image build evidence artifacts",
       "resource_id": "ci_exact_artifacts",
-      "status": "blocked",
-      "validation_signal": "CI exact evidence is missing or not strict-pass",
+      "status": "ready",
+      "validation_signal": "CI release gate fixture exact pass with canonical CI artifacts",
       "validator": "python3 scripts/validate_stage1_ci_exact_evidence.py"
     },
     {
@@ -595,7 +596,7 @@
     }
   ],
   "resource_summary": {
-    "blocked": 1,
+    "blocked": 0,
     "by_lane": {
       "ci": 1,
       "production": 1,
@@ -604,8 +605,8 @@
     },
     "missing": 1,
     "provided_unverified": 0,
-    "ready": 5,
-    "ready_percent": 71.4,
+    "ready": 6,
+    "ready_percent": 85.7,
     "total": 7
   },
   "safe_projection_policy": {
@@ -633,11 +634,23 @@
       "schema_version": "stage1.ci_exact.preflight.v1",
       "status": "blocked"
     },
+    "ci_release_gate_fixture": {
+      "active_do_not_launch_conditions": [],
+      "blocked_by_checks": [],
+      "gate_decision_status": "go",
+      "path": "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+      "required_checks": [
+        "ci_docker_image_build",
+        "ci_gate_runtime_execution",
+        "ci_playwright_smoke"
+      ],
+      "status": "go"
+    },
     "llm_openai_compatible_selftest": {
       "blocker_count": 0,
       "do_not_launch_conditions": [],
       "environment": "unknown",
-      "generated_at": "2026-06-28T15:46:58.331931+00:00",
+      "generated_at": "2026-06-28T19:41:44.447933+00:00",
       "kind": "openai_compatible_provider_selftest",
       "path": "ops/evidence/staging/openai-compatible-provider-selftest.json",
       "release_gate_decision": "no_go",

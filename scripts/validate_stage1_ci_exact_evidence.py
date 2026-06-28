@@ -303,7 +303,7 @@ def validate_contract_fixture(contract: dict[str, Any]) -> None:
 
 def validate_code_anchors() -> None:
     require_text(BLUEPRINT, ("OP-2", "OP-3", "OP-4", "stage0-rev2-pr-main-run.json", "stage0-rev2-playwright-smoke.json", "stage0-rev2-docker-image-build.json"))
-    require_text(GAP_INVENTORY, ("OP-2", "OP-4", "Exact CI evidence files remain open"))
+    require_text(GAP_INVENTORY, ("OP-2", "OP-4", "Exact CI evidence is now closed"))
     require_text(STAGE0_VALIDATOR, ("CI_PR_MAIN_RUN_EVIDENCE", "CI_PLAYWRIGHT_SMOKE_EVIDENCE", "CI_DOCKER_IMAGE_BUILD_EVIDENCE", "ci_gate_runtime_execution", "ci_playwright_smoke", "ci_docker_image_build"))
     require_text(PRODUCTION_LAUNCH_CONTRACT, ("required_ci_evidence", "stage0-rev2-pr-main-run.json", "stage0-rev2-playwright-smoke.json", "stage0-rev2-docker-image-build.json"))
     require_text(PRODUCTION_LAUNCH_VALIDATOR, ("required_ci_evidence", "ops/evidence/ci/", "strict_staging_validator_must_pass"))

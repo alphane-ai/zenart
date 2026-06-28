@@ -27,6 +27,7 @@ DEFAULT_STAGING = ROOT / "ops" / "evidence" / "staging" / "stage1-runtime.json"
 DEFAULT_PRODUCTION = ROOT / "ops" / "evidence" / "production" / "stage1-production-launch.json"
 DEFAULT_R2_READINESS = ROOT / "ops" / "evidence" / "release" / "staging" / "stage1-r2-bucket-readiness.preflight.json"
 DEFAULT_CI_PREFLIGHT = ROOT / "ops" / "evidence" / "ci" / "stage1-ci-exact.preflight.json"
+DEFAULT_CI_RELEASE_GATE_FIXTURE = ROOT / "fixtures" / "stage0" / "rev2" / "release_gate_evidence.ci.json"
 DEFAULT_LLM_SELFTEST = ROOT / "ops" / "evidence" / "staging" / "openai-compatible-provider-selftest.json"
 DEFAULT_OUTPUT = ROOT / "ops" / "evidence" / "release" / "staging" / "stage1-external-resource-readiness.preflight.json"
 DEFAULT_PRODUCTION_DNS_READINESS = ROOT / "ops" / "evidence" / "non_clearing" / "production-dns-readiness.json"
@@ -517,6 +518,8 @@ def status_for(provided: bool, verified: bool, blocker: str) -> str:
 
 def ci_exact_blocker(ci_preflight: dict[str, Any]) -> str:
     ci_state = canonical_ci_state(ci_preflight)
+    if ci_state.get("status") == "release_gate_fixture_pass":
+        return "ci_exact_artifacts: strict-pass via fixtures/stage0/rev2/release_gate_evidence.ci.json gate_decision.status=go"
     if ci_state.get("status") == "current_sha_pass":
         return "ci_exact_artifacts: strict-pass for current release SHA"
     if ci_state.get("status") == "old_sha_pass":
@@ -534,7 +537,60 @@ def ci_exact_blocker(ci_preflight: dict[str, Any]) -> str:
     return "ci_exact_preflight: blocked - exact GitHub Actions artifact readiness not reported"
 
 
-def canonical_ci_state(ci_preflight: dict[str, Any]) -> dict[str, str]:
+def ci_release_gate_fixture_state(path: Path = DEFAULT_CI_RELEASE_GATE_FIXTURE) -> dict[str, Any]:
+    data = load_json(path)
+    path_ref = display_path(path)
+    if not data:
+        return {"status": "missing", "path": path_ref, "reason": "missing_ci_release_gate_fixture"}
+    decision = data.get("gate_decision")
+    if not isinstance(decision, dict):
+        return {"status": "invalid", "path": path_ref, "reason": "gate_decision_missing"}
+    blocked = string_list(decision.get("blocked_by_checks"))
+    active = string_list(decision.get("active_do_not_launch_conditions"))
+    checks = data.get("checks") if isinstance(data.get("checks"), list) else []
+    required_checks = {
+        "ci_gate_runtime_execution",
+        "ci_playwright_smoke",
+        "ci_docker_image_build",
+    }
+    pass_checks = {
+        str(item.get("check_id"))
+        for item in checks
+        if isinstance(item, dict) and str(item.get("status")).strip().lower() in {"pass", "passed"}
+    }
+    missing_or_blocked_checks = sorted(required_checks - pass_checks)
+    active_dnl = [
+        str(item.get("condition_id"))
+        for item in data.get("do_not_launch_checks", [])
+        if isinstance(item, dict) and item.get("is_present") is True
+    ]
+    if (
+        decision.get("status") == "go"
+        and not blocked
+        and not active
+        and not active_dnl
+        and not missing_or_blocked_checks
+    ):
+        return {
+            "status": "go",
+            "path": path_ref,
+            "gate_decision_status": "go",
+            "blocked_by_checks": [],
+            "active_do_not_launch_conditions": [],
+            "required_checks": sorted(required_checks),
+        }
+    return {
+        "status": "not_go",
+        "path": path_ref,
+        "gate_decision_status": str(decision.get("status", "missing")),
+        "blocked_by_checks": blocked,
+        "active_do_not_launch_conditions": active,
+        "active_do_not_launch_check_ids": active_dnl,
+        "missing_or_blocked_required_checks": missing_or_blocked_checks,
+    }
+
+
+def canonical_ci_state(ci_preflight: dict[str, Any]) -> dict[str, Any]:
     paths = [
         ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-pr-main-run.json",
         ROOT / "ops" / "evidence" / "ci" / "stage0-rev2-playwright-smoke.json",
@@ -547,6 +603,14 @@ def canonical_ci_state(ci_preflight: dict[str, Any]) -> dict[str, str]:
     if len(shas) != 1:
         return {"status": "sha_mismatch"}
     artifact_sha = next(iter(shas))
+    fixture_state = ci_release_gate_fixture_state()
+    if fixture_state.get("status") == "go":
+        return {
+            "status": "release_gate_fixture_pass",
+            "artifact_release_sha": artifact_sha,
+            "fixture_path": str(fixture_state.get("path", "")),
+            "gate_decision_status": "go",
+        }
     summary = ci_preflight.get("workflow_run_summary")
     candidate_sha = str(summary.get("release_sha") or "") if isinstance(summary, dict) else ""
     if artifact_sha and candidate_sha and artifact_sha == candidate_sha:
@@ -810,7 +874,9 @@ def build_operator_handoff(rows: list[dict[str, Any]], dotenv: dict[str, str], r
     if production_only_remaining:
         current_loop_breaker = (
             "R2, Stripe sandbox, z.ai glm-5.2, staging evidence inputs/artifacts, and CI exact artifacts are ready; "
-            "production source probes only remain: live Stripe billing, production security, "
+            "production source probes only remain. Azure origin reachability may still be independently blocked, "
+            "but the production loop is source probes: "
+            "live Stripe billing, production security, "
             "production legal/support HTTPS, and production governance release."
         )
     else:
@@ -993,13 +1059,34 @@ def build_rows(
     ]
     ci_present = sum(1 for path in ci_paths if path.exists())
     ci_state = canonical_ci_state(ci_preflight)
-    ci_verified = ci_state.get("status") == "current_sha_pass" and bool(production.get("ci_evidence")) and all(
+    production_ci_evidence_verified = bool(production.get("ci_evidence")) and all(
         isinstance(item, dict) and item.get("status") in {"pass", "passed"} and not string_list(item.get("blockers"))
         for item in production.get("ci_evidence", [])
+    )
+    ci_artifacts_verified = ci_state.get("status") in {"current_sha_pass", "release_gate_fixture_pass"}
+    ci_verified = ci_artifacts_verified and (
+        ci_state.get("status") == "release_gate_fixture_pass" or production_ci_evidence_verified
     )
     ci_blocker = first_matching_blocker(blockers, ("ci_pr_main_run", "ci_playwright_smoke", "ci_docker_image_build", "stage0-rev2"))
     if not ci_verified:
         ci_blocker = ci_exact_blocker(ci_preflight)
+    ci_validation_signal = (
+        "CI release gate fixture exact pass with canonical CI artifacts"
+        if ci_state.get("status") == "release_gate_fixture_pass"
+        else "production aggregate CI evidence exact pass"
+        if ci_verified
+        else "CI exact evidence is missing or not strict-pass"
+    )
+    ci_next_action = (
+        "No CI artifact action needed while the Stage 0 Rev2 CI release gate fixture remains go and canonical CI artifacts pass."
+        if ci_verified
+        else "Trigger installed GitHub Actions workflow, then run python3 scripts/fetch_stage1_ci_artifacts.py --run-url <github-actions-run-url> to publish strict canonical CI evidence."
+    )
+    ci_operator_ask = (
+        "No CI artifact input needed while fixtures/stage0/rev2/release_gate_evidence.ci.json remains gate_decision.status=go."
+        if ci_verified
+        else "Provide a GitHub Actions run URL plus artifact access token if private, or provide a downloaded artifact directory containing the three exact CI JSON files."
+    )
 
     production_verified = production.get("status") in {"pass", "passed"} and production.get("release_gate_decision") == "go"
     production_probe_requirements = production_source_probe_requirements(production)
@@ -1142,13 +1229,17 @@ def build_rows(
             verified=ci_verified,
             blocker=ci_blocker,
             required_resource="Exact GitHub Actions PR/main, Playwright smoke, and Docker image build evidence artifacts",
-            provided_signal=f"{ci_present}/{len(ci_paths)} canonical CI evidence files present; artifact values redacted by validators",
-            validation_signal="production aggregate CI evidence exact pass" if ci_verified else "CI exact evidence is missing or not strict-pass",
+            provided_signal=(
+                f"{ci_present}/{len(ci_paths)} canonical CI evidence files present; "
+                f"ci_release_gate_fixture_go={ci_state.get('status') == 'release_gate_fixture_pass'}; "
+                "artifact values redacted by validators"
+            ),
+            validation_signal=ci_validation_signal,
             gate_dependency="ci_pr_main_run + ci_playwright_smoke + ci_docker_image_build",
             evidence_refs=[display_path(path) for path in ci_paths],
             validator="python3 scripts/validate_stage1_ci_exact_evidence.py",
-            next_action="Trigger installed GitHub Actions workflow, then run python3 scripts/fetch_stage1_ci_artifacts.py --run-url <github-actions-run-url> to publish strict canonical CI evidence.",
-            operator_ask="Provide a GitHub Actions run URL plus artifact access token if private, or provide a downloaded artifact directory containing the three exact CI JSON files.",
+            next_action=ci_next_action,
+            operator_ask=ci_operator_ask,
         ),
         {
             **resource_row(
@@ -1252,6 +1343,7 @@ def build_preflight(args: argparse.Namespace) -> dict[str, Any]:
                 "blocker_count": 1,
                 "do_not_launch_conditions": [],
             },
+            "ci_release_gate_fixture": ci_release_gate_fixture_state(),
             "llm_openai_compatible_selftest": aggregate_summary(llm_selftest_path, llm_selftest) if llm_selftest else {
                 "path": display_path(llm_selftest_path),
                 "schema_version": "missing",

@@ -9,15 +9,15 @@ This is a non-clearing operator summary. It preserves `no_go` and does not close
 | Stage1 gates | 6/14 | 42.9% | no_go |
 | Production inputs | 2/60 | 3.3% | 58 blockers |
 | Production source probes | 0/4 | 0.0% | 4 blocked |
-| External resources | 5/7 | 71.4% | 1 missing / 1 blocked |
+| External resources | 6/7 | 85.7% | 1 missing / 0 blocked |
 | Non-clearing refresh | 35/38 | 92.1% | 3 blocked / 0 failed |
 | Azure TCP ports | 3/3 | 100.0% | public entry ports 22/80/443 |
 | Azure HTTP probes | 4/6 | 66.7% | none |
 
 ## External Resources
 
-- External readiness: `5/7 = 71.4%`
-- Current loop breaker: R2, Stripe sandbox, and z.ai glm-5.2 are ready; remaining non-ready resources: current-SHA exact CI artifacts, production source probes.
+- External readiness: `6/7 = 85.7%`
+- Current loop breaker: R2, Stripe sandbox, z.ai glm-5.2, staging evidence inputs/artifacts, CI exact artifacts, and Azure origin are ready; the remaining production loop is source probes: live Stripe billing, production security, production legal/support HTTPS, and production governance release.
 
 ## Azure
 
@@ -47,6 +47,8 @@ This is a non-clearing operator summary. It preserves `no_go` and does not close
 
 | # | Item | Owner | Return Artifact | Agent Command After Return | Validation |
 | ---: | --- | --- | --- | --- | --- |
+| 0 | production_source_probes_missing | agent_after_operator_input | sanitized live production source evidence for billing, security, legal/support HTTPS, and governance. | `python3 scripts/ingest_stage1_production_return_artifacts.py || test $? -eq 2` | `python3 scripts/validate_stage1_next_blockers_summary.py` |
+<!-- production_source_probes_missing handoff: R2, Stripe sandbox, z.ai glm-5.2, staging evidence inputs/artifacts, CI exact artifacts, and Azure origin are ready; the remaining production loop is source probes: live Stripe billing, production security, production legal/support HTTPS, and production governance release. -->
 | 1 | production_dns_https | operator_cloudflare_dns | Cloudflare DNS Edit token/Zone ID plus PRODUCTION_DNS_TARGET in a private env file, or manual apex/www DNS records with HTTPS resolver proof | `python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --output ops/evidence/non_clearing/production-dns-cutover-plan.json` | `python3 scripts/stage1_production_dns_readiness.py --env <private-production-env> --output ops/evidence/non_clearing/production-dns-readiness.json || test $? -eq 2` |
 <!-- production_dns_https handoff: Do not paste R2 S3 credentials here; DNS needs Cloudflare DNS permission or manual DNS records, then resolver/HTTPS proof. -->
 | 2 | production_live_billing | operator_production_account | sanitized Stripe live IDs and production audit refs for checkout, subscription, invoice, refund, quota, webhook, and team-seat lifecycle | `python3 scripts/ingest_stage1_production_return_artifacts.py || test $? -eq 2` | `python3 scripts/ingest_stage1_production_return_artifacts.py || test $? -eq 2` |
@@ -76,16 +78,16 @@ This is a non-clearing operator summary. It preserves `no_go` and does not close
 
 ## Top Priority Action
 
-- Action: `production_dns_https`
-- Lane: `production_dns_https`
-- Why: system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known
+- Action: `production_source_probes_missing`
+- Lane: `production_launch_inputs`
+- Why: R2, Stripe sandbox, z.ai glm-5.2, staging evidence inputs/artifacts, CI exact artifacts, and Azure origin are ready; the remaining production loop is source probes: live Stripe billing, production security, production legal/support HTTPS, and production governance release.
 - Requires external input: `True`
-- External input: production proof inputs and source evidence
+- External input: sanitized live production source evidence for billing, security, legal/support HTTPS, and governance.
 - Parallel blocker: none
 - Parallel command: `none`
 
 ```bash
-python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --output ops/evidence/non_clearing/production-dns-cutover-plan.json
+python3 scripts/ingest_stage1_production_return_artifacts.py || test $? -eq 2
 ```
 
 ## Evidence Refs
