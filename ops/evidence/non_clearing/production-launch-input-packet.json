@@ -57,11 +57,17 @@
     "can_clear_security": false,
     "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete"
   },
-  "generated_at": "2026-06-28T17:50:44+00:00",
+  "generated_at": "2026-06-28T21:51:13+00:00",
   "kind": "stage1_production_launch_input_packet",
   "missing_variables": [
-    "STAGING_DATABASE_URL deployed non-local Postgres endpoint",
-    "GH_TOKEN or GITHUB_TOKEN when GitHub artifact access is private"
+    "SANITIZED_LIVE_BILLING_PROOF_JSON for ops/evidence/production/billing-paid-lifecycle-source.json",
+    "SANITIZED_PRODUCTION_SECURITY_PROOF_JSON for ops/evidence/production/production-security-launch-source.json",
+    "PRODUCTION_WEB_URL resolving to public HTTPS legal/support pages for ops/evidence/production/production-legal-support-source.json",
+    "SANITIZED_PRODUCTION_GOVERNANCE_PROOF_JSON for ops/evidence/production/production-governance-release-source.json",
+    "PRODUCTION_LAUNCH_INPUT_PACKET at ops/evidence/non_clearing/production-launch-input-packet.json",
+    "PRODUCTION_LAUNCH_OPERATOR_BRIEF at ops/evidence/non_clearing/production-launch-operator-brief.json",
+    "PRODUCTION_MISSING_INPUT_CHECKLIST at ops/evidence/non_clearing/production-missing-input-checklist.json",
+    "PRODUCTION_SOURCE_PROBE_RUNBOOK at ops/evidence/non_clearing/production-source-probe-runbook.json"
   ],
   "non_clearing_input_packet": true,
   "production_dns_readiness": {
@@ -260,7 +266,7 @@
   "raw_stripe_payload_persisted": false,
   "raw_support_body_projected": false,
   "release_gate_decision": "no_go",
-  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "release_sha": "ddb10bc71ceafd1e0af3992abeb73f4c0df217ec",
   "schema_version": "stage1.production_launch_input_packet.v1",
   "secret_material_persisted": false,
   "signed_url_persisted": false,

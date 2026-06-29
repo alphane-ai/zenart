@@ -75,7 +75,7 @@
   "dns_over_https_probe_summary": [
     {
       "addresses": [],
-      "error": "hard timeout after 12.0s",
+      "error": "<urlopen error [Errno 54] Connection reset by peer>",
       "host": "zenari.ai",
       "probe_id": "production_a_cloudflare",
       "resolver": "cloudflare",
@@ -136,7 +136,7 @@
     "non_clearing_evidence_only": true,
     "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete"
   },
-  "generated_at": "2026-06-28T17:50:45+00:00",
+  "generated_at": "2026-06-28T21:51:13+00:00",
   "kind": "stage1_production_dns_repair_packet",
   "non_clearing_repair_packet": true,
   "operator_command_packet": [

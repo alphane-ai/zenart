@@ -42,7 +42,7 @@ Required input count: `3`
 
 ## DNS Over HTTPS Fallback
 
-- production_a_cloudflare: resolver `cloudflare`, host `zenari.ai`, rrtype `A`, status `blocked`, addresses `none`, error `hard timeout after 12.0s`
+- production_a_cloudflare: resolver `cloudflare`, host `zenari.ai`, rrtype `A`, status `blocked`, addresses `none`, error `<urlopen error [Errno 54] Connection reset by peer>`
 - production_aaaa_cloudflare: resolver `cloudflare`, host `zenari.ai`, rrtype `AAAA`, status `blocked`, addresses `none`, error `<urlopen error [Errno 54] Connection reset by peer>`
 - production_a_google: resolver `google`, host `zenari.ai`, rrtype `A`, status `blocked`, addresses `none`, error `hard timeout after 12.0s`
 - production_aaaa_google: resolver `google`, host `zenari.ai`, rrtype `AAAA`, status `blocked`, addresses `none`, error `hard timeout after 12.0s`

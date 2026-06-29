@@ -202,7 +202,7 @@
     "non_clearing_evidence_only": true,
     "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete"
   },
-  "generated_at": "2026-06-28T17:50:45+00:00",
+  "generated_at": "2026-06-28T21:51:13+00:00",
   "kind": "stage1_production_launch_operator_brief",
   "non_clearing_operator_brief": true,
   "open_gates": [

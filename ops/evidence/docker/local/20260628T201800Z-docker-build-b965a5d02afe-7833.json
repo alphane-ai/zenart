@@ -1,0 +1,16 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "created_at": "20260628T201800Z",
+  "run_id": "20260628T201800Z-docker-build-b965a5d02afe-7833",
+  "status": "planned",
+  "git_sha": "b965a5d02afe",
+  "image_prefix": "zenari-stage0",
+  "image_set": ["backend", "web", "admin"],
+  "runtime_targets": "runtime-server runtime-worker",
+  "images": {"admin": {"context": "admin", "digest": "", "evidence_refs": ["ops/evidence/docker/local/20260628T201800Z-docker-build-b965a5d02afe-7833.log"], "runtime_targets": [], "status": "planned", "tag": "zenari-stage0-admin:b965a5d02afe", "target": ""}, "backend": {"context": "backend", "digest": "", "evidence_refs": ["ops/evidence/docker/local/20260628T201800Z-docker-build-b965a5d02afe-7833.log"], "runtime_targets": ["runtime-server", "runtime-worker"], "status": "planned", "tag": "zenari-stage0-backend:b965a5d02afe", "target": ""}, "web": {"context": "web", "digest": "", "evidence_refs": ["ops/evidence/docker/local/20260628T201800Z-docker-build-b965a5d02afe-7833.log"], "runtime_targets": [], "status": "planned", "tag": "zenari-stage0-web:b965a5d02afe", "target": ""}},
+  "log_path": "ops/evidence/docker/local/20260628T201800Z-docker-build-b965a5d02afe-7833.log",
+  "exit_code": 0,
+  "ci_gate": "open_until_installed_ci_builds_sha_tagged_images_on_pr_and_main",
+  "staging_gate": "open_until_sha_tagged_images_are_promoted_and_smoked_in_staging"
+}

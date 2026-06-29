@@ -9,7 +9,7 @@
   "canonical_pass_path": false,
   "cookie_persisted": false,
   "environment": "release",
-  "generated_at": "2026-06-28T21:03:26+00:00",
+  "generated_at": "2026-06-28T21:51:12+00:00",
   "kind": "stage1_external_resource_readiness_preflight",
   "non_clearing_refresh_summary": {
     "blocked_evidence_details": [

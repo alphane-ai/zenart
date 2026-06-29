@@ -4,7 +4,7 @@
   "can_close_do_not_launch": false,
   "chat_completion_chars": 56,
   "completion_text_persisted": false,
-  "generated_at": "2026-06-28T19:41:44.447933+00:00",
+  "generated_at": "2026-06-28T19:38:18.144426+00:00",
   "host": "api.z.ai",
   "kind": "openai_compatible_provider_selftest",
   "model": "glm-5.2",

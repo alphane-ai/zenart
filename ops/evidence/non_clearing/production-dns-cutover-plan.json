@@ -74,8 +74,8 @@
       "exit_code": 0,
       "host": "staging.zenari.ai",
       "records": [
-        "104.21.62.40",
-        "172.67.219.243"
+        "172.67.219.243",
+        "104.21.62.40"
       ],
       "rrtype": "A",
       "status": "pass"
@@ -101,7 +101,7 @@
     "dns_readiness": "ops/evidence/non_clearing/production-dns-readiness.json",
     "legal_support_operator_packet": "ops/evidence/non_clearing/production-legal-support-operator-packet.json"
   },
-  "generated_at": "2026-06-28T18:27:30+00:00",
+  "generated_at": "2026-06-28T22:03:48+00:00",
   "kind": "stage1_production_dns_cutover_plan",
   "manual_dns_observation": {
     "apex_expected": "52.237.80.117",

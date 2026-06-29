@@ -18,7 +18,7 @@
     "can_clear_stage1_production_launch_gate": false,
     "requires_strict_validator": "python3 scripts/validate_stage1_production_launch.py"
   },
-  "generated_at": "2026-06-28T17:50:43+00:00",
+  "generated_at": "2026-06-28T21:51:11+00:00",
   "input_variable_coverage": {
     "blocking_input_count": 58,
     "first_missing_or_invalid_inputs": [
@@ -784,14 +784,14 @@
   "raw_stripe_payload_persisted": false,
   "raw_support_body_projected": false,
   "release_gate_decision": "no_go",
-  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "release_sha": "ddb10bc71ceafd1e0af3992abeb73f4c0df217ec",
   "schema_version": "stage1.production_proof_bundle.v1",
   "secret_material_persisted": false,
   "signed_url_persisted": false,
   "status": "blocked",
   "steps": [
     {
-      "command": "python3 scripts/stage1_stripe_live_billing_proof.py --env-file .env --release-sha 7123957dcc3371c6e2d1912b5c2ca418a551b943 --output ops/evidence/non_clearing/production-live-billing-proof.candidate.json --diagnostic ops/evidence/non_clearing/production-live-billing-proof.blocked.json",
+      "command": "python3 scripts/stage1_stripe_live_billing_proof.py --env-file .env --release-sha ddb10bc71ceafd1e0af3992abeb73f4c0df217ec --output ops/evidence/non_clearing/production-live-billing-proof.candidate.json --diagnostic ops/evidence/non_clearing/production-live-billing-proof.blocked.json",
       "exit_code": 2,
       "expected_exit": true,
       "output_summary": "stage1 Stripe live billing proof blocked: 20 blocker(s); first: STRIPE_MODE_must_be_live",
@@ -799,7 +799,7 @@
       "step_id": "billing_proof"
     },
     {
-      "command": "python3 scripts/stage1_production_security_proof.py --release-sha 7123957dcc3371c6e2d1912b5c2ca418a551b943 --output ops/evidence/non_clearing/production-security-proof.candidate.json --diagnostic ops/evidence/non_clearing/production-security-proof.blocked.json",
+      "command": "python3 scripts/stage1_production_security_proof.py --release-sha ddb10bc71ceafd1e0af3992abeb73f4c0df217ec --output ops/evidence/non_clearing/production-security-proof.candidate.json --diagnostic ops/evidence/non_clearing/production-security-proof.blocked.json",
       "exit_code": 2,
       "expected_exit": true,
       "output_summary": "stage1 production security proof blocked: secure_session_cookie_ref_missing (+9 more)",
@@ -807,7 +807,7 @@
       "step_id": "security_proof"
     },
     {
-      "command": "python3 scripts/stage1_production_governance_proof.py --release-sha 7123957dcc3371c6e2d1912b5c2ca418a551b943 --output ops/evidence/non_clearing/production-governance-proof.candidate.json --diagnostic ops/evidence/non_clearing/production-governance-proof.blocked.json",
+      "command": "python3 scripts/stage1_production_governance_proof.py --release-sha ddb10bc71ceafd1e0af3992abeb73f4c0df217ec --output ops/evidence/non_clearing/production-governance-proof.candidate.json --diagnostic ops/evidence/non_clearing/production-governance-proof.blocked.json",
       "exit_code": 2,
       "expected_exit": true,
       "output_summary": "stage1 production governance proof blocked: 26 blocker(s); first: activation_runtime_request_ids_missing",
@@ -815,7 +815,7 @@
       "step_id": "governance_proof"
     },
     {
-      "command": "python3 scripts/run_stage1_production_launch_source_pipeline.py --release-sha 7123957dcc3371c6e2d1912b5c2ca418a551b943 --production-web-url https://zenari.ai --billing-proof ops/evidence/non_clearing/production-live-billing-proof.candidate.json --security-proof ops/evidence/non_clearing/production-security-proof.candidate.json --governance-proof ops/evidence/non_clearing/production-governance-proof.candidate.json --legal-diagnostic ops/evidence/production/source-probe-diagnostics.legal-support.json --summary ops/evidence/non_clearing/production-launch-source-pipeline.json",
+      "command": "python3 scripts/run_stage1_production_launch_source_pipeline.py --release-sha ddb10bc71ceafd1e0af3992abeb73f4c0df217ec --production-web-url https://zenari.ai --billing-proof ops/evidence/non_clearing/production-live-billing-proof.candidate.json --security-proof ops/evidence/non_clearing/production-security-proof.candidate.json --governance-proof ops/evidence/non_clearing/production-governance-proof.candidate.json --legal-diagnostic ops/evidence/production/source-probe-diagnostics.legal-support.json --summary ops/evidence/non_clearing/production-launch-source-pipeline.json",
       "exit_code": 2,
       "expected_exit": true,
       "output_summary": "wrote Stage 1 production launch source pipeline summary to ops/evidence/non_clearing/production-launch-source-pipeline.json",

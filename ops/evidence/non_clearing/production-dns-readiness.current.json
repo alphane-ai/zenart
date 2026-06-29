@@ -18,8 +18,8 @@
     },
     "staging_a": {
       "addresses": [
-        "172.67.219.243",
-        "104.21.62.40"
+        "104.21.62.40",
+        "172.67.219.243"
       ],
       "error": "",
       "exit_code": 0,
@@ -64,7 +64,7 @@
     "production_a_cloudflare": {
       "addresses": [],
       "dns_rcode": null,
-      "error": "[Errno 54] Connection reset by peer",
+      "error": "<urlopen error [Errno 54] Connection reset by peer>",
       "host": "zenari.ai",
       "http_status": null,
       "resolver": "cloudflare",
@@ -104,7 +104,7 @@
     "staging_a_cloudflare": {
       "addresses": [],
       "dns_rcode": null,
-      "error": "<urlopen error [Errno 54] Connection reset by peer>",
+      "error": "hard timeout after 12.0s",
       "host": "staging.zenari.ai",
       "http_status": null,
       "resolver": "cloudflare",
@@ -124,7 +124,7 @@
   },
   "dns_split_brain_observed": false,
   "environment": "production",
-  "generated_at": "2026-06-28T22:03:36+00:00",
+  "generated_at": "2026-06-28T19:41:05+00:00",
   "https_probe": {
     "production_paths": [
       {

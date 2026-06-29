@@ -16,7 +16,7 @@
     "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete",
     "requires_strict_validator": "python3 scripts/validate_stage1_production_launch.py"
   },
-  "generated_at": "2026-06-28T17:50:42+00:00",
+  "generated_at": "2026-06-28T21:51:11+00:00",
   "kind": "stage1_production_launch_source_pipeline",
   "missing_source_inputs": [
     {
@@ -206,14 +206,14 @@
   "raw_stripe_payload_persisted": false,
   "raw_support_body_projected": false,
   "release_gate_decision": "no_go",
-  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "release_sha": "ddb10bc71ceafd1e0af3992abeb73f4c0df217ec",
   "schema_version": "stage1.production_launch_source_pipeline.v1",
   "secret_material_persisted": false,
   "signed_url_persisted": false,
   "status": "blocked",
   "steps": [
     {
-      "command": "python3 scripts/stage1_production_source_probe.py --billing --release-sha 7123957dcc3371c6e2d1912b5c2ca418a551b943 --diagnostic ops/evidence/production/source-probe-diagnostics.billing.json",
+      "command": "python3 scripts/stage1_production_source_probe.py --billing --release-sha ddb10bc71ceafd1e0af3992abeb73f4c0df217ec --diagnostic ops/evidence/production/source-probe-diagnostics.billing.json",
       "exit_code": 2,
       "expected_exit": true,
       "output_summary": "stage1 production source probe wrote blocked diagnostic: ops/evidence/production/source-probe-diagnostics.billing.json",
@@ -221,7 +221,7 @@
       "step_id": "billing_source_probe"
     },
     {
-      "command": "python3 scripts/stage1_production_source_probe.py --security --release-sha 7123957dcc3371c6e2d1912b5c2ca418a551b943 --production-web-url https://zenari.ai --diagnostic ops/evidence/production/source-probe-diagnostics.security.json",
+      "command": "python3 scripts/stage1_production_source_probe.py --security --release-sha ddb10bc71ceafd1e0af3992abeb73f4c0df217ec --production-web-url https://zenari.ai --diagnostic ops/evidence/production/source-probe-diagnostics.security.json",
       "exit_code": 2,
       "expected_exit": true,
       "output_summary": "stage1 production source probe wrote blocked diagnostic: ops/evidence/production/source-probe-diagnostics.security.json",
@@ -229,7 +229,7 @@
       "step_id": "security_source_probe"
     },
     {
-      "command": "python3 scripts/stage1_production_source_probe.py --legal-support --release-sha 7123957dcc3371c6e2d1912b5c2ca418a551b943 --production-web-url https://zenari.ai --diagnostic ops/evidence/production/source-probe-diagnostics.legal-support.json",
+      "command": "python3 scripts/stage1_production_source_probe.py --legal-support --release-sha ddb10bc71ceafd1e0af3992abeb73f4c0df217ec --production-web-url https://zenari.ai --diagnostic ops/evidence/production/source-probe-diagnostics.legal-support.json",
       "exit_code": 2,
       "expected_exit": true,
       "output_summary": "stage1 production source probe blocked: production web URL host zenari.ai did not resolve via system resolver: [Errno 8] nodename nor servname provided, or not known",
@@ -237,7 +237,7 @@
       "step_id": "legal_support_source_probe"
     },
     {
-      "command": "python3 scripts/stage1_production_source_probe.py --governance --release-sha 7123957dcc3371c6e2d1912b5c2ca418a551b943 --diagnostic ops/evidence/production/source-probe-diagnostics.governance.json",
+      "command": "python3 scripts/stage1_production_source_probe.py --governance --release-sha ddb10bc71ceafd1e0af3992abeb73f4c0df217ec --diagnostic ops/evidence/production/source-probe-diagnostics.governance.json",
       "exit_code": 2,
       "expected_exit": true,
       "output_summary": "stage1 production source probe wrote blocked diagnostic: ops/evidence/production/source-probe-diagnostics.governance.json",

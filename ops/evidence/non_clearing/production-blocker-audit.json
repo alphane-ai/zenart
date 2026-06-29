@@ -30,7 +30,7 @@
     "can_close_do_not_launch": false,
     "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete"
   },
-  "generated_at": "2026-06-28T17:50:45+00:00",
+  "generated_at": "2026-06-28T21:51:13+00:00",
   "kind": "stage1_production_blocker_audit",
   "local_env_classification": {
     "env_file": ".env",

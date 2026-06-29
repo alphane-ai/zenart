@@ -2,7 +2,7 @@
 
 This is a short non-clearing action matrix. It does not clear production launch or do-not-launch.
 
-Generated at: `2026-06-28T17:51:11+00:00`
+Generated at: `2026-06-28T21:51:39+00:00`
 Release decision: `no_go`
 Stage1 gates: `6` / `14` = `42.9%`
 Production inputs: `2` / `60` = `3.3%`

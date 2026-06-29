@@ -9,18 +9,33 @@
     "stage1_production_launch_evidence_incomplete"
   ],
   "environment": "release",
-  "generated_at": "2026-06-28T17:24:15+00:00",
+  "generated_at": "2026-06-28T21:51:39+00:00",
   "kind": "stage1_release_evidence_closure_queue_preflight",
   "operator_action_packet_summary": {
-    "blocked": 4,
+    "blocked": 5,
     "can_clear_stage1_production_launch_gate": false,
     "can_clear_stage1_staging_runtime_gate": false,
     "can_close_do_not_launch": false,
     "canonical_pass_path": false,
     "gate_impact_counts": {
-      "non_clearing_operator_shortlist_only": 4
+      "non_clearing_operator_shortlist_only": 5
     },
     "items": [
+      {
+        "agent_command_after_return": "python3 scripts/ingest_stage1_production_return_artifacts.py || test $? -eq 2",
+        "can_clear_stage1_production_launch_gate": false,
+        "can_clear_stage1_staging_runtime_gate": false,
+        "can_close_do_not_launch": false,
+        "evidence_ref": "ops/evidence/non_clearing/stage1-next-blockers-summary.json",
+        "gate_impact": "non_clearing_operator_shortlist_only",
+        "item_id": "production_source_probes_missing",
+        "order": 0,
+        "owner": "agent_after_operator_input",
+        "required_return_artifact": "sanitized live production source evidence for billing, security, legal/support HTTPS, and governance.",
+        "requires_external_input": true,
+        "status": "blocked",
+        "validation_after_return": "python3 scripts/validate_stage1_next_blockers_summary.py"
+      },
       {
         "agent_command_after_return": "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
         "can_clear_stage1_production_launch_gate": false,
@@ -83,16 +98,17 @@
       }
     ],
     "owner_counts": {
+      "agent_after_operator_input": 1,
       "operator_cloudflare_dns": 1,
       "operator_production_account": 3
     },
     "release_gate_decision": "no_go",
-    "requires_external_input": 4,
+    "requires_external_input": 5,
     "source_gate_flags_all_false": true,
     "source_path": "ops/evidence/non_clearing/stage1-next-blockers-summary.json",
     "source_schema_version": "stage1.next_blockers_summary.v1",
     "status": "blocked",
-    "total": 4
+    "total": 5
   },
   "parallel_operational_blockers": [],
   "queue": [
@@ -141,7 +157,7 @@
       "validator": "python3 scripts/validate_stage1_staging_object_retention_evidence.py"
     },
     {
-      "current_blocker": "ci_pr_main_run: exact CI artifacts strict-pass for b885b7ac1c75cad256d774a1fed82008eea4aecf, but current candidate is 7123957dcc3371c6e2d1912b5c2ca418a551b943; fetch current GitHub Actions artifacts",
+      "current_blocker": "ci_pr_main_run: exact CI artifacts strict-pass for 55ef88a19b8e176d910c5b292bc934865470a4d0, but current candidate is 7123957dcc3371c6e2d1912b5c2ca418a551b943; fetch current GitHub Actions artifacts",
       "dnl_impact": "keeps CI gate and production launch blocked",
       "gate": "ci_pr_main_run",
       "generator": "python3 scripts/generate_stage1_ci_exact_preflight.py, then python3 scripts/fetch_stage1_ci_artifacts.py --run-url <github-actions-run-url> downloads artifacts, validates, and publishes canonical evidence",
@@ -152,7 +168,7 @@
       "validator": "python3 scripts/validate_stage1_ci_exact_evidence.py"
     },
     {
-      "current_blocker": "ci_playwright_smoke: exact CI artifacts strict-pass for b885b7ac1c75cad256d774a1fed82008eea4aecf, but current candidate is 7123957dcc3371c6e2d1912b5c2ca418a551b943; fetch current GitHub Actions artifacts",
+      "current_blocker": "ci_playwright_smoke: exact CI artifacts strict-pass for 55ef88a19b8e176d910c5b292bc934865470a4d0, but current candidate is 7123957dcc3371c6e2d1912b5c2ca418a551b943; fetch current GitHub Actions artifacts",
       "dnl_impact": "keeps browser smoke release coverage unverified",
       "gate": "ci_playwright_smoke",
       "generator": "python3 scripts/generate_stage1_ci_exact_preflight.py, then python3 scripts/fetch_stage1_ci_artifacts.py --run-url <github-actions-run-url> downloads artifacts, validates, and publishes canonical evidence",
@@ -163,7 +179,7 @@
       "validator": "python3 scripts/validate_stage1_ci_exact_evidence.py"
     },
     {
-      "current_blocker": "ci_docker_image_build: exact CI artifacts strict-pass for b885b7ac1c75cad256d774a1fed82008eea4aecf, but current candidate is 7123957dcc3371c6e2d1912b5c2ca418a551b943; fetch current GitHub Actions artifacts",
+      "current_blocker": "ci_docker_image_build: exact CI artifacts strict-pass for 55ef88a19b8e176d910c5b292bc934865470a4d0, but current candidate is 7123957dcc3371c6e2d1912b5c2ca418a551b943; fetch current GitHub Actions artifacts",
       "dnl_impact": "keeps production image build evidence incomplete",
       "gate": "ci_docker_image_build",
       "generator": "python3 scripts/generate_stage1_ci_exact_preflight.py, then python3 scripts/fetch_stage1_ci_artifacts.py --run-url <github-actions-run-url> downloads artifacts, validates, and publishes canonical evidence",
@@ -275,7 +291,7 @@
       "production_legal_support_policy",
       "production_governance_release"
     ],
-    "operator_action_packet_items": 4,
+    "operator_action_packet_items": 5,
     "parallel_operational_blockers": 0,
     "total": 14
   },
@@ -302,7 +318,7 @@
       "blocker_count": 0,
       "do_not_launch_conditions": [],
       "environment": "ci",
-      "generated_at": "2026-06-28T17:22:41+00:00",
+      "generated_at": "2026-06-28T17:45:41+00:00",
       "kind": "ci_exact_evidence_preflight",
       "path": "ops/evidence/ci/stage1-ci-exact.preflight.json",
       "release_gate_decision": null,

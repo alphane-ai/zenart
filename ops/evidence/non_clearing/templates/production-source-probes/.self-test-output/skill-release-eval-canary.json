@@ -17,7 +17,7 @@
       "ops/evidence/non_clearing/templates/production-source-probes/production-governance-release-source.template.json status is not pass/passed"
     ]
   },
-  "generated_at": "2026-06-28T18:26:25+00:00",
+  "generated_at": "2026-06-28T22:02:44+00:00",
   "kind": "production_skill_release_eval_canary",
   "local_devport_debug": false,
   "raw_prompt_persisted": false,

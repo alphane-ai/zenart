@@ -105,7 +105,7 @@
   "cookie_persisted": false,
   "dry_run": false,
   "environment": "production",
-  "generated_at": "2026-06-28T18:26:25+00:00",
+  "generated_at": "2026-06-28T22:02:44+00:00",
   "kind": "production_governance_release_proof_template",
   "local_devport_debug": false,
   "operator_note": "Replace replace_me values with sanitized production governance runtime request IDs, audit refs, and section evidence. Set each section status to pass only after the production runtime/audit evidence exists. This is input for scripts/stage1_production_source_probe.py --governance; it is not a canonical production source file.",

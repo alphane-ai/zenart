@@ -1,0 +1,186 @@
+{
+  "anchors": {
+    "docker_smoke": {
+      "executable": true,
+      "exists": true,
+      "missing_snippets": [],
+      "path": "scripts/docker_build_smoke.sh",
+      "ready": true,
+      "required_snippets_present": [
+        "docker build",
+        "backend",
+        "web",
+        "admin"
+      ]
+    },
+    "docker_writer": {
+      "executable": true,
+      "exists": true,
+      "missing_snippets": [],
+      "path": "scripts/write_stage1_ci_docker_evidence.py",
+      "ready": true,
+      "required_snippets_present": [
+        "stage1.ci_docker_image_build.v1",
+        "sha256:"
+      ]
+    },
+    "ops_ci": {
+      "executable": true,
+      "exists": true,
+      "missing_snippets": [],
+      "path": "ops/ci/stage0-rev2-ci.yml",
+      "ready": true,
+      "required_snippets_present": [
+        "stage0-rev2-pr-main-run.json",
+        "stage0-rev2-playwright-smoke.json",
+        "stage0-rev2-docker-image-build.json"
+      ]
+    },
+    "playwright_smoke": {
+      "executable": true,
+      "exists": true,
+      "missing_snippets": [],
+      "path": "scripts/playwright_smoke.sh",
+      "ready": true,
+      "required_snippets_present": [
+        "ops/ci/playwright-smoke.spec.ts",
+        "WEB_URL",
+        "ADMIN_URL"
+      ]
+    },
+    "playwright_spec": {
+      "executable": true,
+      "exists": true,
+      "missing_snippets": [],
+      "path": "ops/ci/playwright-smoke.spec.ts",
+      "ready": true,
+      "required_snippets_present": [
+        "billing smoke validates quota",
+        "workspace smoke validates core workspace shell"
+      ]
+    },
+    "playwright_writer": {
+      "executable": true,
+      "exists": true,
+      "missing_snippets": [],
+      "path": "scripts/write_stage1_ci_playwright_evidence.py",
+      "ready": true,
+      "required_snippets_present": [
+        "stage1.ci_playwright_smoke.v1",
+        "safe_projection"
+      ]
+    },
+    "pr_main_writer": {
+      "executable": true,
+      "exists": true,
+      "missing_snippets": [],
+      "path": "scripts/write_stage1_ci_pr_main_evidence.py",
+      "ready": true,
+      "required_snippets_present": [
+        "stage1.ci_pr_main_run.v1",
+        "canonical_pass_path"
+      ]
+    },
+    "workflow": {
+      "executable": true,
+      "exists": true,
+      "missing_snippets": [],
+      "path": ".github/workflows/stage0-rev2-ci.yml",
+      "ready": true,
+      "required_snippets_present": [
+        "write_stage1_ci_pr_main_evidence.py",
+        "write_stage1_ci_playwright_evidence.py",
+        "write_stage1_ci_docker_evidence.py"
+      ]
+    }
+  },
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "git_worktree_clean"
+  ],
+  "can_clear_ci_gate": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_artifacts": {
+    "docker_image_build": "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+    "playwright_smoke": "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+    "pr_main_run": "ops/evidence/ci/stage0-rev2-pr-main-run.json"
+  },
+  "canonical_evidence_ready": false,
+  "canonical_pass_path": false,
+  "checks": {
+    "git_worktree_clean": false,
+    "github_repository_present": true,
+    "github_run_id_present": true,
+    "github_run_url_actions": true,
+    "installed_workflow_ready": true,
+    "ops_ci_shadow_ready": true,
+    "release_sha_full_length": true,
+    "smoke_sources_ready": true,
+    "trigger_targets_main": true,
+    "writer_scripts_ready": true
+  },
+  "cookie_persisted": false,
+  "environment": "ci",
+  "generated_at": "2026-06-28T19:55:07+00:00",
+  "kind": "ci_exact_evidence_preflight",
+  "next_command_contract": {
+    "required_exact_artifacts": [
+      "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+      "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+      "ops/evidence/ci/stage0-rev2-docker-image-build.json"
+    ],
+    "requires_github_actions": true,
+    "strict_validator": "python3 scripts/validate_stage1_ci_exact_evidence.py",
+    "workflow": ".github/workflows/stage0-rev2-ci.yml"
+  },
+  "preflight_report": "ops/evidence/ci/stage1-ci-exact.preflight.json",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "ci_exact_evidence",
+  "safe_projection_policy": {
+    "authorization_header_persisted": false,
+    "cookie_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "secret_material_persisted": false,
+    "signed_url_persisted": false
+  },
+  "schema_version": "stage1.ci_exact.preflight.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "blocked",
+  "workflow_run_summary": {
+    "base_ref": "main",
+    "current_git_head": "35ff5b7fc5eb88675754d99505ddb4972b03484f",
+    "current_git_head_match": true,
+    "event_name": "pull_request",
+    "git_worktree_changed_file_count": 29,
+    "git_worktree_clean": false,
+    "git_worktree_sample_changed_files": [
+      "ops/evidence/non_clearing/production-dns-cutover-plan.json",
+      "ops/evidence/non_clearing/production-dns-readiness.json",
+      "ops/evidence/non_clearing/stage1-next-blockers-summary.json",
+      "ops/evidence/non_clearing/templates/.self-test-output/billing-diagnostic.json",
+      "ops/evidence/non_clearing/templates/billing-live-proof.template.json",
+      "ops/evidence/non_clearing/templates/production-source-probes/.self-test-output/abuse-throttle-hold.json",
+      "ops/evidence/non_clearing/templates/production-source-probes/.self-test-output/activation-review-audit.json",
+      "ops/evidence/non_clearing/templates/production-source-probes/.self-test-output/billing-lifecycle.json",
+      "ops/evidence/non_clearing/templates/production-source-probes/.self-test-output/billing-refund-credit-webhook.json",
+      "ops/evidence/non_clearing/templates/production-source-probes/.self-test-output/production-governance-proof.diagnostic.json",
+      "ops/evidence/non_clearing/templates/production-source-probes/.self-test-output/production-security-launch.json",
+      "ops/evidence/non_clearing/templates/production-source-probes/.self-test-output/production-security-proof.diagnostic.json"
+    ],
+    "head_ref": "stage1-launch-candidate-with-workflow-20260629",
+    "ref": "",
+    "release_sha": "35ff5b7fc5eb88675754d99505ddb4972b03484f",
+    "release_sha_source": "explicit",
+    "repository": "alphane-ai/zenart",
+    "run_id": "28332767788",
+    "run_url": "https://github.com/alphane-ai/zenart/actions/runs/28332767788"
+  }
+}
