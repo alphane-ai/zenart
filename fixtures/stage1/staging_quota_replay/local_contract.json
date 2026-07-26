@@ -1,0 +1,101 @@
+{
+  "schema_version": "stage1.staging_quota_replay.contract.v1",
+  "kind": "staging_quota_replay_contract",
+  "canonical_evidence_path": "ops/evidence/staging/stage1-quota-replay.json",
+  "canonical_results_path": "ops/evidence/staging/stage1-quota-replay.ndjson",
+  "preflight_evidence_path": "ops/evidence/staging/stage1-quota-replay.preflight.json",
+  "preflight_can_clear_staging_gate": false,
+  "blocked_evidence_path": "ops/evidence/staging/stage1-quota-replay.blocked.json",
+  "blocked_results_path": "ops/evidence/staging/stage1-quota-replay.blocked.ndjson",
+  "strict_schema_version": "stage1.staging_quota_replay.v1",
+  "release_gate_status": "contract_ready_staging_quota_replay_open",
+  "required_environment": "staging",
+  "required_runtime_components": [
+    "BatchRunner.RunOnce",
+    "BatchChildExecutor.ExecuteClaimedChild",
+    "PostgresBatchQuotaLedger.ReserveBatchQuota",
+    "PostgresBatchQuotaLedger.CommitBatchQuota",
+    "PostgresBatchQuotaLedger.RefundBatchQuota",
+    "BatchRepository.RetryChild",
+    "QuotaRepository.ReconcileProviderUsage"
+  ],
+  "required_event_kinds": [
+    "reserve",
+    "commit",
+    "refund",
+    "retry_scheduled",
+    "dead_letter_refund",
+    "manual_retry_rereserve",
+    "provider_usage_debit",
+    "provider_usage_credit"
+  ],
+  "required_source_tables": [
+    "batch_generation_requests",
+    "generation_child_tasks",
+    "quota_buckets",
+    "quota_transactions",
+    "provider_usage_logs"
+  ],
+  "required_staging_inputs": [
+    "STAGING_DATABASE_URL or --database-url",
+    "STAGING_API_URL or STAGING_QUOTA_REPLAY_API_URL or --staging-api-url",
+    "STAGING_QUOTA_REPLAY_BATCH_ID or --batch-id",
+    "STAGING_QUOTA_REPLAY_TENANT_ID or --tenant-id"
+  ],
+  "preflight_policy": {
+    "generator_flag": "--preflight",
+    "status_ready_does_not_clear_gate": true,
+    "requires_non_local_https_staging_api": true,
+    "requires_real_deployed_postgres": true,
+    "requires_tenant_and_batch_ids": true,
+    "database_url_persisted": false,
+    "hashes_tenant_and_batch_ids": true
+  },
+  "generator_safety_policy": {
+    "strict_input_precheck_required": true,
+    "invalid_strict_inputs_write_blocked_evidence_only": true,
+    "pass_evidence_written_only_after_strict_validator_accepts": true,
+    "canonical_outputs_are_atomic": true,
+    "staging_api_url_sanitized_on_blocked_output": true
+  },
+  "strict_evidence_policy": {
+    "environment": "staging",
+    "kind": "stage1_staging_quota_replay",
+    "status": "pass",
+    "release_gate_decision": "go",
+    "allow_local_devport_debug": false,
+    "allow_local_devport_evidence": false,
+    "allow_dry_run": false,
+    "require_https_staging_url": true,
+    "require_canonical_pass_path": true,
+    "require_real_database_read": true,
+    "require_retry_dead_letter_manual_retry": true,
+    "require_provider_usage_debit_credit": true,
+    "require_idempotent_replay": true
+  },
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false,
+    "database_url_persisted": false
+  },
+  "contract_only_commands": [
+    "python3 scripts/validate_stage1_staging_quota_replay_evidence.py --contract-only",
+    "python3 scripts/generate_stage1_staging_quota_replay_evidence.py --contract-only"
+  ],
+  "strict_command": "python3 scripts/validate_stage1_staging_quota_replay_evidence.py",
+  "generator_command": "python3 scripts/generate_stage1_staging_quota_replay_evidence.py",
+  "remaining_staging_evidence": [
+    "quota replay preflight can verify inputs but cannot clear Stage 1 staging runtime",
+    "real deployed staging Postgres batch rows",
+    "real provider_usage_logs linked to generation_child_task refs",
+    "retry/dead-letter/manual-retry replay rows from deployed worker path",
+    "provider usage debit and credit reconciliation rows",
+    "canonical staging API URL evidence"
+  ]
+}

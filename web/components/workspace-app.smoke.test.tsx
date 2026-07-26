@@ -1,11 +1,13 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import userRouteSmoke from "../validation/user-routes-smoke.json";
+import { zenariClient } from "@/lib/api-client";
 import { WorkspaceApp } from "./workspace-app";
 
 describe("WorkspaceApp user route integration smoke", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    zenariClient.resetWorkspace();
   });
 
   it("renders secure-cookie and same-site CSRF session UX evidence as an interactive client contract", async () => {
@@ -18,23 +20,39 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(sessionContract).toHaveAttribute("data-session-security-status", "pass");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard", "authenticated-same-site-session");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-status", "enabled");
-    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-safe-labels", "load,login");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-safe-labels", "load,login,asset-library-refresh");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-protected-methods", "POST,PUT,PATCH,DELETE");
-    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-count", "19");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-count", "35");
     expect(sessionContract.getAttribute("data-session-unsafe-action-guard-labels")?.split("|")).toEqual([
       "Confirm Brief",
       "Attach",
+      "Create Batch",
+      "Cancel Batch",
+      "Retry Child",
       "Create Project",
       "Rename Project",
       "Package Reference",
       "Select Candidate",
       "Iterate",
+      "Apply Edit Tool",
       "Restore Version",
+      "Add Asset",
+      "Favorite Asset",
+      "Archive Asset",
+      "Create Brand Kit",
+      "Update Brand Kit",
+      "Set Brand Kit",
       "Add Selection",
       "Export ZIP",
       "Export PDF",
       "Request Share",
       "Mock Checkout",
+      "Billing Portal",
+      "Cancel Subscription",
+      "Refresh Invoices",
+      "Refresh Team Seats",
+      "Refresh Asset Library",
+      "Accept Invite",
       "Billing Scenario",
       "Save Settings",
       "Submit Ticket",
@@ -45,11 +63,11 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "0");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-control-labels", "");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-blocked-reason", "");
-    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-operation-count", "18");
-    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-csrf-protected-operation-count", "15");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-operation-count", "36");
+    expect(sessionContract).toHaveAttribute("data-session-unsafe-action-csrf-protected-operation-count", "27");
     expect(sessionContract).toHaveAttribute(
       "data-session-unsafe-action-generated-unsafe-operations",
-      "deleteSession,updateAccount,createProject,updateProject,createChatSession,createChatMessage,createCandidateSet,selectDirection,createCanvasNode,createCanvasVersion,createUpload,createPackage,createExport,createShareLink,createSupportTicket"
+      "deleteSession,updateAccount,createProject,updateProject,createChatSession,createChatMessage,createBatchGeneration,cancelBatchGeneration,retryBatchGenerationChild,createCandidateSet,selectDirection,createCanvasNode,createCanvasVersion,createUpload,createAssetLibraryEntry,updateAssetLibraryEntry,createBrandKit,updateBrandKit,setProjectDefaultBrandKit,createPackage,createExport,createShareLink,createCheckoutSession,createBillingPortalSession,cancelSubscription,acceptTeamInvite,createSupportTicket"
     );
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-guard-coverage-status", "pass");
     expect(sessionContract).toHaveAttribute("data-session-unsafe-action-missing-csrf-operation-count", "0");
@@ -59,10 +77,10 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(sessionContract).toHaveAttribute("data-session-ux-state-matrix-states", "authenticated,expired,signed_out");
     expect(sessionContract).toHaveAttribute(
       "data-session-ux-state-matrix-contract",
-      "authenticated:enabled=19:blocked=0:recovery=none:alert=none|expired:enabled=1:blocked=18:recovery=Refresh Session:alert=Session expired. Refresh or sign in to continue.|signed_out:enabled=0:blocked=19:recovery=none:alert=Signed out. Sign in to continue."
+      "authenticated:enabled=35:blocked=0:recovery=none:alert=none|expired:enabled=1:blocked=34:recovery=Refresh Session:alert=Session expired. Refresh or sign in to continue.|signed_out:enabled=0:blocked=35:recovery=none:alert=Signed out. Sign in to continue."
     );
     expect(sessionContract).toHaveAttribute("data-session-ux-state-current", "authenticated");
-    expect(sessionContract).toHaveAttribute("data-session-ux-state-current-enabled-count", "19");
+    expect(sessionContract).toHaveAttribute("data-session-ux-state-current-enabled-count", "35");
     expect(sessionContract).toHaveAttribute("data-session-ux-state-current-blocked-count", "0");
     expect(sessionContract).toHaveAttribute("data-session-ux-state-current-recovery-labels", "");
     expect(sessionContract).toHaveAttribute("data-session-ux-state-current-alert", "none");
@@ -73,40 +91,55 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(sessionContract).toHaveAttribute("data-session-ux-transition-status", "pass");
     expect(sessionContract).toHaveAttribute("data-session-ux-transition-count", "5");
     expect(sessionContract.getAttribute("data-session-ux-transition-digest")).toContain(
-      "authenticated->expired:Expire Session:enabled=1:blocked=18:recovery=Refresh Session"
+      "authenticated->expired:Expire Session:enabled=1:blocked=34:recovery=Refresh Session"
     );
     expect(sessionContract.getAttribute("data-session-ux-transition-digest")).toContain(
-      "authenticated->signed_out:Log Out:enabled=0:blocked=19:recovery=none"
+      "authenticated->signed_out:Log Out:enabled=0:blocked=35:recovery=none"
     );
     expect(sessionContract).toHaveAttribute("data-session-ux-transition-expired-recovery-status", "pass");
     expect(sessionContract).toHaveAttribute("data-session-ux-transition-signed-out-block-status", "pass");
     expect(sessionContract).toHaveAttribute("data-session-ux-transition-required-recovery-action", "Refresh Session");
-    expect(sessionContract).toHaveAttribute("data-session-ux-transition-signed-out-blocked-count", "19");
+    expect(sessionContract).toHaveAttribute("data-session-ux-transition-signed-out-blocked-count", "35");
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
-      "Confirm Brief=>createChatSession:POST:X-ZenArt-CSRF:true+createChatMessage:POST:X-ZenArt-CSRF:true+createCandidateSet:POST:X-ZenArt-CSRF:true"
+      "Confirm Brief=>createChatSession:POST:X-Zenari-CSRF:true+createChatMessage:POST:X-Zenari-CSRF:true+createCandidateSet:POST:X-Zenari-CSRF:true"
     );
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
-      "Attach=>createUpload:POST:X-ZenArt-CSRF:true"
+      "Attach=>createUpload:POST:X-Zenari-CSRF:true"
     );
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
-      "Create Project=>createProject:POST:X-ZenArt-CSRF:true"
+      "Create Batch=>createBatchGeneration:POST:X-Zenari-CSRF:true"
     );
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
-      "Rename Project=>updateProject:PATCH:X-ZenArt-CSRF:true"
+      "Cancel Batch=>cancelBatchGeneration:POST:X-Zenari-CSRF:true"
     );
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
-      "Save Settings=>updateAccount:PATCH:X-ZenArt-CSRF:true"
+      "Retry Child=>retryBatchGenerationChild:POST:X-Zenari-CSRF:true"
+    );
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Create Project=>createProject:POST:X-Zenari-CSRF:true"
+    );
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Rename Project=>updateProject:PATCH:X-Zenari-CSRF:true"
+    );
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Apply Edit Tool=>createUpload:POST:X-Zenari-CSRF:true+createCanvasNode:POST:X-Zenari-CSRF:true+createCanvasVersion:POST:X-Zenari-CSRF:true"
+    );
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Refresh Asset Library=>listAssetLibrary:GET:not-required:false+listBrandKits:GET:not-required:false+getProjectDefaultBrandKit:GET:not-required:false"
+    );
+    expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
+      "Save Settings=>updateAccount:PATCH:X-Zenari-CSRF:true"
     );
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
       "Refresh Session=>getSession:GET:not-required:false"
     );
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
-      "Expire Session=>deleteSession:DELETE:X-ZenArt-CSRF:false"
+      "Expire Session=>deleteSession:DELETE:X-Zenari-CSRF:false"
     );
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
-      "Log Out=>deleteSession:DELETE:X-ZenArt-CSRF:false"
+      "Log Out=>deleteSession:DELETE:X-Zenari-CSRF:false"
     );
-    expect(sessionContract).toHaveAttribute("data-session-cookie-name", "__Host-zenart_session");
+    expect(sessionContract).toHaveAttribute("data-session-cookie-name", "__Host-zenari_session");
     expect(sessionContract).toHaveAttribute("data-session-cookie-http-only", "true");
     expect(sessionContract).toHaveAttribute("data-session-cookie-secure", "true");
     expect(sessionContract).toHaveAttribute("data-session-cookie-same-site", "lax");
@@ -121,7 +154,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(sessionContract).toHaveAttribute("data-session-cookie-host-prefix-host-only", "true");
     expect(sessionContract).toHaveAttribute("data-session-cookie-host-prefix-failure-count", "0");
     expect(sessionContract).toHaveAttribute("data-session-cookie-host-prefix-failure-reasons", "");
-    expect(sessionContract).toHaveAttribute("data-session-cookie-set-cookie-contract", "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly");
+    expect(sessionContract).toHaveAttribute("data-session-cookie-set-cookie-contract", "__Host-zenari_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly");
     expect(sessionContract).toHaveAttribute("data-session-cookie-same-site-accepted-values", "lax,strict");
     expect(sessionContract).toHaveAttribute("data-session-cookie-same-site-rejected-values", "none");
     expect(sessionContract).toHaveAttribute(
@@ -129,7 +162,7 @@ describe("WorkspaceApp user route integration smoke", () => {
       "lax:pass:none|strict:pass:none|none:fail:cookie-same-site"
     );
     expect(sessionContract).toHaveAttribute("data-session-csrf-strategy", "same-site-origin-check");
-    expect(sessionContract).toHaveAttribute("data-session-csrf-header", "X-ZenArt-CSRF");
+    expect(sessionContract).toHaveAttribute("data-session-csrf-header", "X-Zenari-CSRF");
     expect(sessionContract).toHaveAttribute("data-session-csrf-credential-mode", "include");
     expect(sessionContract).toHaveAttribute("data-session-csrf-origin-policy", "same-site-only");
     expect(sessionContract).toHaveAttribute("data-session-csrf-same-site-requirement", "lax-or-strict");
@@ -141,36 +174,39 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(sessionContract).toHaveAttribute("data-session-backend-runtime-pairing", "secure-cookie-same-site-csrf-runtime");
     expect(sessionContract).toHaveAttribute("data-session-backend-runtime-pairing-status", "pass");
     expect(sessionContract.getAttribute("data-session-backend-runtime-pairing-digest")).toContain(
-      "__Host-zenart_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly||POST,PUT,PATCH,DELETE:X-ZenArt-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict"
+      "__Host-zenari_session;HttpOnly;Secure;SameSite=lax;Path=/;HostOnly||POST,PUT,PATCH,DELETE:X-Zenari-CSRF:same-site-origin-check:same-site-only:include:lax-or-strict"
     );
     expect(sessionContract.getAttribute("data-session-backend-runtime-pairing-digest")).toContain(
-      "createUpload:POST:/uploads:include:X-ZenArt-CSRF:same-site-origin-check:true"
+      "createUpload:POST:/uploads:include:X-Zenari-CSRF:same-site-origin-check:true"
+    );
+    expect(sessionContract.getAttribute("data-session-backend-runtime-pairing-digest")).toContain(
+      "createBatchGeneration:POST:/projects/{project_id}/batch-generations:include:X-Zenari-CSRF:same-site-origin-check:true"
     );
     expect(sessionContract.getAttribute("data-session-backend-runtime-pairing-digest")).toContain(
       "missing=none||cookie-failures=none||csrf-failures=none"
     );
 
     const csrfInventory = screen.getByLabelText("Generated web API CSRF operation inventory");
-    expect(csrfInventory).toHaveAttribute("data-csrf-operation-count", "15");
+    expect(csrfInventory).toHaveAttribute("data-csrf-operation-count", "27");
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-contract", "stage0.rev2.generated-api-csrf-contract");
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-status", "pass");
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-credential-mode", "include");
-    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-header", "X-ZenArt-CSRF");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-header", "X-Zenari-CSRF");
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-header-value", "same-site-origin-check");
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-origin-policy", "same-site-only");
-    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-unsafe-operation-count", "15");
-    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-safe-operation-count", "17");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-unsafe-operation-count", "27");
+    expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-safe-operation-count", "26");
     expect(csrfInventory).toHaveAttribute(
       "data-generated-api-csrf-unsafe-operations",
-      "deleteSession,updateAccount,createProject,updateProject,createChatSession,createChatMessage,createCandidateSet,selectDirection,createCanvasNode,createCanvasVersion,createUpload,createPackage,createExport,createShareLink,createSupportTicket"
+      "deleteSession,updateAccount,createProject,updateProject,createChatSession,createChatMessage,createBatchGeneration,cancelBatchGeneration,retryBatchGenerationChild,createCandidateSet,selectDirection,createCanvasNode,createCanvasVersion,createUpload,createAssetLibraryEntry,updateAssetLibraryEntry,createBrandKit,updateBrandKit,setProjectDefaultBrandKit,createPackage,createExport,createShareLink,createCheckoutSession,createBillingPortalSession,cancelSubscription,acceptTeamInvite,createSupportTicket"
     );
     expect(csrfInventory).toHaveAttribute(
       "data-generated-api-csrf-safe-operations",
-      "getSession,getAccount,listProjects,getProject,getWorkspace,listChatMessages,getTask,listCandidateSets,listCandidateAssets,listCanvasNodes,listCanvasFrames,listCanvasVersions,listAssets,listPackages,getExport,getQuota,getSubscription"
+      "getSession,getAccount,listProjects,getProject,getWorkspace,listChatMessages,getTask,getBatchGeneration,listBatchGenerationChildren,getBatchGenerationProgress,listCandidateSets,listCandidateAssets,listCanvasNodes,listCanvasFrames,listCanvasVersions,listAssets,listAssetLibrary,listBrandKits,getProjectDefaultBrandKit,listPackages,getExport,getQuota,getSubscription,listBillingInvoices,getTeamSeatUsage,checkTeamSeatEntitlement"
     );
     expect(csrfInventory).toHaveAttribute(
       "data-generated-api-csrf-idempotency-required-operations",
-      "updateAccount,createProject,updateProject,createChatSession,createChatMessage,createCandidateSet,selectDirection,createCanvasNode,createCanvasVersion,createUpload,createPackage,createExport,createShareLink,createSupportTicket"
+      "updateAccount,createProject,updateProject,createChatSession,createChatMessage,createBatchGeneration,cancelBatchGeneration,retryBatchGenerationChild,createCandidateSet,selectDirection,createCanvasNode,createCanvasVersion,createUpload,createAssetLibraryEntry,updateAssetLibraryEntry,createBrandKit,updateBrandKit,setProjectDefaultBrandKit,createPackage,createExport,createShareLink,createCheckoutSession,createBillingPortalSession,cancelSubscription,acceptTeamInvite,createSupportTicket"
     );
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-idempotency-exempt-operations", "deleteSession");
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-missing-unsafe-operation-count", "0");
@@ -181,16 +217,55 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-safe-method-coverage", "GET:covered|HEAD:not-generated|OPTIONS:not-generated");
     expect(csrfInventory).toHaveAttribute("data-generated-api-csrf-method-coverage-failure-count", "0");
     expect(csrfInventory.getAttribute("data-generated-api-csrf-operation-contracts")).toContain(
-      "createUpload:POST:include:X-ZenArt-CSRF:true"
+      "createUpload:POST:include:X-Zenari-CSRF:true"
     );
     expect(csrfInventory.getAttribute("data-generated-api-csrf-operation-contracts")).toContain(
-      "deleteSession:DELETE:include:X-ZenArt-CSRF:false"
+      "createAssetLibraryEntry:POST:include:X-Zenari-CSRF:true"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-operation-contracts")).toContain(
+      "updateAssetLibraryEntry:PATCH:include:X-Zenari-CSRF:true"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-operation-contracts")).toContain(
+      "createBrandKit:POST:include:X-Zenari-CSRF:true"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-operation-contracts")).toContain(
+      "setProjectDefaultBrandKit:PUT:include:X-Zenari-CSRF:true"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-operation-contracts")).toContain(
+      "createBatchGeneration:POST:include:X-Zenari-CSRF:true"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-operation-contracts")).toContain(
+      "cancelBatchGeneration:POST:include:X-Zenari-CSRF:true"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-operation-contracts")).toContain(
+      "retryBatchGenerationChild:POST:include:X-Zenari-CSRF:true"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-operation-contracts")).toContain(
+      "deleteSession:DELETE:include:X-Zenari-CSRF:false"
     );
     expect(csrfInventory.getAttribute("data-generated-api-csrf-safe-operation-contracts")).toContain(
       "getSession:GET:include:not-required:false"
     );
     expect(csrfInventory.getAttribute("data-generated-api-csrf-safe-operation-contracts")).toContain(
+      "getBatchGeneration:GET:include:not-required:false"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-safe-operation-contracts")).toContain(
+      "listAssetLibrary:GET:include:not-required:false"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-safe-operation-contracts")).toContain(
+      "listBrandKits:GET:include:not-required:false"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-safe-operation-contracts")).toContain(
+      "getProjectDefaultBrandKit:GET:include:not-required:false"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-safe-operation-contracts")).toContain(
       "getSubscription:GET:include:not-required:false"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-safe-operation-contracts")).toContain(
+      "listBillingInvoices:GET:include:not-required:false"
+    );
+    expect(csrfInventory.getAttribute("data-generated-api-csrf-safe-operation-contracts")).toContain(
+      "checkTeamSeatEntitlement:GET:include:not-required:false"
     );
     expect(csrfInventory).toHaveTextContent("createUpload");
     expect(csrfInventory).toHaveTextContent("createProject");
@@ -202,21 +277,21 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe", "stage0.rev2.generated-api-csrf-browser-probe");
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-status", "idle");
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-operation", "updateAccount");
-    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-operation-count", "15");
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-operation-count", "27");
     expect(browserProbe).toHaveAttribute(
       "data-generated-api-csrf-browser-probe-unsafe-covered-operations",
-      "deleteSession,updateAccount,createProject,updateProject,createChatSession,createChatMessage,createCandidateSet,selectDirection,createCanvasNode,createCanvasVersion,createUpload,createPackage,createExport,createShareLink,createSupportTicket"
+      "deleteSession,updateAccount,createProject,updateProject,createChatSession,createChatMessage,createBatchGeneration,cancelBatchGeneration,retryBatchGenerationChild,createCandidateSet,selectDirection,createCanvasNode,createCanvasVersion,createUpload,createAssetLibraryEntry,updateAssetLibraryEntry,createBrandKit,updateBrandKit,setProjectDefaultBrandKit,createPackage,createExport,createShareLink,createCheckoutSession,createBillingPortalSession,cancelSubscription,acceptTeamInvite,createSupportTicket"
     );
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-credentialed-request-count", "0");
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-csrf-header-count", "0");
-    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-idempotency-required-count", "14");
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-idempotency-required-count", "26");
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-unsafe-idempotency-header-count", "0");
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-operation", "getSession");
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-csrf-header", "missing");
-    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-operation-count", "17");
+    expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-operation-count", "26");
     expect(browserProbe).toHaveAttribute(
       "data-generated-api-csrf-browser-probe-safe-covered-operations",
-      "getSession,getAccount,listProjects,getProject,getWorkspace,listChatMessages,getTask,listCandidateSets,listCandidateAssets,listCanvasNodes,listCanvasFrames,listCanvasVersions,listAssets,listPackages,getExport,getQuota,getSubscription"
+      "getSession,getAccount,listProjects,getProject,getWorkspace,listChatMessages,getTask,getBatchGeneration,listBatchGenerationChildren,getBatchGenerationProgress,listCandidateSets,listCandidateAssets,listCanvasNodes,listCanvasFrames,listCanvasVersions,listAssets,listAssetLibrary,listBrandKits,getProjectDefaultBrandKit,listPackages,getExport,getQuota,getSubscription,listBillingInvoices,getTeamSeatUsage,checkTeamSeatEntitlement"
     );
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-credentialed-request-count", "0");
     expect(browserProbe).toHaveAttribute("data-generated-api-csrf-browser-probe-safe-no-csrf-header-count", "0");
@@ -231,7 +306,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(saveSettings).toHaveAttribute("data-csrf-ux-guard-operations", "updateAccount");
     expect(saveSettings).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "updateAccount:PATCH:/account:include:X-ZenArt-CSRF:true"
+      "updateAccount:PATCH:/account:include:X-Zenari-CSRF:true"
     );
     expect(saveSettings).toHaveAttribute(
       "data-csrf-ux-guard-session-matrix",
@@ -262,7 +337,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(expireSession).toHaveAttribute("data-csrf-ux-guard-operations", "deleteSession");
     expect(expireSession).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "deleteSession:DELETE:/session:include:X-ZenArt-CSRF:false"
+      "deleteSession:DELETE:/session:include:X-Zenari-CSRF:false"
     );
 
     const logOut = screen.getByRole("button", { name: "Log Out" });
@@ -270,17 +345,17 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(logOut).toHaveAttribute("data-csrf-ux-guard-operations", "deleteSession");
     expect(logOut).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "deleteSession:DELETE:/session:include:X-ZenArt-CSRF:false"
+      "deleteSession:DELETE:/session:include:X-Zenari-CSRF:false"
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Expire" }));
     await screen.findByText("Session expired. Refresh or sign in to continue.");
     expect(container.querySelector(".session-pill")).toHaveTextContent("expired");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-status", "blocked");
-    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "18");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "34");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
       "data-session-unsafe-action-blocked-control-labels",
-      "Confirm Brief|Attach|Create Project|Rename Project|Package Reference|Select Candidate|Iterate|Restore Version|Add Selection|Export ZIP|Export PDF|Request Share|Mock Checkout|Billing Scenario|Save Settings|Submit Ticket|Expire Session|Log Out"
+      "Confirm Brief|Attach|Create Batch|Cancel Batch|Retry Child|Create Project|Rename Project|Package Reference|Select Candidate|Iterate|Apply Edit Tool|Restore Version|Add Asset|Favorite Asset|Archive Asset|Create Brand Kit|Update Brand Kit|Set Brand Kit|Add Selection|Export ZIP|Export PDF|Request Share|Mock Checkout|Billing Portal|Cancel Subscription|Refresh Invoices|Refresh Team Seats|Refresh Asset Library|Accept Invite|Billing Scenario|Save Settings|Submit Ticket|Expire Session|Log Out"
     );
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
       "data-session-unsafe-action-blocked-reason",
@@ -288,7 +363,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     );
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current", "expired");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-enabled-count", "1");
-    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-blocked-count", "18");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-blocked-count", "34");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-recovery-labels", "Refresh Session");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
       "data-session-ux-state-current-alert",
@@ -323,14 +398,14 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-status", "enabled");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "0");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current", "authenticated");
-    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-enabled-count", "19");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-enabled-count", "35");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-blocked-count", "0");
     expect(screen.getByRole("button", { name: "Save Settings" })).not.toBeDisabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Expire" }));
     await screen.findByText("Session expired. Refresh or sign in to continue.");
 
-    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "dev@zenart.local" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "dev@zenari.ai" } });
     fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
     await waitFor(() => {
       expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-security-status", "pass");
@@ -346,10 +421,10 @@ describe("WorkspaceApp user route integration smoke", () => {
     fireEvent.click(screen.getByRole("button", { name: "Log Out" }));
     await screen.findByText("Signed out. Sign in to continue.");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-status", "blocked");
-    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "19");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-unsafe-action-blocked-control-count", "35");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current", "signed_out");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-enabled-count", "0");
-    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-blocked-count", "19");
+    expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-blocked-count", "35");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-state-current-recovery-labels", "");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
       "data-session-ux-state-current-alert",
@@ -357,13 +432,335 @@ describe("WorkspaceApp user route integration smoke", () => {
     );
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute("data-session-ux-transition-status", "pass");
     expect(screen.getByLabelText("Auth and session status")).toHaveAttribute(
-      "data-session-ux-transition-signed-out-blocked-count",
-      "19"
+      "data-session-ux-transition-signed-out-blocked-count", "35"
     );
     expect(screen.getByRole("button", { name: "Refresh Session" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Refresh Session" })).toHaveAttribute("data-csrf-ux-guard-current-session-state", "signed_out");
     expect(screen.getByRole("button", { name: "Save Settings" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Save Settings" })).toHaveAttribute("data-csrf-ux-guard-current-session-state", "signed_out");
+  });
+
+  it("renders asset library and Brand Kit picker contract on the workspace", async () => {
+    render(<WorkspaceApp initialView="workspace" />);
+
+    await screen.findByRole("heading", { name: "Launch Direction Board" });
+
+    const panel = screen.getByLabelText("Asset Library and Brand Kit");
+    expect(panel).toHaveAttribute("data-asset-library-brandkit-ui", "stage1.asset-library-brandkit-user-picker");
+    expect(panel).toHaveAttribute("data-asset-library-sync-status", "local");
+    expect(panel).toHaveAttribute("data-asset-library-operation-count", "8");
+    expect(panel).toHaveAttribute(
+      "data-asset-library-operations",
+      "listAssetLibrary,createAssetLibraryEntry,updateAssetLibraryEntry,listBrandKits,createBrandKit,updateBrandKit,getProjectDefaultBrandKit,setProjectDefaultBrandKit"
+    );
+    expect(panel).toHaveAttribute(
+      "data-asset-library-operation-contracts",
+      "listAssetLibrary:GET:/assets/library:include:not-required:false|createAssetLibraryEntry:POST:/assets/library:include:required:true|updateAssetLibraryEntry:PATCH:/assets/library/{entry_id}:include:required:true|listBrandKits:GET:/brand-kits:include:not-required:false|createBrandKit:POST:/brand-kits:include:required:true|updateBrandKit:PATCH:/brand-kits/{brand_kit_id}:include:required:true|getProjectDefaultBrandKit:GET:/projects/{project_id}/brand-kit-default:include:not-required:false|setProjectDefaultBrandKit:PUT:/projects/{project_id}/brand-kit-default:include:required:true"
+    );
+    expect(panel).toHaveAttribute("data-asset-library-item-count", "2");
+    expect(panel).toHaveAttribute("data-asset-library-reusable-count", "2");
+    expect(panel).toHaveAttribute("data-brand-kit-count", "1");
+    expect(panel).toHaveAttribute("data-brand-kit-default-id", "brand_kit_1");
+    expect(panel).toHaveAttribute("data-brand-kit-default-palette-count", "3");
+    expect(screen.getByRole("button", { name: "Refresh Assets" })).toHaveAttribute(
+      "data-asset-library-refresh-contract",
+      "listAssetLibrary:GET:not-required:false+listBrandKits:GET:not-required:false+getProjectDefaultBrandKit:GET:not-required:false"
+    );
+    expect(screen.getByRole("button", { name: "Refresh Assets" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "listAssetLibrary:GET:/assets/library:include:not-required:false|listBrandKits:GET:/brand-kits:include:not-required:false|getProjectDefaultBrandKit:GET:/projects/{project_id}/brand-kit-default:include:not-required:false"
+    );
+    expect(screen.getByRole("button", { name: "Add Asset" })).toHaveAttribute(
+      "data-asset-library-create-contract",
+      "createAssetLibraryEntry:POST:required:true"
+    );
+    expect(screen.getByRole("button", { name: "Add Asset" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createAssetLibraryEntry:POST:/assets/library:include:X-Zenari-CSRF:true"
+    );
+    expect(within(panel).getAllByRole("button", { name: "Favorite Asset" })[0]).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "updateAssetLibraryEntry:PATCH:/assets/library/{entry_id}:include:X-Zenari-CSRF:true"
+    );
+    expect(within(panel).getAllByRole("button", { name: "Archive Asset" })[0]).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "updateAssetLibraryEntry:PATCH:/assets/library/{entry_id}:include:X-Zenari-CSRF:true"
+    );
+    expect(screen.getAllByRole("button", { name: "Kit" })[0]).toHaveAttribute(
+      "data-brand-kit-create-contract",
+      "createBrandKit:POST:required:true"
+    );
+    expect(screen.getAllByRole("button", { name: "Kit" })[0]).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createBrandKit:POST:/brand-kits:include:X-Zenari-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "Update Kit" })).toHaveAttribute(
+      "data-brand-kit-update-contract",
+      "updateBrandKit:PATCH:required:true"
+    );
+    expect(screen.getByRole("button", { name: "Update Kit" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "updateBrandKit:PATCH:/brand-kits/{brand_kit_id}:include:X-Zenari-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "Default" })).toHaveAttribute(
+      "data-brand-kit-default-contract",
+      "setProjectDefaultBrandKit:PUT:required:true"
+    );
+    expect(screen.getByRole("button", { name: "Default" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "setProjectDefaultBrandKit:PUT:/projects/{project_id}/brand-kit-default:include:X-Zenari-CSRF:true"
+    );
+    expect(within(panel).getByText("Launch hero generated image").closest("[data-asset-library-item]")).toHaveAttribute(
+      "data-asset-library-lineage-kind",
+      "batch_child_provider_result"
+    );
+
+    fireEvent.click(within(panel).getAllByRole("button", { name: "Package" })[0]);
+    await waitFor(() => {
+      expect(panel).toHaveAttribute("data-asset-library-packaged-count", "1");
+    });
+    expect(within(panel).getByText("Launch hero generated image").closest("[data-asset-library-item]")).toHaveAttribute(
+      "data-asset-library-packaged",
+      "true"
+    );
+  });
+
+  it("exposes Stage 1 canvas toolbar, layers, zoom, drag, and keyboard interaction contract", async () => {
+    render(<WorkspaceApp initialView="workspace" />);
+
+    await screen.findByRole("heading", { name: "Launch Direction Board" });
+
+    const canvas = screen.getByLabelText("Stage 1 canvas editor");
+    expect(canvas).toHaveAttribute("data-canvas-interaction-contract", "stage1.canvas-interaction-user-contract");
+    expect(canvas).toHaveAttribute("data-result-placement-contract", "stage1.result-placement-contract.v1");
+    expect(canvas).toHaveAttribute("data-result-placement-status", "empty");
+    expect(canvas).toHaveAttribute("data-result-placement-projected-child-count", "0");
+    expect(canvas).toHaveAttribute("data-result-placement-canvas-object-count", "0");
+    expect(canvas).toHaveAttribute("data-result-placement-asset-library-entry-count", "0");
+    expect(canvas).toHaveAttribute("data-result-placement-raw-provider-payload", "false");
+    expect(canvas).toHaveAttribute("data-canvas-interaction-status", "local");
+    expect(canvas).toHaveAttribute("data-canvas-tool", "select");
+    expect(canvas).toHaveAttribute("data-canvas-toolbar-tools", "select,hand,frame,text,shape,upload");
+    expect(canvas).toHaveAttribute(
+      "data-canvas-keyboard-shortcuts",
+      "delete,duplicate,undo,redo,zoom_in,zoom_out,space_hand,shift_multi_select"
+    );
+    expect(canvas).toHaveAttribute("data-canvas-layers-panel", "enabled");
+    expect(screen.getByLabelText("Canvas toolbar")).toHaveAttribute("data-canvas-toolbar", "stage1.canvas-toolbar");
+    expect(screen.getByLabelText("Canvas layers")).toHaveAttribute("data-canvas-layers-panel", "stage1.canvas-layers-panel");
+    expect(screen.getByLabelText("Canvas version history")).toHaveAttribute("data-canvas-version-history", "stage1.canvas-version-history");
+    expect(screen.getByRole("button", { name: "Initial brief" })).toHaveAttribute("data-canvas-version-entry", "version-001");
+    const editTools = screen.getByLabelText("Edit tools and mask");
+    expect(editTools).toHaveAttribute("data-edit-tools-contract", "stage1.edit-tools-mask-local-contract");
+    expect(editTools).toHaveAttribute("data-edit-tools-active-tool", "erase");
+    expect(editTools).toHaveAttribute("data-edit-tools-mask-aligned", "true");
+    expect(screen.getByRole("button", { name: "Apply Edit" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createUpload:POST:/uploads:include:X-Zenari-CSRF:true|createCanvasNode:POST:/workspaces/{workspace_id}/canvas/nodes:include:X-Zenari-CSRF:true|createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-Zenari-CSRF:true"
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Canvas tool hand" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Stage 1 canvas editor")).toHaveAttribute("data-canvas-tool", "hand");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Zoom in canvas" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Stage 1 canvas editor")).toHaveAttribute("data-canvas-zoom", "1.10");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Fit" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Stage 1 canvas editor")).toHaveAttribute("data-canvas-last-action", "fit");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Studio System" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Stage 1 canvas editor")).toHaveAttribute("data-canvas-selected-node-ids", "node-cand-studio");
+    });
+    const studioNode = document.querySelector("[data-canvas-node='node-cand-studio']");
+    expect(studioNode).toHaveAttribute("data-canvas-node-selected", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Move Studio System" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Stage 1 canvas editor")).toHaveAttribute("data-canvas-last-action", "drag");
+    });
+    await waitFor(() => {
+      expect(screen.getByLabelText("Canvas version history")).toHaveAttribute("data-canvas-version-diff-changed", "node-cand-studio");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Lock Studio System" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Stage 1 canvas editor")).toHaveAttribute("data-canvas-locked-node-count", "1");
+    });
+    expect(document.querySelector("[data-canvas-layer-row='node-cand-studio']")).toHaveAttribute("data-canvas-layer-locked", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Unlock Studio System" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Stage 1 canvas editor")).toHaveAttribute("data-canvas-locked-node-count", "0");
+    });
+
+    fireEvent.keyDown(screen.getByLabelText("Stage 1 canvas editor"), { key: "d", code: "KeyD", metaKey: true });
+    await waitFor(() => {
+      expect(screen.getByLabelText("Stage 1 canvas editor").getAttribute("data-canvas-selected-node-ids")).toContain(
+        "node-cand-studio-copy-"
+      );
+    });
+
+    fireEvent.keyDown(screen.getByLabelText("Stage 1 canvas editor"), { key: "Delete", code: "Delete" });
+    await waitFor(() => {
+      expect(screen.getByLabelText("Stage 1 canvas editor")).toHaveAttribute("data-canvas-selected-node-count", "0");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Hide Studio System" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Stage 1 canvas editor")).toHaveAttribute("data-canvas-hidden-node-count", "1");
+    });
+    expect(document.querySelector("[data-canvas-layer-row='node-cand-studio']")).toHaveAttribute("data-canvas-layer-hidden", "true");
+  });
+
+  it("exposes local edit tool mask UI and derived revision contract", async () => {
+    render(<WorkspaceApp initialView="workspace" />);
+
+    await screen.findByRole("heading", { name: "Launch Direction Board" });
+
+    const editTools = screen.getByLabelText("Edit tools and mask");
+    expect(editTools).toHaveAttribute("data-edit-tools-mask-width", "1024");
+    expect(editTools).toHaveAttribute("data-edit-tools-mask-height", "768");
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Studio System" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Stage 1 canvas editor")).toHaveAttribute("data-canvas-selected-node-ids", "node-cand-studio");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit tool remove_background" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Edit tools and mask")).toHaveAttribute("data-edit-tools-active-tool", "remove_background");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Apply Edit" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Edit tools and mask")).toHaveAttribute("data-edit-tools-last-action", "apply");
+    });
+    expect(screen.getByLabelText("Edit tools and mask")).toHaveAttribute("data-edit-tools-derived-asset-id", "asset-edit-001");
+    expect(screen.getByLabelText("Edit tools and mask")).toHaveAttribute("data-edit-tools-original-retained", "true");
+    expect(screen.getByLabelText("Edit tools and mask")).toHaveAttribute("data-edit-tools-raw-payload-persisted", "false");
+    expect(document.querySelector("[data-canvas-node='node-edit-001']")).toBeTruthy();
+    expect(document.querySelector("[data-asset-library-asset-id='asset-edit-001']")).toHaveAttribute(
+      "data-asset-library-lineage-kind",
+      "edit_tool_revision"
+    );
+  });
+
+  it("previews and restores Stage 1 canvas version history without dropping later nodes", async () => {
+    render(<WorkspaceApp initialView="workspace" />);
+
+    await screen.findByRole("heading", { name: "Launch Direction Board" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Studio System" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Canvas version history")).toHaveAttribute("data-canvas-version-active-id", "version-002");
+    });
+    expect(screen.getByRole("button", { name: "Selected Studio System" })).toHaveAttribute(
+      "data-canvas-version-diff-added",
+      "node-cand-studio"
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Move Studio System" }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Canvas move" })).toHaveAttribute("data-canvas-version-diff-changed", "node-cand-studio");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Utility Kit" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Stage 1 canvas editor")).toHaveAttribute("data-canvas-selected-node-ids", "node-cand-utility");
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Selected Studio System" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Canvas version history")).toHaveAttribute("data-canvas-version-active-id", "version-002");
+    });
+    expect(document.querySelector("[data-canvas-node='node-cand-studio']")).toHaveStyle({ left: "360px", top: "180px" });
+    expect(document.querySelector("[data-canvas-node='node-cand-utility']")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Selected Studio System" })).toHaveAttribute(
+      "data-canvas-version-restore-preserves",
+      "node-cand-utility"
+    );
+  });
+
+  it("guards batch generation create, cancel, and retry actions with same-site CSRF contracts", async () => {
+    render(<WorkspaceApp initialView="workspace" />);
+
+    await screen.findByRole("heading", { name: "Launch Direction Board" });
+
+    const batchContract = screen.getByLabelText("Batch generation API contract");
+    const promptComposerContract = screen.getByLabelText("Prompt composer controls");
+    expect(promptComposerContract).toHaveAttribute("data-prompt-composer-contract", "stage1.prompt-composer-contract.v1");
+    expect(promptComposerContract).toHaveAttribute("data-prompt-composer-status", "local");
+    expect(promptComposerContract).toHaveAttribute("data-prompt-composer-requested-count", "4");
+    expect(promptComposerContract).toHaveAttribute("data-prompt-composer-aspect-ratio", "16:9");
+    expect(promptComposerContract).toHaveAttribute("data-prompt-composer-quality", "standard");
+    expect(promptComposerContract).toHaveAttribute("data-prompt-composer-selected-object-count", "1");
+    expect(promptComposerContract).toHaveAttribute("data-prompt-composer-reference-asset-count", "2");
+    expect(promptComposerContract).toHaveAttribute("data-prompt-composer-brand-kit-id", "brand_kit_1");
+    expect(promptComposerContract).toHaveAttribute("data-prompt-composer-model-hints", "image-fast-v1");
+    expect(promptComposerContract).toHaveAttribute("data-prompt-composer-allowed-models", "image-fast-v1");
+    expect(promptComposerContract).toHaveAttribute("data-prompt-composer-forbidden-model-count", "0");
+    expect(promptComposerContract).toHaveAttribute("data-prompt-composer-redaction-secret-like", "false");
+    expect(promptComposerContract).toHaveAttribute("data-prompt-composer-operation", "createBatchGeneration");
+    expect(batchContract).toHaveAttribute("data-batch-generation-contract", "stage1.batch-generation-user-api");
+    expect(screen.getByRole("button", { name: "Create Batch" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createBatchGeneration:POST:/projects/{project_id}/batch-generations:include:X-Zenari-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "Cancel Batch" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "cancelBatchGeneration:POST:/batch-generations/{batch_id}/cancel:include:X-Zenari-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "Retry Child" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "retryBatchGenerationChild:POST:/batch-generation-children/{child_id}/retry:include:X-Zenari-CSRF:true"
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Create Batch" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-count", "1");
+    });
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-latest-status", "queued");
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-latest-child-count", "4");
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-retryable-child-id", "child-001-04");
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-latest-retryable-count", "1");
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-progress-sync-status", "local");
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-progress-polling", "enabled");
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute(
+      "data-batch-generation-prompt-context-selected-object-ids",
+      "node-brief"
+    );
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute(
+      "data-batch-generation-prompt-context-reference-asset-ids",
+      "ref-001,asset_logo_1"
+    );
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-prompt-context-brand-kit-id", "brand_kit_1");
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-prompt-context-model-hints", "image-fast-v1");
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-prompt-context-tool-hint", "image.generate");
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute(
+      "data-batch-generation-progress-operations",
+      "getBatchGeneration:GET:/batch-generations/{batch_id}:include:not-required:false|listBatchGenerationChildren:GET:/batch-generations/{batch_id}/children:include:not-required:false|getBatchGenerationProgress:GET:/batch-generations/{batch_id}/progress:include:not-required:false"
+    );
+    expect(screen.getByRole("progressbar", { name: "Batch generation progress" })).toHaveAttribute("aria-valuenow", "25");
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry Child" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-retryable-child-id", "");
+    });
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-latest-retryable-count", "0");
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel Batch" }));
+    await waitFor(() => {
+      expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-latest-status", "cancelled");
+    });
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-latest-cancelled-count", "4");
+    expect(screen.getByLabelText("Batch generation API contract")).toHaveAttribute("data-batch-generation-progress-polling", "idle");
   });
 
   it("guards project create and rename actions with the same-site session contract", async () => {
@@ -373,18 +770,18 @@ describe("WorkspaceApp user route integration smoke", () => {
 
     const sessionContract = screen.getByLabelText("Auth and session status");
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
-      "Create Project=>createProject:POST:X-ZenArt-CSRF:true"
+      "Create Project=>createProject:POST:X-Zenari-CSRF:true"
     );
     expect(sessionContract.getAttribute("data-session-unsafe-action-operation-contracts")).toContain(
-      "Rename Project=>updateProject:PATCH:X-ZenArt-CSRF:true"
+      "Rename Project=>updateProject:PATCH:X-Zenari-CSRF:true"
     );
     expect(screen.getByRole("button", { name: "Create Project" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "createProject:POST:/projects:include:X-ZenArt-CSRF:true"
+      "createProject:POST:/projects:include:X-Zenari-CSRF:true"
     );
     expect(screen.getByRole("button", { name: "Rename Project" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "updateProject:PATCH:/projects/{project_id}:include:X-ZenArt-CSRF:true"
+      "updateProject:PATCH:/projects/{project_id}:include:X-Zenari-CSRF:true"
     );
 
     fireEvent.change(screen.getByLabelText("New project"), { target: { value: "Retail launch assets" } });
@@ -410,10 +807,56 @@ describe("WorkspaceApp user route integration smoke", () => {
 
     await screen.findByRole("heading", { name: "Billing and Quota" });
 
-    expect(screen.getByRole("button", { name: "Mock Checkout" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Start Checkout" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "getSubscription:GET:/billing/subscription:include:not-required:false"
+      "createCheckoutSession:POST:/billing/checkout:include:X-Zenari-CSRF:true"
     );
+    expect(screen.getByRole("button", { name: "Manage Billing" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "createBillingPortalSession:POST:/billing/portal:include:X-Zenari-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "Cancel Subscription" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "cancelSubscription:POST:/billing/subscription/cancel:include:X-Zenari-CSRF:true"
+    );
+    expect(screen.getByRole("button", { name: "Refresh Invoices" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "listBillingInvoices:GET:/billing/invoices:include:not-required:false"
+    );
+    expect(screen.getByText("Invoices").closest("[data-billing-invoice-ui]")).toHaveAttribute(
+      "data-billing-invoice-contract",
+      "listBillingInvoices:GET:/billing/invoices:include:not-required:false"
+    );
+    expect(screen.getByText("in_test_local_alpha_001").closest("[data-billing-invoice-row]")).toHaveAttribute(
+      "data-billing-invoice-has-receipt-url",
+      "true"
+    );
+    expect(screen.getByRole("button", { name: "Refresh Seats" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "getTeamSeatUsage:GET:/teams/{team_id}/seat-usage:include:not-required:false|checkTeamSeatEntitlement:GET:/teams/{team_id}/seat-entitlement:include:not-required:false"
+    );
+    expect(screen.getByRole("button", { name: "Accept Invite" })).toHaveAttribute(
+      "data-csrf-ux-guard-contracts",
+      "acceptTeamInvite:POST:/teams/{team_id}/invites/{invite_id}/accept:include:X-Zenari-CSRF:true"
+    );
+    expect(screen.getByText("Team Seats").closest("[data-team-seat-ui]")).toHaveAttribute(
+      "data-team-seat-usage-contract",
+      "getTeamSeatUsage:GET:/teams/{team_id}/seat-usage:include:not-required:false"
+    );
+    expect(screen.getByText("Team Seats").closest("[data-team-seat-ui]")).toHaveAttribute(
+      "data-team-seat-billing-projection",
+      "stage1.team-seat-billing-safe-projection"
+    );
+    expect(screen.getByText("Team Seats").closest("[data-team-seat-ui]")).toHaveAttribute(
+      "data-team-seat-billing-proration",
+      "create_prorations"
+    );
+    expect(screen.getByText("Team Seats").closest("[data-team-seat-ui]")).toHaveAttribute(
+      "data-team-seat-billing-safe-projection",
+      "true"
+    );
+    expect(screen.getByText("Next billable seats").closest(".team-seat-billing-panel")).toBeTruthy();
+    expect(screen.getByText(/prorated on next invoice/)).toBeTruthy();
     expect(screen.getByRole("button", { name: "Trial" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
       "getQuota:GET:/quota:include:not-required:false|getSubscription:GET:/billing/subscription:include:not-required:false"
@@ -424,7 +867,7 @@ describe("WorkspaceApp user route integration smoke", () => {
 
     expect(screen.getByRole("button", { name: "Submit Ticket" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "createSupportTicket:POST:/support/tickets:include:X-ZenArt-CSRF:true"
+      "createSupportTicket:POST:/support/tickets:include:X-Zenari-CSRF:true"
     );
   });
 
@@ -448,35 +891,35 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(screen.getByRole("button", { name: "Confirm Brief" })).toHaveAttribute("data-csrf-ux-guard-status", "blocked");
     expect(screen.getByRole("button", { name: "Confirm Brief" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "createChatSession:POST:/projects/{project_id}/chat/sessions:include:X-ZenArt-CSRF:true|createChatMessage:POST:/chat/sessions/{chat_session_id}/messages:include:X-ZenArt-CSRF:true|createCandidateSet:POST:/projects/{project_id}/candidate-sets:include:X-ZenArt-CSRF:true"
+      "createChatSession:POST:/projects/{project_id}/chat/sessions:include:X-Zenari-CSRF:true|createChatMessage:POST:/chat/sessions/{chat_session_id}/messages:include:X-Zenari-CSRF:true|createCandidateSet:POST:/projects/{project_id}/candidate-sets:include:X-Zenari-CSRF:true"
     );
     expect(screen.getByRole("button", { name: "Attach" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "createUpload:POST:/uploads:include:X-ZenArt-CSRF:true"
+      "createUpload:POST:/uploads:include:X-Zenari-CSRF:true"
     );
     expect(screen.getByRole("button", { name: "Select Studio System" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "selectDirection:PUT:/projects/{project_id}/selected-direction:include:X-ZenArt-CSRF:true"
+      "selectDirection:PUT:/projects/{project_id}/selected-direction:include:X-Zenari-CSRF:true"
     );
     expect(screen.getByRole("button", { name: "Add Selection" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "createPackage:POST:/projects/{project_id}/packages:include:X-ZenArt-CSRF:true"
+      "createPackage:POST:/projects/{project_id}/packages:include:X-Zenari-CSRF:true"
     );
     expect(screen.getByRole("button", { name: "Export ZIP" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "createExport:POST:/packages/{package_id}/exports:include:X-ZenArt-CSRF:true"
+      "createExport:POST:/packages/{package_id}/exports:include:X-Zenari-CSRF:true"
     );
     expect(screen.getByRole("button", { name: "Iterate" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "createCanvasNode:POST:/workspaces/{workspace_id}/canvas/nodes:include:X-ZenArt-CSRF:true|createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-ZenArt-CSRF:true"
+      "createCanvasNode:POST:/workspaces/{workspace_id}/canvas/nodes:include:X-Zenari-CSRF:true|createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-Zenari-CSRF:true"
     );
     expect(screen.getByRole("button", { name: "Initial brief" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-ZenArt-CSRF:true"
+      "createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-Zenari-CSRF:true"
     );
     expect(screen.getByRole("button", { name: "PDF" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "createExport:POST:/packages/{package_id}/exports:include:X-ZenArt-CSRF:true"
+      "createExport:POST:/packages/{package_id}/exports:include:X-Zenari-CSRF:true"
     );
 
     const beforePackageCount = container.querySelectorAll(".history-list article").length;
@@ -569,7 +1012,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Add reference campaign-reference.webp to package" }));
     expect(await screen.findByRole("button", { name: "Add reference campaign-reference.webp to package" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "createPackage:POST:/projects/{project_id}/packages:include:X-ZenArt-CSRF:true"
+      "createPackage:POST:/projects/{project_id}/packages:include:X-Zenari-CSRF:true"
     );
     await waitFor(() => {
       expect(container.querySelector("[data-reference-export-smoke='reference-upload-to-ready-zip-export']")).toHaveAttribute(
@@ -589,7 +1032,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Export ZIP" }));
-    await screen.findByText("zenart-001.zip");
+    await screen.findByText("zenari-001.zip");
 
     await waitFor(() => {
       const smoke = container.querySelector("[data-reference-upload-integration-smoke='stage0.rev2.reference-upload-integration-smoke']");
@@ -603,7 +1046,7 @@ describe("WorkspaceApp user route integration smoke", () => {
       expect(smoke).toHaveAttribute("data-reference-latest-accepted-kind", "image");
       expect(smoke).toHaveAttribute("data-reference-latest-upload-method", "POST");
       expect(smoke).toHaveAttribute("data-reference-latest-upload-path", "/uploads");
-      expect(smoke).toHaveAttribute("data-reference-latest-upload-csrf-header", "X-ZenArt-CSRF");
+      expect(smoke).toHaveAttribute("data-reference-latest-upload-csrf-header", "X-Zenari-CSRF");
       expect(smoke).toHaveAttribute("data-reference-latest-upload-idempotency-required", "true");
       expect(smoke).toHaveAttribute("data-reference-latest-preview-scope", "tenant-scoped-dev-preview");
       expect(smoke).toHaveAttribute("data-reference-upload-request-contract-count", "2");
@@ -628,7 +1071,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(attachedReference).toHaveAttribute("data-reference-upload-operation", "createUpload");
     expect(attachedReference).toHaveAttribute("data-reference-upload-method", "POST");
     expect(attachedReference).toHaveAttribute("data-reference-upload-path", "/uploads");
-    expect(attachedReference).toHaveAttribute("data-reference-upload-csrf-header", "X-ZenArt-CSRF");
+    expect(attachedReference).toHaveAttribute("data-reference-upload-csrf-header", "X-Zenari-CSRF");
     expect(attachedReference).toHaveAttribute("data-reference-upload-idempotency-required", "true");
     expect(attachedReference).toHaveAttribute("data-reference-upload-preview-scope", "tenant-scoped-dev-preview");
     expect(attachedReference).toHaveAttribute("data-reference-upload-preview-url", "/dev-preview/uploads/ref-campaign-reference-webp");
@@ -704,7 +1147,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence).toHaveAttribute("data-package-export-required-zip-payload-count", "7");
     expect(metadataEvidence).toHaveAttribute(
       "data-package-export-zip-payload-contract-digest",
-      "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
+      "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/local-rendered-asset-manifest.json|assets/rendered/hero_product_ad-png.svg|assets/rendered/marketplace_banner-png.svg|assets/rendered/square_social_ad-png.svg|assets/rendered/story_variant-png.svg|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
     );
     expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-status", "pass");
     expect(metadataEvidence).toHaveAttribute("data-package-export-zip-payload-parity-ratio", "7/7");
@@ -780,7 +1223,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-prompt-spec-metadata-present", "true");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-skill-metadata-present", "true");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-safety-metadata-present", "true");
-    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-generated-by", "zenart-web-dev-client");
+    expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-generated-by", "zenari-web-dev-client");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-provider", "dev-provider");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-metadata-model", "deterministic-local-alpha");
     expect(metadataEvidence).toHaveAttribute("data-package-export-workflow-prompt-spec-taxonomy", "social_proof");
@@ -793,7 +1236,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("metadata.json");
     expect(metadataEvidence?.getAttribute("data-package-export-zip-payloads")).toContain("trace_provenance.json");
     expect(metadataEvidence?.getAttribute("data-package-export-required-zip-payloads")).toContain("manifest.json");
-    expect(metadataEvidence?.getAttribute("data-package-export-required-zip-payloads")).toContain("assets/README.txt");
+    expect(metadataEvidence?.getAttribute("data-package-export-required-zip-payloads")).toContain("assets/local-rendered-asset-manifest.json");
 
     const payloadStatusMatrix = screen.getByLabelText("Package export payload status matrix");
     expect(payloadStatusMatrix).toBeInTheDocument();
@@ -806,7 +1249,7 @@ describe("WorkspaceApp user route integration smoke", () => {
       );
 
     expect(rowKey("manifest-output", "manifest.json")).toHaveAttribute("data-package-export-payload-present", "true");
-    expect(rowKey("manifest-output", "assets/")).toHaveAttribute("data-package-export-payload-zip-name", "assets/README.txt");
+    expect(rowKey("manifest-output", "assets/")).toHaveAttribute("data-package-export-payload-zip-name", "assets/local-rendered-asset-manifest.json");
     expect(rowKey("required-zip-payload", "safety-policy-report.json")).toHaveAttribute(
       "data-package-export-payload-present",
       "true"
@@ -846,18 +1289,49 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(zipPayloadSmoke).toHaveAttribute("data-export-zip-payload-failures", "");
     expect(zipPayloadSmoke).toHaveAttribute(
       "data-export-zip-payload-expected-payloads",
-      "manifest.json,qa-report.json,safety-policy-report.json,provenance.json,ai-content-disclaimer.json,ppt-ready-metadata.json,assets/README.txt,assets/hero_product_ad.png,assets/square_social_ad.png,assets/story_variant.png,assets/marketplace_banner.png,metadata.json,qa_report.json,trace_provenance.json"
+      "manifest.json,qa-report.json,safety-policy-report.json,provenance.json,ai-content-disclaimer.json,ppt-ready-metadata.json,assets/local-rendered-asset-manifest.json,assets/rendered/hero_product_ad-png.svg,assets/rendered/square_social_ad-png.svg,assets/rendered/story_variant-png.svg,assets/rendered/marketplace_banner-png.svg,metadata.json,qa_report.json,trace_provenance.json"
     );
     expect(zipPayloadSmoke).toHaveAttribute(
       "data-export-zip-payload-contract-digest",
-      "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
+      "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/local-rendered-asset-manifest.json|assets/rendered/hero_product_ad-png.svg|assets/rendered/marketplace_banner-png.svg|assets/rendered/square_social_ad-png.svg|assets/rendered/story_variant-png.svg|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
     );
     expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-baseline-payloads")).toContain("manifest.json");
     expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-baseline-payloads")).toContain("ai-content-disclaimer.json");
-    expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-baseline-payloads")).toContain("assets/README.txt");
+    expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-baseline-payloads")).toContain("assets/local-rendered-asset-manifest.json");
     expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-expected-payloads")).toContain("metadata.json");
     expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-expected-payloads")).toContain("trace_provenance.json");
-    expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-workflow-payloads")).toContain("assets/square_social_ad.png");
+    expect(zipPayloadSmoke?.getAttribute("data-export-zip-payload-workflow-payloads")).toContain("assets/rendered/square_social_ad-png.svg");
+
+    const renderedAssetEvidence = screen.getByLabelText("Rendered export asset local contract");
+    expect(renderedAssetEvidence).toHaveAttribute(
+      "data-rendered-export-asset-contract",
+      "stage1.rendered-export-asset-local-contract.v1"
+    );
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-status", "pass");
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-render-mode", "deterministic-local-svg-pdf");
+    expect(renderedAssetEvidence).toHaveAttribute(
+      "data-rendered-export-asset-manifest-payload",
+      "assets/local-rendered-asset-manifest.json"
+    );
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-manifest-output-count", "4");
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-payload-count", "4");
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-placeholder-count", "0");
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-unsafe-count", "0");
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-raw-provider-payload", "false");
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-raw-safety-payload", "false");
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-secret-like-projected", "false");
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-signed-url-persisted", "false");
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-staging-signed-url-evidence", "open");
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-retention-evidence", "open");
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-can-clear-staging", "false");
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-can-clear-production", "false");
+    expect(renderedAssetEvidence).toHaveAttribute("data-rendered-export-asset-failures", "");
+    expect(renderedAssetEvidence?.getAttribute("data-rendered-export-asset-payloads")).toContain(
+      "assets/rendered/square_social_ad-png.svg"
+    );
+    expect(renderedAssetEvidence?.getAttribute("data-rendered-export-asset-source-outputs")).toContain(
+      "assets/square_social_ad.png"
+    );
 
     const downloadParity = screen.getByLabelText("Export download parity smoke");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-smoke", "stage0.rev2.export-download-parity-smoke");
@@ -868,7 +1342,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(downloadParity).toHaveAttribute("data-export-download-parity-project-id", "project-001");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-workflow-id", "ecommerce_growth_pack");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-workflow-fixture-id", "fx_ecommerce_growth_golden");
-    expect(downloadParity).toHaveAttribute("data-export-download-parity-file-name", "zenart-001.zip");
+    expect(downloadParity).toHaveAttribute("data-export-download-parity-file-name", "zenari-001.zip");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-format", "zip");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-metadata-status", "pass");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-zip-payload-status", "pass");
@@ -883,15 +1357,15 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-list-status", "pass");
     expect(downloadParity).toHaveAttribute(
       "data-export-download-parity-metadata-payloads",
-      "manifest.json,qa-report.json,safety-policy-report.json,provenance.json,ai-content-disclaimer.json,ppt-ready-metadata.json,assets/README.txt,assets/hero_product_ad.png,assets/square_social_ad.png,assets/story_variant.png,assets/marketplace_banner.png,metadata.json,qa_report.json,trace_provenance.json"
+      "manifest.json,qa-report.json,safety-policy-report.json,provenance.json,ai-content-disclaimer.json,ppt-ready-metadata.json,assets/local-rendered-asset-manifest.json,assets/rendered/hero_product_ad-png.svg,assets/rendered/square_social_ad-png.svg,assets/rendered/story_variant-png.svg,assets/rendered/marketplace_banner-png.svg,metadata.json,qa_report.json,trace_provenance.json"
     );
     expect(downloadParity).toHaveAttribute(
       "data-export-download-parity-zip-expected-payloads",
-      "manifest.json,qa-report.json,safety-policy-report.json,provenance.json,ai-content-disclaimer.json,ppt-ready-metadata.json,assets/README.txt,assets/hero_product_ad.png,assets/square_social_ad.png,assets/story_variant.png,assets/marketplace_banner.png,metadata.json,qa_report.json,trace_provenance.json"
+      "manifest.json,qa-report.json,safety-policy-report.json,provenance.json,ai-content-disclaimer.json,ppt-ready-metadata.json,assets/local-rendered-asset-manifest.json,assets/rendered/hero_product_ad-png.svg,assets/rendered/square_social_ad-png.svg,assets/rendered/story_variant-png.svg,assets/rendered/marketplace_banner-png.svg,metadata.json,qa_report.json,trace_provenance.json"
     );
     expect(downloadParity).toHaveAttribute(
       "data-export-download-parity-payload-contract-digest",
-      "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
+      "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/local-rendered-asset-manifest.json|assets/rendered/hero_product_ad-png.svg|assets/rendered/marketplace_banner-png.svg|assets/rendered/square_social_ad-png.svg|assets/rendered/story_variant-png.svg|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
     );
     expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-digest-match", "true");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-payload-path-safety-status", "pass");
@@ -913,6 +1387,34 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(downloadParity).toHaveAttribute("data-export-download-parity-trace-provenance-present", "true");
     expect(downloadParity).toHaveAttribute("data-export-download-parity-failures", "");
 
+    const downloadAccessBoundary = screen.getByLabelText("Export download access boundary");
+    expect(downloadAccessBoundary).toHaveAttribute(
+      "data-export-download-access-boundary-contract",
+      "stage1.export-download-access-boundary-local-contract.v1"
+    );
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-status", "pass");
+    expect(downloadAccessBoundary).toHaveAttribute(
+      "data-export-download-access-boundary-scenario",
+      "local-browser-zip-does-not-clear-server-signed-url-or-retention-gates"
+    );
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-local-browser-status", "pass");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-url-policy", "server-mediated-relative-signed-url");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-server-route", "GET /api/v1/objects/download");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-direct-object-signing", "false");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-signed-url-persisted", "false");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-signed-url-material-projected", "false");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-response-object-key-header", "false");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-requires-active-retention", "true");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-requires-audit", "true");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-requires-analytics", "true");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-strict-staging-signed-url-evidence", "open");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-strict-staging-retention-evidence", "open");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-production-object-storage-evidence", "open");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-can-clear-staging", "false");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-can-clear-production", "false");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-can-clear-object-storage-dnl", "false");
+    expect(downloadAccessBoundary).toHaveAttribute("data-export-download-access-boundary-failures", "");
+
     const downloadHandoff = screen.getByRole("button", { name: "Download" });
     expect(downloadHandoff).toHaveAttribute(
       "data-export-download-handoff",
@@ -920,7 +1422,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     );
     expect(downloadHandoff).toHaveAttribute("data-export-download-handoff-status", "pass");
     expect(downloadHandoff).toHaveAttribute("data-export-download-id", "export-001");
-    expect(downloadHandoff).toHaveAttribute("data-export-download-file-name", "zenart-001.zip");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-file-name", "zenari-001.zip");
     expect(downloadHandoff).toHaveAttribute("data-export-download-format", "zip");
     expect(downloadHandoff).toHaveAttribute("data-export-download-package-id", "pkg-002");
     expect(downloadHandoff).toHaveAttribute("data-export-download-manifest-output-count", "14");
@@ -928,11 +1430,26 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(downloadHandoff).toHaveAttribute("data-export-download-missing-payload-count", "0");
     expect(downloadHandoff).toHaveAttribute(
       "data-export-download-payload-contract-digest",
-      "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/README.txt|assets/hero_product_ad.png|assets/marketplace_banner.png|assets/square_social_ad.png|assets/story_variant.png|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
+      "export-001::pkg-002::project-001::ecommerce_growth_pack::fx_ecommerce_growth_golden::ai-content-disclaimer.json|assets/local-rendered-asset-manifest.json|assets/rendered/hero_product_ad-png.svg|assets/rendered/marketplace_banner-png.svg|assets/rendered/square_social_ad-png.svg|assets/rendered/story_variant-png.svg|manifest.json|metadata.json|ppt-ready-metadata.json|provenance.json|qa-report.json|qa_report.json|safety-policy-report.json|trace_provenance.json"
     );
     expect(downloadHandoff).toHaveAttribute("data-export-download-metadata-status", "pass");
     expect(downloadHandoff).toHaveAttribute("data-export-download-artifact-status", "pass");
     expect(downloadHandoff).toHaveAttribute("data-export-download-required-payload-parity", "pass");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-rendered-asset-status", "pass");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-rendered-asset-count", "4");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-placeholder-payload-count", "0");
+    expect(downloadHandoff).toHaveAttribute(
+      "data-export-download-access-boundary",
+      "stage1.export-download-access-boundary-local-contract.v1"
+    );
+    expect(downloadHandoff).toHaveAttribute("data-export-download-access-boundary-status", "pass");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-url-policy", "server-mediated-relative-signed-url");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-direct-object-signing", "false");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-strict-staging-signed-url-evidence", "open");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-strict-staging-retention-evidence", "open");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-can-clear-staging", "false");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-can-clear-production", "false");
+    expect(downloadHandoff).toHaveAttribute("data-export-download-can-clear-object-storage-dnl", "false");
     expect(Number(downloadHandoff.getAttribute("data-export-download-zip-payload-count"))).toBeGreaterThanOrEqual(14);
 
     const safetyPolicy = container.querySelector("[data-safety-policy-export='stage0.rev2.safety-policy-export']");
@@ -943,7 +1460,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     for (const shareButton of screen.getAllByRole("button", { name: "Request Share" })) {
       expect(shareButton).toHaveAttribute(
         "data-csrf-ux-guard-contracts",
-        "createShareLink:POST:/exports/{export_id}/share-links:include:X-ZenArt-CSRF:true"
+        "createShareLink:POST:/exports/{export_id}/share-links:include:X-Zenari-CSRF:true"
       );
     }
   });
@@ -1042,17 +1559,19 @@ describe("WorkspaceApp user route integration smoke", () => {
     });
     expect(screen.getByRole("button", { name: "Iterate" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "createCanvasNode:POST:/workspaces/{workspace_id}/canvas/nodes:include:X-ZenArt-CSRF:true|createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-ZenArt-CSRF:true"
+      "createCanvasNode:POST:/workspaces/{workspace_id}/canvas/nodes:include:X-Zenari-CSRF:true|createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-Zenari-CSRF:true"
     );
     fireEvent.click(screen.getByRole("button", { name: "Iterate" }));
-    await screen.findByText("Iteration");
+    await waitFor(() => {
+      expect(document.querySelector("[data-canvas-node^='node-iteration-']")).toBeTruthy();
+    });
 
     await selectAndPackage("Studio System");
     await selectAndPackage("Gallery Motion");
     await selectAndPackage("Utility Kit");
 
     fireEvent.click(screen.getByRole("button", { name: "Export ZIP" }));
-    await screen.findByText("zenart-001.zip");
+    await screen.findByText("zenari-001.zip");
 
     const workflowSmoke = await waitFor(() => {
       const evidence = container.querySelector("[data-workflow-api-smoke='stage0.rev2.workflow-api-smoke']");
@@ -1081,13 +1600,13 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-csrf-protected-operation-count", "6");
     expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-idempotency-required-operation-count", "6");
     expect(workflowSmoke.getAttribute("data-workflow-api-smoke-operation-contracts")).toContain(
-      "createChatSession:POST:/projects/{project_id}/chat/sessions:include:X-ZenArt-CSRF:true"
+      "createChatSession:POST:/projects/{project_id}/chat/sessions:include:X-Zenari-CSRF:true"
     );
     expect(workflowSmoke.getAttribute("data-workflow-api-smoke-operation-contracts")).toContain(
       "listCandidateAssets:GET:/candidate-sets/{candidate_set_id}/assets:include:not-required:false"
     );
     expect(workflowSmoke.getAttribute("data-workflow-api-smoke-operation-contracts")).toContain(
-      "createExport:POST:/packages/{package_id}/exports:include:X-ZenArt-CSRF:true"
+      "createExport:POST:/packages/{package_id}/exports:include:X-Zenari-CSRF:true"
     );
 
     const renderingSmoke = container.querySelector("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");
@@ -1161,7 +1680,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     assertRenderingBudget(["package-add"]);
 
     fireEvent.click(screen.getByRole("button", { name: "Export ZIP" }));
-    await screen.findByText("zenart-001.zip");
+    await screen.findByText("zenari-001.zip");
     assertRenderingBudget(["export-ready"]);
     const exportedRenderingSmoke = container.querySelector("[data-rendering-smoke='stage0.rev2.workspace-rendering-performance']");
     expect(exportedRenderingSmoke).toHaveAttribute("data-render-export-history-count", "1");
@@ -1172,7 +1691,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     fireEvent.click(screen.getByRole("button", { name: "Initial brief" }));
     expect(screen.getByRole("button", { name: "Initial brief" })).toHaveAttribute(
       "data-csrf-ux-guard-contracts",
-      "createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-ZenArt-CSRF:true"
+      "createCanvasVersion:POST:/workspaces/{workspace_id}/canvas/versions:include:X-Zenari-CSRF:true"
     );
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Initial brief" })).toHaveAttribute("aria-pressed", "true");
@@ -1224,7 +1743,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     }
 
     fireEvent.click(screen.getByTestId("export-download"));
-    await screen.findByText("zenart-001.zip");
+    await screen.findByText("zenari-001.zip");
 
     const workflowSmoke = container.querySelector("[data-workflow-api-smoke='stage0.rev2.workflow-api-smoke']");
     expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-status", "pass");
@@ -1244,7 +1763,7 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-csrf-protected-operation-count", "6");
     expect(workflowSmoke).toHaveAttribute("data-workflow-api-smoke-idempotency-required-operation-count", "6");
     expect(workflowSmoke?.getAttribute("data-workflow-api-smoke-operation-contracts")).toContain(
-      "selectDirection:PUT:/projects/{project_id}/selected-direction:include:X-ZenArt-CSRF:true"
+      "selectDirection:PUT:/projects/{project_id}/selected-direction:include:X-Zenari-CSRF:true"
     );
 
     rerender(<WorkspaceApp initialView="export" />);
@@ -1256,8 +1775,64 @@ describe("WorkspaceApp user route integration smoke", () => {
     expect(exportSmoke).toHaveAttribute("data-workflow-api-smoke-export-csrf-protected-operation-count", "6");
     expect(exportSmoke).toHaveAttribute("data-workflow-api-smoke-export-idempotency-required-operation-count", "6");
     expect(exportSmoke?.getAttribute("data-workflow-api-smoke-export-operation-contracts")).toContain(
-      "createPackage:POST:/projects/{project_id}/packages:include:X-ZenArt-CSRF:true"
+      "createPackage:POST:/projects/{project_id}/packages:include:X-Zenari-CSRF:true"
     );
+  });
+
+  it("exposes Stage 1 safety export state and blocks download/share controls for unsafe exports", async () => {
+    const { container, rerender } = render(<WorkspaceApp initialView="workspace" />);
+
+    await screen.findByRole("heading", { name: "Launch Direction Board" });
+    fireEvent.change(screen.getByLabelText("Brief"), {
+      target: { value: "Campaign visual with phishing and secret key instructions." }
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm Brief" }));
+    await screen.findByText("Brief confirmed. I generated four deterministic strategy candidates for review.");
+
+    fireEvent.click(screen.getByRole("button", { name: "Select Studio System" }));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Select Studio System" })).toHaveAttribute("aria-pressed", "true");
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add Selection" }));
+    await waitFor(() => {
+      expect(screen.getAllByText("Studio System").length).toBeGreaterThanOrEqual(2);
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Export ZIP" }));
+    await screen.findByText("zenari-001.zip");
+
+    const packageSafetyState = container.querySelector("[data-safety-export-state-contract='stage1.safety-export-state-local-contract.v1']");
+    expect(packageSafetyState).toHaveAttribute("data-safety-export-state-status", "pass");
+    expect(packageSafetyState).toHaveAttribute("data-safety-export-blocked-count", "1");
+    expect(packageSafetyState).toHaveAttribute("data-safety-export-safety-block-count", "4");
+    expect(packageSafetyState).toHaveAttribute("data-safety-export-blocked-download-cta-count", "0");
+    expect(packageSafetyState).toHaveAttribute("data-safety-export-blocked-share-cta-count", "0");
+    expect(packageSafetyState).toHaveAttribute("data-safety-export-blocked-without-download-count", "1");
+    expect(packageSafetyState).toHaveAttribute("data-safety-export-blocked-without-share-count", "1");
+    expect(packageSafetyState).toHaveAttribute("data-safety-export-latest-status", "blocked");
+    expect(packageSafetyState).toHaveAttribute("data-safety-export-latest-blocked-reason", "export_status_blocked");
+    expect(packageSafetyState?.getAttribute("data-safety-export-blocked-reasons")).toContain("safety:brief:safety-illegal-abuse-v1");
+    expect(packageSafetyState).toHaveAttribute("data-safety-export-raw-provider-payload", "false");
+    expect(packageSafetyState).toHaveAttribute("data-safety-export-raw-safety-payload", "false");
+    expect(packageSafetyState).toHaveAttribute("data-safety-export-secret-like-projected", "false");
+
+    const blockedRecord = container.querySelector("[data-safety-export-record-id='export-001']");
+    expect(blockedRecord).toHaveAttribute("data-safety-export-record-status", "blocked");
+    expect(blockedRecord).toHaveAttribute("data-safety-export-record-download-eligible", "false");
+    expect(blockedRecord).toHaveAttribute("data-safety-export-record-share-eligible", "false");
+    expect(blockedRecord?.querySelector("[data-safety-export-download-disabled-reason]")).toHaveAttribute(
+      "data-safety-export-download-disabled-reason",
+      expect.stringContaining("safety_policy_block")
+    );
+    expect(blockedRecord?.querySelector("[data-safety-export-share-cta='blocked']")).toBeDisabled();
+    expect(within(blockedRecord as HTMLElement).queryByRole("button", { name: "Download" })).toBeNull();
+
+    rerender(<WorkspaceApp initialView="export" />);
+    await screen.findByRole("heading", { name: "Export Preview" });
+    const exportSafetyState = screen.getByLabelText("Safety export state");
+    expect(exportSafetyState).toHaveAttribute("data-safety-export-state-contract", "stage1.safety-export-state-local-contract.v1");
+    expect(exportSafetyState).toHaveAttribute("data-safety-export-blocked-count", "1");
+    expect(exportSafetyState).toHaveAttribute("data-safety-export-blocked-download-cta-count", "0");
+    expect(exportSafetyState).toHaveAttribute("data-safety-export-blocked-share-cta-count", "0");
   });
 
   it("keeps the user route smoke artifact aligned with machine-checkable UI evidence attributes", () => {
@@ -1281,27 +1856,43 @@ describe("WorkspaceApp user route integration smoke", () => {
         expectedGuard: "authenticated-same-site-session",
         expectedEnabledStatus: "enabled",
         expectedBlockedStatus: "blocked",
-        expectedSafeLabels: "load,login",
-        expectedExpiredBlockedControlCount: "18",
+        expectedSafeLabels: "load,login,asset-library-refresh",
+        expectedExpiredBlockedControlCount: "34",
         expectedExpiredRecoveryLabels: "Refresh Session",
         expectedProtectedMethods: "POST,PUT,PATCH,DELETE",
-        expectedGuardCount: "19",
-        expectedOperationCount: "18",
-        expectedCsrfProtectedOperationCount: "15",
+        expectedGuardCount: "35",
+        expectedOperationCount: "36",
+        expectedCsrfProtectedOperationCount: "27",
         expectedGuardLabels: expect.arrayContaining([
           "Confirm Brief",
           "Attach",
+          "Create Batch",
+          "Cancel Batch",
+          "Retry Child",
           "Create Project",
           "Rename Project",
           "Package Reference",
           "Select Candidate",
           "Iterate",
+          "Apply Edit Tool",
           "Restore Version",
+          "Add Asset",
+          "Favorite Asset",
+          "Archive Asset",
+          "Create Brand Kit",
+          "Update Brand Kit",
+          "Set Brand Kit",
           "Add Selection",
           "Export ZIP",
           "Export PDF",
           "Request Share",
           "Mock Checkout",
+          "Billing Portal",
+          "Cancel Subscription",
+          "Refresh Invoices",
+          "Refresh Team Seats",
+          "Refresh Asset Library",
+          "Accept Invite",
           "Billing Scenario",
           "Save Settings",
           "Submit Ticket",
@@ -1310,17 +1901,32 @@ describe("WorkspaceApp user route integration smoke", () => {
           "Log Out"
         ]),
         requiredOperationContracts: expect.arrayContaining([
-          "Confirm Brief=>createChatSession:POST:X-ZenArt-CSRF:true+createChatMessage:POST:X-ZenArt-CSRF:true+createCandidateSet:POST:X-ZenArt-CSRF:true",
-          "Attach=>createUpload:POST:X-ZenArt-CSRF:true",
-          "Create Project=>createProject:POST:X-ZenArt-CSRF:true",
-          "Rename Project=>updateProject:PATCH:X-ZenArt-CSRF:true",
-          "Package Reference=>createPackage:POST:X-ZenArt-CSRF:true",
-          "Select Candidate=>selectDirection:PUT:X-ZenArt-CSRF:true",
-          "Save Settings=>updateAccount:PATCH:X-ZenArt-CSRF:true",
-          "Submit Ticket=>createSupportTicket:POST:X-ZenArt-CSRF:true",
+          "Confirm Brief=>createChatSession:POST:X-Zenari-CSRF:true+createChatMessage:POST:X-Zenari-CSRF:true+createCandidateSet:POST:X-Zenari-CSRF:true",
+          "Attach=>createUpload:POST:X-Zenari-CSRF:true",
+          "Create Batch=>createBatchGeneration:POST:X-Zenari-CSRF:true",
+          "Cancel Batch=>cancelBatchGeneration:POST:X-Zenari-CSRF:true",
+          "Retry Child=>retryBatchGenerationChild:POST:X-Zenari-CSRF:true",
+          "Create Project=>createProject:POST:X-Zenari-CSRF:true",
+          "Rename Project=>updateProject:PATCH:X-Zenari-CSRF:true",
+          "Package Reference=>createPackage:POST:X-Zenari-CSRF:true",
+          "Select Candidate=>selectDirection:PUT:X-Zenari-CSRF:true",
+          "Add Asset=>createAssetLibraryEntry:POST:X-Zenari-CSRF:true",
+          "Favorite Asset=>updateAssetLibraryEntry:PATCH:X-Zenari-CSRF:true",
+          "Archive Asset=>updateAssetLibraryEntry:PATCH:X-Zenari-CSRF:true",
+          "Create Brand Kit=>createBrandKit:POST:X-Zenari-CSRF:true",
+          "Update Brand Kit=>updateBrandKit:PATCH:X-Zenari-CSRF:true",
+          "Set Brand Kit=>setProjectDefaultBrandKit:PUT:X-Zenari-CSRF:true",
+          "Billing Portal=>createBillingPortalSession:POST:X-Zenari-CSRF:true",
+          "Cancel Subscription=>cancelSubscription:POST:X-Zenari-CSRF:true",
+          "Refresh Invoices=>listBillingInvoices:GET:not-required:false",
+          "Refresh Team Seats=>getTeamSeatUsage:GET:not-required:false+checkTeamSeatEntitlement:GET:not-required:false",
+          "Refresh Asset Library=>listAssetLibrary:GET:not-required:false+listBrandKits:GET:not-required:false+getProjectDefaultBrandKit:GET:not-required:false",
+          "Accept Invite=>acceptTeamInvite:POST:X-Zenari-CSRF:true",
+          "Save Settings=>updateAccount:PATCH:X-Zenari-CSRF:true",
+          "Submit Ticket=>createSupportTicket:POST:X-Zenari-CSRF:true",
           "Refresh Session=>getSession:GET:not-required:false",
-          "Expire Session=>deleteSession:DELETE:X-ZenArt-CSRF:false",
-          "Log Out=>deleteSession:DELETE:X-ZenArt-CSRF:false"
+          "Expire Session=>deleteSession:DELETE:X-Zenari-CSRF:false",
+          "Log Out=>deleteSession:DELETE:X-Zenari-CSRF:false"
         ])
       }
     });
@@ -1460,7 +2066,7 @@ describe("WorkspaceApp user route integration smoke", () => {
         "ai-content-disclaimer.json",
         "provenance.json",
         "ppt-ready-metadata.json",
-        "assets/README.txt"
+        "assets/local-rendered-asset-manifest.json"
       ])
     });
     expect(evidenceBySchema.get("stage0.rev2.export-download-parity-smoke")).toMatchObject({
@@ -1514,7 +2120,16 @@ describe("WorkspaceApp user route integration smoke", () => {
           "data-export-download-missing-payload-count",
           "data-export-download-metadata-status",
           "data-export-download-artifact-status",
-          "data-export-download-required-payload-parity"
+          "data-export-download-required-payload-parity",
+          "data-export-download-access-boundary",
+          "data-export-download-access-boundary-status",
+          "data-export-download-url-policy",
+          "data-export-download-direct-object-signing",
+          "data-export-download-strict-staging-signed-url-evidence",
+          "data-export-download-strict-staging-retention-evidence",
+          "data-export-download-can-clear-staging",
+          "data-export-download-can-clear-production",
+          "data-export-download-can-clear-object-storage-dnl"
         ])
       })
     });

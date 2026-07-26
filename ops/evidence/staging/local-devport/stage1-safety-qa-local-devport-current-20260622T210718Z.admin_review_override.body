@@ -1,0 +1,13 @@
+{
+  "id": "export_233d55a8624bd80d8cd3251e",
+  "tenant_id": "tenant_local",
+  "package_id": "package_b1b2ac3b6bb2b88f26801ea7",
+  "project_id": "project_local_ecommerce_growth",
+  "task_id": "task_e4c4b61e2d009697e1663e70",
+  "format": "zip",
+  "status": "pending",
+  "qa_status": "pending",
+  "created_at": "2026-06-23T05:07:18.355886+08:00",
+  "updated_at": "2026-06-22T21:07:18.826174Z",
+  "regenerated_at": "2026-06-22T21:07:18.826174Z"
+}

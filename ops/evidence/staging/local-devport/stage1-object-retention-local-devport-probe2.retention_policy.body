@@ -1,0 +1,14 @@
+{
+  "audit_resource": "object_storage_cleanup",
+  "checked_at": "2026-06-23T03:20:08.885481Z",
+  "cleanup_modes": [
+    "expired export cleanup",
+    "orphan cleanup"
+  ],
+  "policy": "object storage retention policy",
+  "release_gate_check": "staging_object_storage_signed_downloads",
+  "retention_policy": "tenant scoped export objects keep retention_until metadata and expire through audited cleanup",
+  "retention_until": "required for expiring export objects and propagated to derived thumbnails",
+  "tenant": "tenant_1",
+  "versioning": "S3-compatible buckets must keep provider versioning or equivalent object restore enabled for staging and production"
+}

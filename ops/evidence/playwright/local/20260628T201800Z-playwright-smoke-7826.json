@@ -1,0 +1,46 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "created_at": "20260628T201800Z",
+  "run_id": "20260628T201800Z-playwright-smoke-7826",
+  "status": "planned",
+  "web_url": "http://127.0.0.1:26080",
+  "admin_url": "http://127.0.0.1:26081",
+  "web_playwright_port": "26080",
+  "admin_playwright_port": "26081",
+  "spec_path": "ops/ci/playwright-smoke.spec.ts",
+  "log_path": "ops/evidence/playwright/local/20260628T201800Z-playwright-smoke-7826.log",
+  "exit_code": 0,
+  "coverage": {
+    "user_web": {
+      "status": "planned",
+      "url": "http://127.0.0.1:26080",
+      "evidence_refs": ["ops/ci/playwright-smoke.spec.ts#web workspace shell renders", "ops/evidence/playwright/local/20260628T201800Z-playwright-smoke-7826.log"]
+    },
+    "admin_web": {
+      "status": "planned",
+      "url": "http://127.0.0.1:26081",
+      "evidence_refs": ["ops/ci/playwright-smoke.spec.ts#admin operations shell renders", "ops/evidence/playwright/local/20260628T201800Z-playwright-smoke-7826.log"]
+    },
+    "billing": {
+      "status": "planned",
+      "evidence_refs": ["ops/ci/playwright-smoke.spec.ts#billing smoke validates quota, invoices, team seats, and checkout guards", "ops/evidence/playwright/local/20260628T201800Z-playwright-smoke-7826.log"]
+    },
+    "workspace": {
+      "status": "planned",
+      "evidence_refs": ["ops/ci/playwright-smoke.spec.ts#workspace smoke validates core workspace shell", "ops/evidence/playwright/local/20260628T201800Z-playwright-smoke-7826.log"]
+    }
+  },
+  "safe_projection": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false
+  },
+  "ci_gate": "open_until_installed_workflow_runs_playwright_smoke_on_pr_and_main",
+  "private_beta_gate": "open_until_staging_playwright_smoke_passes_against_production_like_dependencies"
+}

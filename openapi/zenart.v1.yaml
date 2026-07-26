@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: ZenArt API
+  title: Zenari API
   version: 0.1.0-stage0-rev2
   description: Stage 0 Rev2 API contract. Docs/stage0_blueprint_rev2.md is authoritative.
 servers:
@@ -9,7 +9,7 @@ servers:
   - url: /api/admin/v1
     description: Admin API
 security:
-  - ZenArtSession: []
+  - ZenariSession: []
 tags:
   - name: auth
   - name: projects
@@ -19,10 +19,14 @@ tags:
   - name: candidates
   - name: canvas
   - name: assets
+  - name: brand-kits
   - name: packages
   - name: quota
+  - name: billing
+  - name: teams
   - name: support
   - name: exports
+  - name: object-storage
   - name: skills
   - name: crawler
   - name: prompts
@@ -279,6 +283,146 @@ paths:
                 $ref: "#/components/schemas/ErrorEnvelope"
         default:
           $ref: "#/components/responses/Error"
+  /projects/{project_id}/batch-generations:
+    post:
+      operationId: createBatchGeneration
+      tags: [tasks]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchGenerationCreate"
+      responses:
+        "201":
+          description: Batch generation request accepted with queued child tasks.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchGenerationRequest"
+        default:
+          $ref: "#/components/responses/Error"
+  /batch-generations/{batch_id}:
+    get:
+      operationId: getBatchGeneration
+      tags: [tasks]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/BatchGenerationId"
+      responses:
+        "200":
+          description: Tenant-scoped batch generation request and child task projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchGenerationRequest"
+        default:
+          $ref: "#/components/responses/Error"
+  /batch-generations/{batch_id}/children:
+    get:
+      operationId: listBatchGenerationChildren
+      tags: [tasks]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/BatchGenerationId"
+      responses:
+        "200":
+          description: Child tasks for a tenant-scoped batch generation request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerationChildTaskPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /batch-generations/{batch_id}/progress:
+    get:
+      operationId: getBatchGenerationProgress
+      tags: [tasks]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/BatchGenerationId"
+      responses:
+        "200":
+          description: Aggregated batch progress for polling UI.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchProgress"
+        default:
+          $ref: "#/components/responses/Error"
+  /batch-generations/{batch_id}/cancel:
+    post:
+      operationId: cancelBatchGeneration
+      tags: [tasks]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/BatchGenerationId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Batch cancellation result.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchGenerationRequest"
+        default:
+          $ref: "#/components/responses/Error"
+  /batch-generation-children/{child_id}/retry:
+    post:
+      operationId: retryBatchGenerationChild
+      tags: [tasks]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/GenerationChildTaskId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Retried child task, queued for worker execution.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerationChildTask"
+        default:
+          $ref: "#/components/responses/Error"
+  /batch-generations/queue-runtime:
+    get:
+      operationId: listAdminBatchQueueRuntime
+      tags: [tasks]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Read-only admin batch queue runtime projection for worker claim leases, provider strategy groups, quota, retry, and drain review.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBatchQueueRuntimePage"
+        default:
+          $ref: "#/components/responses/Error"
+  /batch-generation-children:
+    get:
+      operationId: listAdminBatchGenerationChildren
+      tags: [tasks]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Read-only admin child task projection with claim, retry, dead-letter, quota, result, trace, and provider usage linkage.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBatchChildTaskPage"
+        default:
+          $ref: "#/components/responses/Error"
   /projects/{project_id}/candidate-sets:
     get:
       operationId: listCandidateSets
@@ -506,6 +650,177 @@ paths:
                 $ref: "#/components/schemas/AssetPage"
         default:
           $ref: "#/components/responses/Error"
+  /assets/library:
+    get:
+      operationId: listAssetLibrary
+      tags: [assets]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/StatusFilter"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/ProjectIdQuery"
+      responses:
+        "200":
+          description: Tenant-scoped asset library entries available for prompt attachment, canvas insertion, favorite/archive, and cross-project reuse.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetLibraryEntryPage"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createAssetLibraryEntry
+      tags: [assets]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetLibraryEntryCreate"
+      responses:
+        "201":
+          description: Created tenant-scoped asset library entry.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetLibraryEntry"
+        default:
+          $ref: "#/components/responses/Error"
+  /assets/library/{entry_id}:
+    patch:
+      operationId: updateAssetLibraryEntry
+      tags: [assets]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/AssetLibraryEntryId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetLibraryEntryUpdate"
+      responses:
+        "200":
+          description: Updated tenant-scoped asset library entry.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AssetLibraryEntry"
+        default:
+          $ref: "#/components/responses/Error"
+  /brand-kits:
+    get:
+      operationId: listBrandKits
+      tags: [brand-kits]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/StatusFilter"
+        - $ref: "#/components/parameters/Search"
+        - $ref: "#/components/parameters/ProjectIdQuery"
+      responses:
+        "200":
+          description: Tenant-scoped Brand Kits with logo asset refs, palette, fonts, guidelines, source refs, and project bindings for prompt context.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandKitPage"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createBrandKit
+      tags: [brand-kits]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrandKitCreate"
+      responses:
+        "201":
+          description: Created tenant-scoped Brand Kit projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandKit"
+        default:
+          $ref: "#/components/responses/Error"
+  /brand-kits/{brand_kit_id}:
+    patch:
+      operationId: updateBrandKit
+      tags: [brand-kits]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/BrandKitId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BrandKitUpdate"
+      responses:
+        "200":
+          description: Updated tenant-scoped Brand Kit projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandKit"
+        default:
+          $ref: "#/components/responses/Error"
+  /projects/{project_id}/brand-kit-default:
+    get:
+      operationId: getProjectDefaultBrandKit
+      tags: [brand-kits]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: Project default Brand Kit projection for prompt context.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandKit"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: setProjectDefaultBrandKit
+      tags: [brand-kits]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectDefaultBrandKitSet"
+      responses:
+        "200":
+          description: Updated project default Brand Kit.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandKit"
+        default:
+          $ref: "#/components/responses/Error"
   /projects/{project_id}/packages:
     get:
       operationId: listPackages
@@ -639,6 +954,371 @@ paths:
                 $ref: "#/components/schemas/UserSubscription"
         default:
           $ref: "#/components/responses/Error"
+  /billing/checkout:
+    post:
+      operationId: createCheckoutSession
+      tags: [quota]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutSessionCreate"
+      responses:
+        "201":
+          description: Stripe checkout session.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSession"
+        default:
+          $ref: "#/components/responses/Error"
+  /billing/portal:
+    post:
+      operationId: createBillingPortalSession
+      tags: [quota]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "201":
+          description: Billing portal session for the current subscription customer.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingPortalSession"
+        default:
+          $ref: "#/components/responses/Error"
+  /billing/subscription/cancel:
+    post:
+      operationId: cancelSubscription
+      tags: [quota]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Subscription cancellation scheduled at period end.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionCancellation"
+        default:
+          $ref: "#/components/responses/Error"
+  /billing/invoices:
+    get:
+      operationId: listBillingInvoices
+      tags: [quota]
+      x-rbac: user
+      responses:
+        "200":
+          description: Billing invoices for the current subscription.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillingInvoicePage"
+        default:
+          $ref: "#/components/responses/Error"
+  /teams/{team_id}/seat-usage:
+    get:
+      operationId: getTeamSeatUsage
+      tags: [teams]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/TeamId"
+      responses:
+        "200":
+          description: Team billable seat usage for the current tenant.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamSeatUsage"
+        default:
+          $ref: "#/components/responses/Error"
+  /teams/{team_id}/seat-entitlement:
+    get:
+      operationId: checkTeamSeatEntitlement
+      tags: [teams]
+      x-rbac: user
+      parameters:
+        - $ref: "#/components/parameters/TeamId"
+        - name: additional_seats
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 1
+          description: Seats to test against the team's billable seat limit.
+      responses:
+        "200":
+          description: Seat entitlement decision for the current tenant team.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamSeatEntitlement"
+        default:
+          $ref: "#/components/responses/Error"
+  /teams/{team_id}/invites/{invite_id}/accept:
+    post:
+      operationId: acceptTeamInvite
+      tags: [teams]
+      x-rbac: user
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/TeamId"
+        - $ref: "#/components/parameters/TeamInviteId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "200":
+          description: Accepted team invite converted from reserved invited seat to active billable member.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamMember"
+        default:
+          $ref: "#/components/responses/Error"
+  /billing/manual-credit:
+    post:
+      operationId: createAdminBillingManualCredit
+      tags: [billing]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminBillingManualCreditCreate"
+      responses:
+        "201":
+          description: Admin manual quota credit operation written to audit and quota ledger.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBillingOperation"
+        default:
+          $ref: "#/components/responses/Error"
+  /billing/refund-note:
+    post:
+      operationId: createAdminBillingRefundNote
+      tags: [billing]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminBillingRefundNoteCreate"
+      responses:
+        "201":
+          description: Admin refund or credit note recorded for Stripe/support reconciliation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBillingOperation"
+        default:
+          $ref: "#/components/responses/Error"
+  /billing/subscription-sync:
+    post:
+      operationId: createAdminBillingSubscriptionSync
+      tags: [billing]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminBillingSubscriptionSyncCreate"
+      responses:
+        "201":
+          description: Admin subscription sync operation recorded for webhook or Stripe dashboard reconciliation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBillingOperation"
+        default:
+          $ref: "#/components/responses/Error"
+  /billing/account-lock:
+    post:
+      operationId: createAdminBillingAccountLock
+      tags: [billing]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminBillingAccountLockCreate"
+      responses:
+        "201":
+          description: Admin account billing lock or unlock recorded with audit.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminBillingOperation"
+        default:
+          $ref: "#/components/responses/Error"
+  /teams:
+    post:
+      operationId: createAdminTeam
+      tags: [teams]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminTeamCreate"
+      responses:
+        "201":
+          description: Admin-created tenant team with owner seat.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Team"
+        default:
+          $ref: "#/components/responses/Error"
+  /teams/{team_id}/invites:
+    post:
+      operationId: createAdminTeamInvite
+      tags: [teams]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/TeamId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminTeamInviteCreate"
+      responses:
+        "201":
+          description: Admin-created team invite that reserves a billable seat until accepted or removed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamInvite"
+        default:
+          $ref: "#/components/responses/Error"
+  /teams/{team_id}/members/{member_id}/remove:
+    post:
+      operationId: removeAdminTeamMember
+      tags: [teams]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/TeamId"
+        - $ref: "#/components/parameters/TeamMemberId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminTeamMemberRemove"
+      responses:
+        "200":
+          description: Admin member removal result. Owner removal is denied by contract.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminTeamMemberRemoveResult"
+        default:
+          $ref: "#/components/responses/Error"
+  /team-seat-ops/{team_id}/seat-usage:
+    get:
+      operationId: getAdminTeamSeatUsage
+      tags: [teams]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/TeamId"
+      responses:
+        "200":
+          description: Admin view of tenant-scoped team billable seat usage.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamSeatUsage"
+        default:
+          $ref: "#/components/responses/Error"
+  /team-seat-ops/{team_id}/billing-link:
+    get:
+      operationId: getAdminTeamBillingLink
+      tags: [teams, billing]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/TeamId"
+      responses:
+        "200":
+          description: Active Stripe subscription-item binding used for team seat quantity and proration sync.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamBillingLink"
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: upsertAdminTeamBillingLink
+      tags: [teams, billing]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/TeamId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamBillingLinkUpsert"
+      responses:
+        "200":
+          description: Team billing link created or updated with audit before mutation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamBillingLink"
+        default:
+          $ref: "#/components/responses/Error"
+  /team-seat-ops/{team_id}/seat-syncs:
+    get:
+      operationId: listAdminTeamSeatBillingSyncs
+      tags: [teams, billing]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/TeamId"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Recent idempotent Stripe team-seat sync attempts for provider reconciliation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamSeatSyncPage"
+        default:
+          $ref: "#/components/responses/Error"
   /support/tickets:
     get:
       operationId: listSupportTickets
@@ -701,6 +1381,29 @@ paths:
                 $ref: "#/components/schemas/ExportPage"
         default:
           $ref: "#/components/responses/Error"
+  /exports/cleanup:
+    post:
+      operationId: cleanupExports
+      tags: [exports, object-storage]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ObjectStorageCleanupRequest"
+      responses:
+        "202":
+          description: Legacy combined export object cleanup preview or execution result with request and completion audit refs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObjectStorageCleanupResult"
+        default:
+          $ref: "#/components/responses/Error"
   /exports/{export_id}/regenerate:
     post:
       operationId: regenerateExport
@@ -743,6 +1446,66 @@ paths:
                 $ref: "#/components/schemas/ExportOverrideDecision"
         default:
           $ref: "#/components/responses/Error"
+  /object-storage/retention-policy:
+    get:
+      operationId: getObjectStorageRetentionPolicy
+      tags: [object-storage]
+      x-rbac: admin
+      responses:
+        "200":
+          description: Admin object storage retention policy projection used by staging retention cleanup evidence.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObjectStorageRetentionPolicy"
+        default:
+          $ref: "#/components/responses/Error"
+  /object-storage/cleanup/expired-exports:
+    post:
+      operationId: cleanupObjectStorageExpiredExports
+      tags: [object-storage]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ObjectStorageCleanupRequest"
+      responses:
+        "202":
+          description: Expired export object cleanup preview or execution result with request and completion audit refs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObjectStorageCleanupResult"
+        default:
+          $ref: "#/components/responses/Error"
+  /object-storage/cleanup/orphans:
+    post:
+      operationId: cleanupObjectStorageOrphans
+      tags: [object-storage]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ObjectStorageCleanupRequest"
+      responses:
+        "202":
+          description: Orphan object cleanup preview or execution result with request and completion audit refs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ObjectStorageCleanupResult"
+        default:
+          $ref: "#/components/responses/Error"
   /providers/status:
     get:
       operationId: listProviderStatus
@@ -779,6 +1542,221 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProviderUsagePage"
+        default:
+          $ref: "#/components/responses/Error"
+  /providers/registry:
+    get:
+      operationId: listProviderRegistry
+      tags: [providers]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Admin provider registry projection with routing, health, capability, and secret-reference presence. Raw secret values are never returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderRegistryPage"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createProviderRegistry
+      tags: [providers]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderRegistryCreate"
+      responses:
+        "201":
+          description: Created provider registry entry. Secret references remain references only; raw secret values are never accepted or returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderRegistryCreateResult"
+        default:
+          $ref: "#/components/responses/Error"
+  /providers/strategy-groups:
+    get:
+      operationId: listProviderStrategyGroups
+      tags: [providers]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Admin provider strategy groups for tool routing, provider membership, canary, failover, concurrency, and kill switch decisions. Raw provider secrets are never returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderStrategyGroupPage"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: createProviderStrategyGroup
+      tags: [providers]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderStrategyGroupCreate"
+      responses:
+        "201":
+          description: Created provider strategy group with audited routing membership and no raw provider secret projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderStrategyGroupCreateResult"
+        default:
+          $ref: "#/components/responses/Error"
+  /providers/strategy-groups/{group_id}:
+    patch:
+      operationId: updateProviderStrategyGroup
+      tags: [providers]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - name: group_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderStrategyGroupUpdate"
+      responses:
+        "200":
+          description: Provider strategy group update result with before/after audit projection.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderStrategyGroupUpdateResult"
+        default:
+          $ref: "#/components/responses/Error"
+  /providers/registry/{provider_id}:
+    patch:
+      operationId: updateProviderRegistry
+      tags: [providers]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - name: provider_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderRegistryUpdate"
+      responses:
+        "200":
+          description: Provider registry status and routing update result. Secret references remain references only; raw secret values are never accepted or returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderRegistryUpdateResult"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: deleteProviderRegistry
+      tags: [providers]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - name: provider_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderRegistryDelete"
+      responses:
+        "200":
+          description: Deleted provider registry entry projection returned for audit confirmation. Raw secret values are never returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderRegistryDeleteResult"
+        default:
+          $ref: "#/components/responses/Error"
+  /providers/registry/{provider_id}/test-call:
+    post:
+      operationId: runProviderSandboxTestCall
+      tags: [providers]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - name: provider_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderSandboxTestCallCreate"
+      responses:
+        "201":
+          description: Admin-only deterministic provider sandbox test-call result. It validates capability, routing, secret-reference presence, and auditability without persisting user assets or exposing raw provider secrets.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderSandboxTestCallResult"
+        default:
+          $ref: "#/components/responses/Error"
+  /providers/registry/{provider_id}/health-probe:
+    post:
+      operationId: probeProviderRegistryHealth
+      tags: [providers]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - name: provider_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProviderRegistryHealthProbe"
+      responses:
+        "200":
+          description: Audited provider health probe result. The backend calls the configured provider client status probe and persists the safe health snapshot to the admin registry.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProviderRegistryHealthProbeResult"
         default:
           $ref: "#/components/responses/Error"
   /abuse/events:
@@ -855,6 +1833,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CrawlerSourcePage"
+        default:
+          $ref: "#/components/responses/Error"
+  /crawler/sources/{source_id}/runs:
+    post:
+      operationId: startCrawlerRun
+      tags: [crawler]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - $ref: "#/components/parameters/CrawlerSourceId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "202":
+          description: Crawler run accepted for an approved tenant-scoped source under robots, SSRF, rate, and retention policy.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CrawlerRun"
         default:
           $ref: "#/components/responses/Error"
   /crawler/runs:
@@ -1027,6 +2023,52 @@ paths:
                 $ref: "#/components/schemas/SafetyDecision"
         default:
           $ref: "#/components/responses/Error"
+  /safety/reviews:
+    get:
+      operationId: listSafetyReviews
+      tags: [safety]
+      x-rbac: admin
+      parameters:
+        - $ref: "#/components/parameters/PageToken"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/StatusFilter"
+      responses:
+        "200":
+          description: Admin safety review queue with safe, tenant-scoped projections only.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SafetyReviewPage"
+        default:
+          $ref: "#/components/responses/Error"
+  /safety/reviews/{decision_id}/decision:
+    post:
+      operationId: createSafetyReviewDecision
+      tags: [safety]
+      x-rbac: admin
+      x-idempotency-required: true
+      parameters:
+        - name: decision_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SafetyReviewDecisionCreate"
+      responses:
+        "201":
+          description: Safety review decision persisted after audit record creation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SafetyReviewDecision"
+        default:
+          $ref: "#/components/responses/Error"
   /eval/results:
     get:
       operationId: listEvalResults
@@ -1128,10 +2170,10 @@ paths:
           $ref: "#/components/responses/Error"
 components:
   securitySchemes:
-    ZenArtSession:
+    ZenariSession:
       type: apiKey
       in: header
-      name: X-Zenart-User-ID
+      name: X-Zenari-User-ID
       description: Stage 0 local session header. Production auth must replace this with signed session validation.
   parameters:
     PageToken:
@@ -1230,6 +2272,26 @@ components:
       required: true
       schema:
         type: string
+    ProjectIdQuery:
+      name: project_id
+      in: query
+      schema:
+        type: string
+      description: Optional user project scope for tenant-safe reusable assets or Brand Kits.
+    AssetLibraryEntryId:
+      name: entry_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Asset library entry identifier scoped to the authenticated tenant.
+    BrandKitId:
+      name: brand_kit_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Brand Kit identifier scoped to the authenticated tenant.
     WorkspaceId:
       name: workspace_id
       in: path
@@ -1244,6 +2306,18 @@ components:
         type: string
     TaskId:
       name: task_id
+      in: path
+      required: true
+      schema:
+        type: string
+    BatchGenerationId:
+      name: batch_id
+      in: path
+      required: true
+      schema:
+        type: string
+    GenerationChildTaskId:
+      name: child_id
       in: path
       required: true
       schema:
@@ -1266,12 +2340,40 @@ components:
       required: true
       schema:
         type: string
+    TeamId:
+      name: team_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Team identifier scoped to the authenticated tenant.
+    TeamInviteId:
+      name: invite_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Team invite identifier scoped to the authenticated tenant and team.
+    TeamMemberId:
+      name: member_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Team member identifier scoped to the authenticated tenant and team.
     SkillId:
       name: skill_id
       in: path
       required: true
       schema:
         type: string
+    CrawlerSourceId:
+      name: source_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Crawler source identifier scoped to the authenticated admin tenant.
     TraceId:
       name: trace_id
       in: path
@@ -1294,7 +2396,7 @@ components:
   schemas:
     ErrorEnvelope:
       type: object
-      required: [code, message, request_id, details, field_errors]
+      required: [code, message, request_id, taxonomy, retryable, blocked, details, field_errors]
       properties:
         code:
           type: string
@@ -1302,6 +2404,12 @@ components:
           type: string
         request_id:
           type: string
+        taxonomy:
+          $ref: "#/components/schemas/ErrorTaxonomy"
+        retryable:
+          type: boolean
+        blocked:
+          type: boolean
         details:
           type: object
           additionalProperties: true
@@ -1309,6 +2417,333 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/FieldError"
+    ErrorTaxonomy:
+      type: object
+      required: [category, retryable, blocked, user_actionable]
+      properties:
+        category:
+          type: string
+          enum: [validation, auth, forbidden, not_found, conflict, retryable, blocked, quota_insufficient, provider_unavailable, review_required, internal]
+        retryable:
+          type: boolean
+        blocked:
+          type: boolean
+        user_actionable:
+          type: boolean
+    Team:
+      type: object
+      required: [id, tenant_id, name, plan_id, seat_limit, created_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        name:
+          type: string
+        plan_id:
+          type: string
+        seat_limit:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+    TeamMember:
+      type: object
+      required: [id, team_id, tenant_id, user_id, email, role, status, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        team_id:
+          type: string
+        tenant_id:
+          type: string
+        user_id:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [owner, admin, member]
+        status:
+          type: string
+          enum: [active, invited, removed]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TeamInvite:
+      type: object
+      required: [id, team_id, tenant_id, email, role, idempotency_key, invited_by, expires_at, created_at]
+      properties:
+        id:
+          type: string
+        team_id:
+          type: string
+        tenant_id:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [admin, member]
+        idempotency_key:
+          type: string
+        invited_by:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+    TeamSeatUsage:
+      type: object
+      required: [team_id, tenant_id, plan_id, seat_limit, active_seats, invited_seats, billable_seats, available_seats]
+      properties:
+        team_id:
+          type: string
+        tenant_id:
+          type: string
+        plan_id:
+          type: string
+        seat_limit:
+          type: integer
+          minimum: 0
+        active_seats:
+          type: integer
+          minimum: 0
+        invited_seats:
+          type: integer
+          minimum: 0
+          description: Pending invites reserve billable seats.
+        billable_seats:
+          type: integer
+          minimum: 0
+          description: Active plus invited seats counted for billing and entitlement.
+        available_seats:
+          type: integer
+          minimum: 0
+    TeamSeatEntitlement:
+      type: object
+      required: [allowed, reason, usage]
+      properties:
+        allowed:
+          type: boolean
+        reason:
+          type: string
+          enum: [ok, seat_limit_exceeded]
+        usage:
+          $ref: "#/components/schemas/TeamSeatUsage"
+    AdminTeamCreate:
+      type: object
+      required: [id, name, plan_id, seat_limit, owner_user_id, owner_email, rationale]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          minLength: 1
+        plan_id:
+          type: string
+        seat_limit:
+          type: integer
+          minimum: 1
+        owner_user_id:
+          type: string
+        owner_email:
+          type: string
+          format: email
+        rationale:
+          type: string
+          minLength: 1
+          description: Non-secret admin rationale recorded in audit.
+        metadata:
+          type: object
+          additionalProperties: true
+    AdminTeamInviteCreate:
+      type: object
+      required: [email, role, rationale]
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [admin, member]
+        expires_at:
+          type: string
+          format: date-time
+        rationale:
+          type: string
+          minLength: 1
+          description: Non-secret admin rationale recorded in audit.
+        metadata:
+          type: object
+          additionalProperties: true
+    AdminTeamMemberRemove:
+      type: object
+      required: [rationale]
+      properties:
+        rationale:
+          type: string
+          minLength: 1
+          description: Non-secret admin rationale recorded in audit.
+        metadata:
+          type: object
+          additionalProperties: true
+    AdminTeamMemberRemoveResult:
+      type: object
+      required: [team_id, tenant_id, member_id, removed_by, removed]
+      properties:
+        team_id:
+          type: string
+        tenant_id:
+          type: string
+        member_id:
+          type: string
+        removed_by:
+          type: string
+        removed:
+          type: boolean
+    TeamBillingLink:
+      type: object
+      required:
+        - tenant_id
+        - team_id
+        - provider
+        - provider_subscription_id
+        - provider_subscription_item_id
+        - proration_behavior
+        - status
+        - metadata
+        - created_at
+        - updated_at
+      properties:
+        tenant_id:
+          type: string
+        team_id:
+          type: string
+        provider:
+          type: string
+          enum: [stripe, mock]
+        provider_subscription_id:
+          type: string
+          description: Provider subscription reference; raw API keys are never accepted or returned.
+        provider_subscription_item_id:
+          type: string
+          description: Stripe subscription item whose quantity mirrors billable team seats.
+        price_id:
+          type: string
+        proration_behavior:
+          type: string
+          enum: [create_prorations, none, always_invoice]
+        status:
+          type: string
+          enum: [active, paused, removed]
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Public-safe audit metadata; raw secrets are redacted before persistence.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    TeamBillingLinkUpsert:
+      type: object
+      required: [provider_subscription_id, provider_subscription_item_id, rationale]
+      properties:
+        provider:
+          type: string
+          enum: [stripe, mock]
+          default: stripe
+        provider_subscription_id:
+          type: string
+        provider_subscription_item_id:
+          type: string
+        price_id:
+          type: string
+        proration_behavior:
+          type: string
+          enum: [create_prorations, none, always_invoice]
+          default: create_prorations
+        status:
+          type: string
+          enum: [active, paused, removed]
+          default: active
+        rationale:
+          type: string
+          minLength: 1
+          description: Non-secret admin rationale recorded before mutation.
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Public-safe audit metadata; raw secrets are rejected or redacted before audit/persistence.
+    TeamSeatSync:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - team_id
+        - provider
+        - requested_quantity
+        - synced_quantity
+        - proration_behavior
+        - status
+        - operation
+        - idempotency_key
+        - created_at
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        team_id:
+          type: string
+        provider:
+          type: string
+        provider_subscription_id:
+          type: string
+        provider_subscription_item_id:
+          type: string
+        price_id:
+          type: string
+        requested_quantity:
+          type: integer
+          minimum: 1
+        synced_quantity:
+          type: integer
+          minimum: 0
+        proration_behavior:
+          type: string
+          enum: [create_prorations, none, always_invoice]
+        status:
+          type: string
+          enum: [synced, skipped, failed]
+        reason:
+          type: string
+          description: Redacted provider or skip reason safe for admin reconciliation.
+        operation:
+          type: string
+        idempotency_key:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    TeamSeatSyncPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TeamSeatSync"
     FieldError:
       type: object
       required: [field, message]
@@ -1571,6 +3006,470 @@ components:
         details:
           type: object
           additionalProperties: true
+    BatchGenerationCreate:
+      type: object
+      required: [workspace_id, prompt_context, requested_count]
+      properties:
+        workspace_id:
+          type: string
+        prompt_context:
+          $ref: "#/components/schemas/PromptContext"
+        requested_count:
+          type: integer
+          minimum: 1
+          maximum: 20
+        allowed_models:
+          type: array
+          items:
+            type: string
+          description: User-visible model preferences allowed by admin policy projection. Raw provider routing is never accepted here.
+    PromptContext:
+      type: object
+      required: [text]
+      properties:
+        text:
+          type: string
+          minLength: 1
+        selected_object_ids:
+          type: array
+          items:
+            type: string
+        reference_asset_ids:
+          type: array
+          items:
+            type: string
+        brand_kit_id:
+          type: string
+        model_hints:
+          type: array
+          items:
+            type: string
+        tool_hint:
+          type: string
+    BatchStatus:
+      type: string
+      enum: [queued, running, partial_succeeded, succeeded, failed, cancelled, blocked]
+    ChildTaskStatus:
+      type: string
+      enum: [queued, running, succeeded, failed, cancelled, blocked]
+    BatchGenerationRequest:
+      type: object
+      required:
+        - id
+        - tenant_id
+        - user_id
+        - project_id
+        - workspace_id
+        - prompt_context
+        - requested_count
+        - quota_reservation_id
+        - quota_estimated_units
+        - quota_committed_units
+        - quota_refunded_units
+        - trace_id
+        - status
+        - children
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        user_id:
+          type: string
+        project_id:
+          type: string
+        workspace_id:
+          type: string
+        prompt_context:
+          $ref: "#/components/schemas/PromptContext"
+        requested_count:
+          type: integer
+          minimum: 1
+          maximum: 20
+        allowed_models:
+          type: array
+          items:
+            type: string
+        quota_reservation_id:
+          type: string
+        quota_estimated_units:
+          type: integer
+          minimum: 0
+        quota_committed_units:
+          type: integer
+          minimum: 0
+        quota_refunded_units:
+          type: integer
+          minimum: 0
+        trace_id:
+          type: string
+        status:
+          $ref: "#/components/schemas/BatchStatus"
+        children:
+          type: array
+          items:
+            $ref: "#/components/schemas/GenerationChildTask"
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    GenerationChildTask:
+      type: object
+      required:
+        - id
+        - batch_id
+        - tenant_id
+        - status
+        - provider_id
+        - model_id
+        - tool_type
+        - retry_count
+        - max_retries
+        - quota_estimate_units
+        - quota_committed_units
+        - quota_refunded_units
+        - trace_id
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        batch_id:
+          type: string
+        tenant_id:
+          type: string
+        status:
+          $ref: "#/components/schemas/ChildTaskStatus"
+        provider_id:
+          type: string
+          description: Safe provider identifier, not a secret reference.
+        model_id:
+          type: string
+        tool_type:
+          type: string
+        seed:
+          type: string
+        retry_count:
+          type: integer
+          minimum: 0
+        max_retries:
+          type: integer
+          minimum: 0
+        quota_estimate_units:
+          type: integer
+          minimum: 0
+        quota_committed_units:
+          type: integer
+          minimum: 0
+        quota_refunded_units:
+          type: integer
+          minimum: 0
+        asset_id:
+          type: string
+        canvas_object_id:
+          type: string
+        trace_id:
+          type: string
+        visible_trace_ref:
+          type: string
+        failure_code:
+          type: string
+        failure_message:
+          type: string
+        review_reason:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    GenerationChildTaskPage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GenerationChildTask"
+    BatchProgress:
+      type: object
+      required: [batch_id, status, requested_count, queued, running, succeeded, failed, cancelled, blocked, retryable]
+      properties:
+        batch_id:
+          type: string
+        status:
+          $ref: "#/components/schemas/BatchStatus"
+        requested_count:
+          type: integer
+          minimum: 1
+        queued:
+          type: integer
+          minimum: 0
+        running:
+          type: integer
+          minimum: 0
+        succeeded:
+          type: integer
+          minimum: 0
+        failed:
+          type: integer
+          minimum: 0
+        cancelled:
+          type: integer
+          minimum: 0
+        blocked:
+          type: integer
+          minimum: 0
+        retryable:
+          type: integer
+          minimum: 0
+    AdminBatchQueueRuntime:
+      type: object
+      required:
+        - id
+        - batch_id
+        - tenant_id
+        - project_id
+        - workspace_id
+        - status
+        - requested_count
+        - queued
+        - running
+        - succeeded
+        - failed
+        - cancelled
+        - blocked
+        - retryable
+        - worker_id
+        - claim_timeout_seconds
+        - oldest_child_age_minutes
+        - provider_id
+        - model_id
+        - tool_type
+        - provider_strategy_group_id
+        - provider_selection_policy
+        - provider_concurrency
+        - provider_model_concurrency
+        - claim_lease_policy
+        - drain_policy
+        - quota_policy
+        - dead_letter_policy
+        - idempotency_scope
+        - next_operator_action
+        - audit_ref
+        - evidence_refs
+      properties:
+        id:
+          type: string
+        batch_id:
+          type: string
+        tenant_id:
+          type: string
+        project_id:
+          type: string
+        workspace_id:
+          type: string
+        status:
+          $ref: "#/components/schemas/BatchStatus"
+        requested_count:
+          type: integer
+          minimum: 1
+        queued:
+          type: integer
+          minimum: 0
+        running:
+          type: integer
+          minimum: 0
+        succeeded:
+          type: integer
+          minimum: 0
+        failed:
+          type: integer
+          minimum: 0
+        cancelled:
+          type: integer
+          minimum: 0
+        blocked:
+          type: integer
+          minimum: 0
+        retryable:
+          type: integer
+          minimum: 0
+        worker_id:
+          type: string
+        claim_timeout_seconds:
+          type: integer
+          minimum: 0
+        oldest_child_age_minutes:
+          type: integer
+          minimum: 0
+        provider_id:
+          type: string
+        model_id:
+          type: string
+        tool_type:
+          type: string
+        provider_strategy_group_id:
+          type: string
+        provider_selection_policy:
+          type: string
+          enum: [weighted, priority, canary, failover]
+        provider_concurrency:
+          type: string
+        provider_model_concurrency:
+          type: string
+        claim_lease_policy:
+          type: string
+        drain_policy:
+          type: string
+        quota_policy:
+          type: string
+        dead_letter_policy:
+          type: string
+        idempotency_scope:
+          type: string
+        next_operator_action:
+          type: string
+        audit_ref:
+          type: string
+        evidence_refs:
+          type: array
+          items:
+            type: string
+      additionalProperties: false
+    AdminBatchQueueRuntimePage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/AdminBatchQueueRuntime"
+    AdminBatchChildTask:
+      type: object
+      required:
+        - id
+        - batch_id
+        - tenant_id
+        - status
+        - provider_id
+        - model_id
+        - tool_type
+        - retry_count
+        - max_retries
+        - worker_id
+        - claim_attempt
+        - claim_expires_at
+        - fanout_stage
+        - failure_code
+        - review_reason
+        - quota_estimate_units
+        - quota_committed_units
+        - quota_refunded_units
+        - retry_state
+        - dead_letter_state
+        - result_asset_id
+        - canvas_object_id
+        - visible_trace_ref
+        - provider_usage_ref
+        - idempotency_key
+        - operator_action
+        - audit_ref
+        - evidence_refs
+      properties:
+        id:
+          type: string
+        batch_id:
+          type: string
+        tenant_id:
+          type: string
+        status:
+          $ref: "#/components/schemas/ChildTaskStatus"
+        provider_id:
+          type: string
+          description: Safe provider identifier, not a secret reference.
+        model_id:
+          type: string
+        tool_type:
+          type: string
+        retry_count:
+          type: integer
+          minimum: 0
+        max_retries:
+          type: integer
+          minimum: 0
+        worker_id:
+          type: string
+        claim_attempt:
+          type: integer
+          minimum: 0
+        claim_expires_at:
+          type: string
+        fanout_stage:
+          type: string
+        failure_code:
+          type: string
+        review_reason:
+          type: string
+        quota_estimate_units:
+          type: integer
+          minimum: 0
+        quota_committed_units:
+          type: integer
+          minimum: 0
+        quota_refunded_units:
+          type: integer
+          minimum: 0
+        retry_state:
+          type: string
+          enum: [not_retryable, retry_available, retry_exhausted, not_applicable]
+        dead_letter_state:
+          type: string
+          enum: [not_dead_lettered, dead_lettered]
+        result_asset_id:
+          type: string
+        canvas_object_id:
+          type: string
+        visible_trace_ref:
+          type: string
+        provider_usage_ref:
+          type: string
+        idempotency_key:
+          type: string
+        operator_action:
+          type: string
+        audit_ref:
+          type: string
+        evidence_refs:
+          type: array
+          items:
+            type: string
+      additionalProperties: false
+    AdminBatchChildTaskPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/AdminBatchChildTask"
     CandidateSetCreate:
       type: object
       required: [workflow_id, brief]
@@ -1668,18 +3567,31 @@ components:
       properties:
         node_type:
           type: string
+          enum: [image, video, text, shape, frame, group, vector, generated_layer]
         title:
           type: string
         body:
           type: object
           additionalProperties: true
+        transform:
+          $ref: "#/components/schemas/CanvasTransform"
         x:
           type: number
         y:
           type: number
+        z_index:
+          type: integer
+        locked:
+          type: boolean
+        hidden:
+          type: boolean
+        asset_ref:
+          $ref: "#/components/schemas/AssetRef"
+        lineage_ref:
+          $ref: "#/components/schemas/LineageRef"
     CanvasNode:
       type: object
-      required: [id, workspace_id, node_type, body, x, y]
+      required: [id, workspace_id, node_type, body, transform, x, y, z_index, locked, hidden]
       properties:
         id:
           type: string
@@ -1687,15 +3599,80 @@ components:
           type: string
         node_type:
           type: string
+          enum: [image, video, text, shape, frame, group, vector, generated_layer]
         title:
           type: string
         body:
           type: object
           additionalProperties: true
+        transform:
+          $ref: "#/components/schemas/CanvasTransform"
         x:
           type: number
         y:
           type: number
+        z_index:
+          type: integer
+        locked:
+          type: boolean
+        hidden:
+          type: boolean
+        asset_ref:
+          $ref: "#/components/schemas/AssetRef"
+        lineage_ref:
+          $ref: "#/components/schemas/LineageRef"
+    CanvasTransform:
+      type: object
+      required: [x, y, width, height, rotation, scale_x, scale_y]
+      properties:
+        x:
+          type: number
+        y:
+          type: number
+        width:
+          type: number
+          minimum: 0
+        height:
+          type: number
+          minimum: 0
+        rotation:
+          type: number
+        scale_x:
+          type: number
+        scale_y:
+          type: number
+    AssetRef:
+      type: object
+      required: [asset_id]
+      properties:
+        asset_id:
+          type: string
+        object_metadata_id:
+          type: string
+        thumbnail_id:
+          type: string
+    LineageRef:
+      type: object
+      required: [source]
+      properties:
+        source:
+          type: string
+        task_id:
+          type: string
+        batch_id:
+          type: string
+        trace_id:
+          type: string
+        provider_id:
+          type: string
+        model_id:
+          type: string
+        request_hash:
+          type: string
+        asset_id:
+          type: string
+        canvas_node_id:
+          type: string
     CanvasNodePage:
       allOf:
         - $ref: "#/components/schemas/PageInfo"
@@ -1808,16 +3785,24 @@ components:
           $ref: "#/components/schemas/ObjectMetadata"
     Asset:
       type: object
-      required: [id, asset_type, status, object_metadata, provenance, created_at]
+      required: [id, asset_type, status, object_metadata, storage_ref, lineage, provenance, created_at]
       properties:
         id:
           type: string
         asset_type:
           type: string
+          enum: [image, video, audio, font, svg, pdf, pptx, psd_manifest, generated_image, thumbnail]
         status:
           type: string
+          enum: [pending, active, blocked, archived]
         object_metadata:
           $ref: "#/components/schemas/ObjectMetadata"
+        storage_ref:
+          $ref: "#/components/schemas/StorageRef"
+        thumbnail_ref:
+          $ref: "#/components/schemas/StorageRef"
+        lineage:
+          $ref: "#/components/schemas/AssetLineage"
         provenance:
           type: object
           additionalProperties: true
@@ -1834,6 +3819,7 @@ components:
           type: string
         object_key:
           type: string
+          description: Tenant-scoped object key only; credentials, query strings, fragments, and signed URLs are forbidden.
         content_type:
           type: string
         byte_size:
@@ -1851,6 +3837,151 @@ components:
         created_at:
           type: string
           format: date-time
+    StorageRef:
+      type: object
+      required: [bucket, object_key, content_type, byte_size, checksum]
+      properties:
+        bucket:
+          type: string
+        object_key:
+          type: string
+          description: Tenant-scoped object key only; credentials, query strings, fragments, and signed URLs are forbidden.
+        content_type:
+          type: string
+        byte_size:
+          type: integer
+          minimum: 0
+        checksum:
+          type: string
+    SourceRef:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+        upload_id:
+          type: string
+        task_id:
+          type: string
+        batch_id:
+          type: string
+        trace_id:
+          type: string
+        provider:
+          type: string
+        model_id:
+          type: string
+    AssetLineage:
+      type: object
+      required: [source, object_metadata_id, raw_payload_persisted]
+      properties:
+        source:
+          $ref: "#/components/schemas/SourceRef"
+        original_asset_id:
+          type: string
+        derived_from_asset_id:
+          type: string
+        object_metadata_id:
+          type: string
+        thumbnail_metadata_id:
+          type: string
+        tool_type:
+          type: string
+        request_hash:
+          type: string
+        raw_payload_persisted:
+          type: boolean
+          const: false
+    AssetLibraryEntry:
+      type: object
+      required: [id, asset, visibility, favorite, archived, reusable, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        asset:
+          $ref: "#/components/schemas/Asset"
+        visibility:
+          type: string
+          enum: [project, tenant, private]
+        favorite:
+          type: boolean
+        archived:
+          type: boolean
+        reusable:
+          type: boolean
+        allowed_projects:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    AssetLibraryEntryCreate:
+      type: object
+      required: [asset_id, visibility]
+      properties:
+        asset_id:
+          type: string
+        project_id:
+          type: string
+        visibility:
+          type: string
+          enum: [project, tenant, private]
+        favorite:
+          type: boolean
+          default: false
+        reusable:
+          type: boolean
+          default: false
+        allowed_projects:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+      additionalProperties: false
+      description: Tenant-scoped asset library write payload; secret-looking material is rejected before persistence.
+    AssetLibraryEntryUpdate:
+      type: object
+      properties:
+        visibility:
+          type: string
+          enum: [project, tenant, private]
+        favorite:
+          type: boolean
+        archived:
+          type: boolean
+        reusable:
+          type: boolean
+        allowed_projects:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+      additionalProperties: false
+      description: Updates favorite/archive/reuse policy without exposing provider payloads or cross-tenant assets.
+    AssetLibraryEntryPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/AssetLibraryEntry"
     AssetPage:
       allOf:
         - $ref: "#/components/schemas/PageInfo"
@@ -1861,6 +3992,201 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/Asset"
+    LogoAssetRef:
+      type: object
+      required: [asset_id]
+      properties:
+        asset_id:
+          type: string
+        object_metadata_id:
+          type: string
+        usage:
+          type: string
+    ColorSwatch:
+      type: object
+      required: [name, hex]
+      properties:
+        name:
+          type: string
+        hex:
+          type: string
+          pattern: "^#[0-9A-Fa-f]{6}$"
+        role:
+          type: string
+    FontRef:
+      type: object
+      required: [family]
+      properties:
+        family:
+          type: string
+        asset_id:
+          type: string
+        role:
+          type: string
+    BrandGuideline:
+      type: object
+      required: [id, title, body]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+          description: User-visible brand guidance; secret-looking material is rejected before persistence or projection.
+        severity:
+          type: string
+    BrandKitSourceRef:
+      type: object
+      required: [kind]
+      properties:
+        kind:
+          type: string
+        asset_id:
+          type: string
+        object_metadata_id:
+          type: string
+        upload_id:
+          type: string
+        trace_id:
+          type: string
+    BrandKitProjectBinding:
+      type: object
+      required: [project_id, default]
+      properties:
+        project_id:
+          type: string
+        default:
+          type: boolean
+    BrandKit:
+      type: object
+      required: [id, name, status, logos, palette, fonts, guidelines, project_bindings, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, archived]
+        logos:
+          type: array
+          items:
+            $ref: "#/components/schemas/LogoAssetRef"
+        palette:
+          type: array
+          items:
+            $ref: "#/components/schemas/ColorSwatch"
+        fonts:
+          type: array
+          items:
+            $ref: "#/components/schemas/FontRef"
+        guidelines:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandGuideline"
+        source_refs:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandKitSourceRef"
+        project_bindings:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandKitProjectBinding"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    BrandKitCreate:
+      type: object
+      required: [name, logos, palette]
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, archived]
+          default: draft
+        logos:
+          type: array
+          items:
+            $ref: "#/components/schemas/LogoAssetRef"
+        palette:
+          type: array
+          items:
+            $ref: "#/components/schemas/ColorSwatch"
+        fonts:
+          type: array
+          items:
+            $ref: "#/components/schemas/FontRef"
+        guidelines:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandGuideline"
+        source_refs:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandKitSourceRef"
+        project_bindings:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandKitProjectBinding"
+      additionalProperties: false
+      description: Tenant-scoped Brand Kit write payload; raw brand book uploads, provider payloads, and secret-looking material are rejected.
+    BrandKitUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum: [draft, active, archived]
+        logos:
+          type: array
+          items:
+            $ref: "#/components/schemas/LogoAssetRef"
+        palette:
+          type: array
+          items:
+            $ref: "#/components/schemas/ColorSwatch"
+        fonts:
+          type: array
+          items:
+            $ref: "#/components/schemas/FontRef"
+        guidelines:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandGuideline"
+        source_refs:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandKitSourceRef"
+        project_bindings:
+          type: array
+          items:
+            $ref: "#/components/schemas/BrandKitProjectBinding"
+      additionalProperties: false
+      description: Updates tenant-scoped Brand Kit projection and rejects secret-looking guideline/source material.
+    ProjectDefaultBrandKitSet:
+      type: object
+      required: [brand_kit_id]
+      properties:
+        brand_kit_id:
+          type: string
+      additionalProperties: false
+      description: Sets the project default Brand Kit for prompt context within the authenticated tenant.
+    BrandKitPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/BrandKit"
     PackageCreate:
       type: object
       required: [items]
@@ -2090,6 +4416,142 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/Export"
+    ObjectStorageRetentionPolicy:
+      type: object
+      required:
+        - policy
+        - retention_policy
+        - versioning
+        - retention_until
+        - tenant
+        - cleanup_modes
+        - audit_resource
+        - release_gate_check
+        - checked_at
+      properties:
+        policy:
+          type: string
+          enum: [object storage retention policy]
+        retention_policy:
+          type: string
+          description: Tenant-scoped retention policy for export objects and derived thumbnails.
+        versioning:
+          type: string
+          description: Production-like versioning or equivalent restore requirement for object storage buckets.
+        retention_until:
+          type: string
+          description: Required retention marker propagated to export objects before audited cleanup.
+        tenant:
+          type: string
+        cleanup_modes:
+          type: array
+          minItems: 2
+          uniqueItems: true
+          items:
+            type: string
+            enum: [expired export cleanup, orphan cleanup]
+        audit_resource:
+          type: string
+          enum: [object_storage_cleanup]
+        release_gate_check:
+          type: string
+          enum: [staging_object_storage_signed_downloads]
+        checked_at:
+          type: string
+          format: date-time
+    ObjectStorageCleanupRequest:
+      type: object
+      required: [rationale]
+      properties:
+        rationale:
+          type: string
+          minLength: 1
+          description: Non-secret operator rationale recorded in cleanup audit metadata.
+        mode:
+          type: string
+          description: Optional smoke compatibility mode; endpoint route determines the actual cleanup mode.
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 500
+          default: 100
+        dry_run:
+          type: boolean
+          default: false
+        second_reviewer_id:
+          type: string
+          description: Required for destructive cleanup runs and must differ from the acting admin.
+        second_reviewer_role:
+          type: string
+          description: Role for the second reviewer; must authorize object retention cleanup.
+        second_review_rationale:
+          type: string
+          description: Non-secret second-review rationale required for destructive cleanup runs.
+    ObjectStorageCleanupResult:
+      type: object
+      required:
+        - expired_exports
+        - orphaned_objects
+        - deleted_objects
+        - failed_objects
+        - dry_run
+        - status
+        - mode
+        - retention_policy
+        - expired_export_cleanup
+        - orphan_cleanup
+        - retained
+        - deleted
+        - audit
+        - audit_refs
+        - audit_ref
+      properties:
+        expired_exports:
+          type: integer
+          minimum: 0
+        orphaned_objects:
+          type: integer
+          minimum: 0
+        deleted_objects:
+          type: integer
+          minimum: 0
+        failed_objects:
+          type: integer
+          minimum: 0
+        preview_objects:
+          type: integer
+          minimum: 0
+        dry_run:
+          type: boolean
+        status:
+          type: string
+          enum: [preview, completed, partial_failed]
+        mode:
+          type: string
+          enum: [expired_export_cleanup, orphan_cleanup, combined]
+        retention_policy:
+          type: string
+          enum: [tenant scoped retention_until enforced before deletion]
+        expired_export_cleanup:
+          type: string
+        orphan_cleanup:
+          type: string
+        retained:
+          type: integer
+          minimum: 0
+        deleted:
+          type: integer
+          minimum: 0
+        audit:
+          type: string
+          enum: [object_storage_cleanup]
+        audit_refs:
+          type: array
+          minItems: 1
+          items:
+            type: string
+        audit_ref:
+          type: string
     ShareLinkCreate:
       type: object
       properties:
@@ -2192,19 +4654,256 @@ components:
           type: string
           format: date-time
           nullable: true
+    CheckoutSessionCreate:
+      type: object
+      required: [plan_id]
+      properties:
+        plan_id:
+          type: string
+    CheckoutSession:
+      type: object
+      required: [id, tenant_id, user_id, provider, redirect_url, created_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        user_id:
+          type: string
+        provider:
+          type: string
+        redirect_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+    BillingPortalSession:
+      type: object
+      required: [id, tenant_id, user_id, provider, redirect_url, created_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        user_id:
+          type: string
+        provider:
+          type: string
+        redirect_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+    SubscriptionCancellation:
+      type: object
+      required: [id, provider, status, cancel_at_period_end, updated_at]
+      properties:
+        id:
+          type: string
+        provider:
+          type: string
+        status:
+          type: string
+        cancel_at_period_end:
+          type: boolean
+        current_period_end:
+          type: string
+          format: date-time
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+    BillingInvoicePage:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/BillingInvoice"
+    BillingInvoice:
+      type: object
+      required: [id, provider, status, currency, amount_due_cents, amount_paid_cents, created_at]
+      properties:
+        id:
+          type: string
+        provider:
+          type: string
+        status:
+          type: string
+        currency:
+          type: string
+        amount_due_cents:
+          type: integer
+        amount_paid_cents:
+          type: integer
+        invoice_url:
+          type: string
+          format: uri
+        receipt_url:
+          type: string
+          format: uri
+        created_at:
+          type: string
+          format: date-time
+    AdminBillingManualCreditCreate:
+      type: object
+      required: [target_user_id, bucket_id, units, rationale]
+      properties:
+        target_user_id:
+          type: string
+        bucket_id:
+          type: string
+        units:
+          type: integer
+          minimum: 1
+        rationale:
+          type: string
+          minLength: 1
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Public-safe operation metadata. Raw secrets are rejected or redacted before audit/persistence.
+    AdminBillingRefundNoteCreate:
+      type: object
+      required: [target_user_id, note, rationale]
+      properties:
+        target_user_id:
+          type: string
+        subscription_id:
+          type: string
+        provider:
+          type: string
+        provider_ref:
+          type: string
+        note:
+          type: string
+          minLength: 1
+        rationale:
+          type: string
+          minLength: 1
+        metadata:
+          type: object
+          additionalProperties: true
+    AdminBillingSubscriptionSyncCreate:
+      type: object
+      required: [target_user_id, rationale]
+      properties:
+        target_user_id:
+          type: string
+        subscription_id:
+          type: string
+        provider:
+          type: string
+        provider_ref:
+          type: string
+        rationale:
+          type: string
+          minLength: 1
+        metadata:
+          type: object
+          additionalProperties: true
+    AdminBillingAccountLockCreate:
+      type: object
+      required: [target_user_id, rationale]
+      properties:
+        target_user_id:
+          type: string
+        locked:
+          type: boolean
+          default: true
+        rationale:
+          type: string
+          minLength: 1
+        metadata:
+          type: object
+          additionalProperties: true
+    AdminBillingOperation:
+      type: object
+      required: [id, tenant_id, actor_id, target_user_id, operation, idempotency_key, status, rationale, metadata, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        actor_id:
+          type: string
+        target_user_id:
+          type: string
+        operation:
+          type: string
+          enum: [manual_credit, refund_note, sync_subscription, account_lock]
+        idempotency_key:
+          type: string
+        status:
+          type: string
+          enum: [pending, recorded, succeeded, failed]
+        units:
+          type: integer
+        bucket_id:
+          type: string
+        subscription_id:
+          type: string
+        provider:
+          type: string
+        provider_ref:
+          type: string
+        rationale:
+          type: string
+        note:
+          type: string
+        locked:
+          type: boolean
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
     SupportTicketCreate:
       type: object
-      required: [category, body]
+      required: [project_id, task_id, batch_id, trace_id, asset_id, category, body, linked_export_id, quota_bucket_id, billing_reference_id]
       properties:
+        project_id:
+          type: string
+          description: Tenant-scoped project linked to this support investigation.
+        task_id:
+          type: string
+          description: Agent task or child task linked to the failure context.
+        batch_id:
+          type: string
+          description: Batch generation request linked to this ticket.
+        trace_id:
+          type: string
+          description: Safe trace projection linked to this ticket; raw prompts and provider payloads are forbidden.
+        asset_id:
+          type: string
+          description: Primary asset linked to the investigation.
         category:
           type: string
         body:
           type: string
+          description: User-visible ticket text. The backend redacts secrets before persistence.
         linked_export_id:
           type: string
+        quota_bucket_id:
+          type: string
+          description: Quota bucket or entitlement account used for billing/quota troubleshooting.
+        billing_reference_id:
+          type: string
+          description: Public-safe billing reference such as a Stripe invoice/subscription/admin operation id; raw billing payloads and secrets are forbidden.
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Public-safe metadata. Secret-looking values are redacted before persistence.
     SupportTicket:
       type: object
-      required: [id, tenant_id, user_id, category, status, body, created_at, updated_at]
+      required: [id, tenant_id, user_id, project_id, task_id, batch_id, trace_id, asset_id, category, status, body, linked_export_id, quota_bucket_id, billing_reference_id, metadata, created_at, updated_at]
       properties:
         id:
           type: string
@@ -2213,6 +4912,18 @@ components:
         user_id:
           type: string
         project_id:
+          type: string
+          nullable: true
+        task_id:
+          type: string
+          nullable: true
+        batch_id:
+          type: string
+          nullable: true
+        trace_id:
+          type: string
+          nullable: true
+        asset_id:
           type: string
           nullable: true
         category:
@@ -2224,9 +4935,16 @@ components:
         linked_export_id:
           type: string
           nullable: true
+        quota_bucket_id:
+          type: string
+          nullable: true
+        billing_reference_id:
+          type: string
+          nullable: true
         metadata:
           type: object
           additionalProperties: true
+          description: Redacted public-safe support metadata.
         created_at:
           type: string
           format: date-time
@@ -2330,6 +5048,468 @@ components:
               type: array
               items:
                 $ref: "#/components/schemas/ProviderUsage"
+    ProviderCapability:
+      type: object
+      required: [provider_id, model_id, endpoints, input_types, output_types, max_cost_units, supports_batch]
+      properties:
+        provider_id:
+          type: string
+        model_id:
+          type: string
+        endpoints:
+          type: array
+          items:
+            type: string
+        input_types:
+          type: array
+          items:
+            type: string
+        output_types:
+          type: array
+          items:
+            type: string
+        tool_types:
+          type: array
+          items:
+            type: string
+        max_cost_units:
+          type: integer
+          minimum: 0
+        cost_currency:
+          type: string
+        estimated_cost_cents:
+          type: integer
+          minimum: 0
+        supports_batch:
+          type: boolean
+        max_batch_size:
+          type: integer
+          minimum: 1
+        supports_seed:
+          type: boolean
+        supports_cancel:
+          type: boolean
+        supported_aspect_ratios:
+          type: array
+          items:
+            type: string
+        supported_qualities:
+          type: array
+          items:
+            type: string
+    ProviderRoutingPolicy:
+      type: object
+      required: [weight, canary_percent, max_concurrency, kill_switch]
+      properties:
+        weight:
+          type: integer
+          minimum: 0
+        canary_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        max_concurrency:
+          type: integer
+          minimum: 0
+        fallback_provider_ids:
+          type: array
+          items:
+            type: string
+        kill_switch:
+          type: boolean
+    ProviderHealthSnapshot:
+      type: object
+      required: [available, latency_ms, error_rate_percent, last_checked_at]
+      properties:
+        available:
+          type: boolean
+        latency_ms:
+          type: integer
+          minimum: 0
+        error_rate_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        last_checked_at:
+          type: string
+          format: date-time
+        message:
+          type: string
+    ProviderRegistryEntry:
+      type: object
+      required: [provider_id, display_name, mode, status, capabilities, routing, health, secret_present, updated_at]
+      properties:
+        provider_id:
+          type: string
+        display_name:
+          type: string
+        mode:
+          type: string
+          enum: [dev, sandbox, production]
+        status:
+          type: string
+          enum: [enabled, disabled, kill_switch]
+        secret_ref:
+          type: string
+          description: Secret manager reference only. Raw API keys, webhook secrets, and credential values are forbidden.
+        capabilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProviderCapability"
+        routing:
+          $ref: "#/components/schemas/ProviderRoutingPolicy"
+        health:
+          $ref: "#/components/schemas/ProviderHealthSnapshot"
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: Public-safe provider metadata such as adapter name, endpoint version, and config env names. Raw keys and credential values are forbidden.
+        secret_present:
+          type: boolean
+        updated_at:
+          type: string
+          format: date-time
+    ProviderRegistryPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProviderRegistryEntry"
+    ProviderRegistryCreate:
+      type: object
+      required: [provider_id, display_name, mode, status, routing, health, capabilities, rationale]
+      properties:
+        provider_id:
+          type: string
+        display_name:
+          type: string
+        mode:
+          type: string
+          enum: [dev, sandbox, production]
+        status:
+          type: string
+          enum: [enabled, disabled, kill_switch]
+        secret_ref:
+          type: string
+          description: Secret manager reference only. Raw API keys, webhook secrets, and credential values are forbidden.
+        routing:
+          $ref: "#/components/schemas/ProviderRoutingPolicy"
+        health:
+          $ref: "#/components/schemas/ProviderHealthSnapshot"
+        capabilities:
+          type: array
+          minItems: 1
+          description: Initial full model capability, cost, batch, and supported tool projection set.
+          items:
+            $ref: "#/components/schemas/ProviderCapability"
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: Public-safe provider metadata. Secret-looking keys and values are rejected by the backend.
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Human rationale for audit. Secrets are forbidden and redacted input is rejected.
+      additionalProperties: false
+    ProviderRegistryCreateResult:
+      type: object
+      required: [created]
+      properties:
+        created:
+          $ref: "#/components/schemas/ProviderRegistryEntry"
+    ProviderRegistryUpdate:
+      type: object
+      required: [status, routing, rationale]
+      properties:
+        status:
+          type: string
+          enum: [enabled, disabled, kill_switch]
+        secret_ref:
+          type: string
+          description: Optional secret manager reference update. Raw API keys, webhook secrets, and credential values are forbidden.
+        routing:
+          $ref: "#/components/schemas/ProviderRoutingPolicy"
+        capabilities:
+          type: array
+          description: Optional full replacement set for this provider's model capabilities, costs, batch limits, and supported tool projections.
+          items:
+            $ref: "#/components/schemas/ProviderCapability"
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Human rationale for audit. Secrets are forbidden and redacted input is rejected.
+      additionalProperties: false
+    ProviderRegistryUpdateResult:
+      type: object
+      required: [before, after]
+      properties:
+        before:
+          $ref: "#/components/schemas/ProviderRegistryEntry"
+        after:
+          $ref: "#/components/schemas/ProviderRegistryEntry"
+    ProviderRegistryDelete:
+      type: object
+      required: [rationale]
+      properties:
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Human rationale for audit. Secrets are forbidden and redacted input is rejected.
+      additionalProperties: false
+    ProviderRegistryDeleteResult:
+      type: object
+      required: [deleted]
+      properties:
+        deleted:
+          $ref: "#/components/schemas/ProviderRegistryEntry"
+    ProviderRegistryHealthProbe:
+      type: object
+      required: [rationale]
+      properties:
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Human rationale for audit. Secrets are forbidden and redacted input is rejected.
+      additionalProperties: false
+    ProviderRegistryHealthProbeResult:
+      type: object
+      required: [before, after]
+      properties:
+        before:
+          $ref: "#/components/schemas/ProviderRegistryEntry"
+        after:
+          $ref: "#/components/schemas/ProviderRegistryEntry"
+    ProviderStrategyGroupMember:
+      type: object
+      required: [provider_id, weight, canary_percent, max_concurrency, fallback_rank, enabled]
+      properties:
+        provider_id:
+          type: string
+        weight:
+          type: integer
+          minimum: 0
+        canary_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+        max_concurrency:
+          type: integer
+          minimum: 0
+        fallback_rank:
+          type: integer
+          minimum: 0
+        enabled:
+          type: boolean
+      additionalProperties: false
+    ProviderStrategyGroup:
+      type: object
+      required: [group_id, display_name, tool_type, status, selection_policy, kill_switch, members, created_at, updated_at]
+      properties:
+        group_id:
+          type: string
+        display_name:
+          type: string
+        tool_type:
+          type: string
+        status:
+          type: string
+          enum: [enabled, disabled, kill_switch]
+        selection_policy:
+          type: string
+          enum: [weighted, priority, canary, failover]
+        fallback_provider_ids:
+          type: array
+          items:
+            type: string
+        kill_switch:
+          type: boolean
+        members:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ProviderStrategyGroupMember"
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+          description: Public-safe strategy metadata. Secret-looking keys and values are rejected by the backend.
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    ProviderStrategyGroupPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProviderStrategyGroup"
+    ProviderStrategyGroupCreate:
+      type: object
+      required: [group_id, display_name, tool_type, status, selection_policy, members, rationale]
+      properties:
+        group_id:
+          type: string
+        display_name:
+          type: string
+        tool_type:
+          type: string
+        status:
+          type: string
+          enum: [enabled, disabled, kill_switch]
+        selection_policy:
+          type: string
+          enum: [weighted, priority, canary, failover]
+        fallback_provider_ids:
+          type: array
+          items:
+            type: string
+        kill_switch:
+          type: boolean
+        members:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ProviderStrategyGroupMember"
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Human rationale for audit. Secrets are forbidden and redacted input is rejected.
+      additionalProperties: false
+    ProviderStrategyGroupCreateResult:
+      type: object
+      required: [created]
+      properties:
+        created:
+          $ref: "#/components/schemas/ProviderStrategyGroup"
+    ProviderStrategyGroupUpdate:
+      type: object
+      required: [display_name, tool_type, status, selection_policy, members, rationale]
+      properties:
+        display_name:
+          type: string
+        tool_type:
+          type: string
+        status:
+          type: string
+          enum: [enabled, disabled, kill_switch]
+        selection_policy:
+          type: string
+          enum: [weighted, priority, canary, failover]
+        fallback_provider_ids:
+          type: array
+          items:
+            type: string
+        kill_switch:
+          type: boolean
+        members:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ProviderStrategyGroupMember"
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Human rationale for audit. Secrets are forbidden and redacted input is rejected.
+      additionalProperties: false
+    ProviderStrategyGroupUpdateResult:
+      type: object
+      required: [before, after]
+      properties:
+        before:
+          $ref: "#/components/schemas/ProviderStrategyGroup"
+        after:
+          $ref: "#/components/schemas/ProviderStrategyGroup"
+    ProviderSandboxTestCallCreate:
+      type: object
+      required: [model_id, tool_type, rationale]
+      properties:
+        model_id:
+          type: string
+        tool_type:
+          type: string
+        prompt:
+          type: string
+          description: Optional sandbox prompt. Raw secrets are rejected and the response exposes only a hash.
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Human rationale for audit. Secrets are forbidden and redacted input is rejected.
+      additionalProperties: false
+    ProviderSandboxTestCallResult:
+      type: object
+      required: [id, provider_id, model_id, tool_type, status, mode, capability, secret_present, asset_persisted, user_visible, trace_id, latency_ms, estimated_cost_cents, output_preview, routing_snapshot, created_at]
+      properties:
+        id:
+          type: string
+        provider_id:
+          type: string
+        model_id:
+          type: string
+        tool_type:
+          type: string
+        status:
+          type: string
+          enum: [succeeded]
+        mode:
+          type: string
+          enum: [dev, sandbox, production]
+        capability:
+          $ref: "#/components/schemas/ProviderCapability"
+        secret_ref:
+          type: string
+          description: Secret manager reference only. Raw secret values are forbidden.
+        secret_present:
+          type: boolean
+        asset_persisted:
+          type: boolean
+          description: Always false for sandbox test calls; user asset libraries are not mutated.
+        user_visible:
+          type: boolean
+          description: Always false for sandbox test calls; results are admin-only evidence.
+        trace_id:
+          type: string
+        latency_ms:
+          type: integer
+          minimum: 0
+        estimated_cost_cents:
+          type: integer
+          minimum: 0
+        output_preview:
+          type: object
+          additionalProperties:
+            type: string
+        routing_snapshot:
+          $ref: "#/components/schemas/ProviderRoutingPolicy"
+        created_at:
+          type: string
+          format: date-time
     Skill:
       type: object
       required: [id, name, domain, owner, risk_level, status]
@@ -2971,6 +6151,160 @@ components:
         created_at:
           type: string
           format: date-time
+    SafetyReviewItem:
+      type: object
+      required:
+        - id
+        - safety_decision_id
+        - subject_type
+        - subject_id
+        - enforcement_point
+        - safety_decision
+        - safety_rationale
+        - severity
+        - override_eligible
+        - audit_required
+        - review_status
+        - created_at
+        - safe_projection
+        - required_evidence_refs
+        - user_visible_outcome
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        safety_decision_id:
+          type: string
+        subject_type:
+          type: string
+        subject_id:
+          type: string
+        enforcement_point:
+          type: string
+          enum: [brief, provider_request, provider_response, qa, export]
+        safety_decision:
+          type: string
+          enum: [warn, require_admin_review, block]
+        safety_rationale:
+          type: string
+        rule_id:
+          type: string
+          nullable: true
+        rule_key:
+          type: string
+        rule_version:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        override_eligible:
+          type: boolean
+        audit_required:
+          type: boolean
+          const: true
+        review_status:
+          type: string
+          enum: [pending, approved, rejected, escalated, blocked]
+        review_decision:
+          type: string
+          enum: [approved, rejected, escalated, blocked]
+        reviewer_id:
+          type: string
+        review_rationale:
+          type: string
+        audit_ref:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+        safe_projection:
+          type: object
+          required: [raw_prompt_persisted, raw_provider_payload_persisted, raw_safety_payload_persisted, secret_material_persisted, tenant_scoped, admin_only]
+          properties:
+            raw_prompt_persisted:
+              type: boolean
+              const: false
+            raw_provider_payload_persisted:
+              type: boolean
+              const: false
+            raw_safety_payload_persisted:
+              type: boolean
+              const: false
+            secret_material_persisted:
+              type: boolean
+              const: false
+            tenant_scoped:
+              type: boolean
+              const: true
+            admin_only:
+              type: boolean
+              const: true
+        required_evidence_refs:
+          type: array
+          items:
+            type: string
+        user_visible_outcome:
+          type: string
+    SafetyReviewPage:
+      allOf:
+        - $ref: "#/components/schemas/PageInfo"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/SafetyReviewItem"
+    SafetyReviewDecisionCreate:
+      type: object
+      required: [decision, rationale]
+      properties:
+        decision:
+          type: string
+          enum: [approved, rejected, escalated, blocked]
+        rationale:
+          type: string
+          minLength: 1
+          maxLength: 1000
+          description: Human review rationale for audit; secret-looking material is rejected or redacted.
+        metadata:
+          type: object
+          additionalProperties: true
+      additionalProperties: false
+    SafetyReviewDecision:
+      type: object
+      required: [id, safety_decision_id, reviewer_id, decision, rationale, audit_ref, idempotency_key, created_at, user_visible_outcome]
+      properties:
+        id:
+          type: string
+        tenant_id:
+          type: string
+        safety_decision_id:
+          type: string
+        reviewer_id:
+          type: string
+        decision:
+          type: string
+          enum: [approved, rejected, escalated, blocked]
+        rationale:
+          type: string
+        audit_ref:
+          type: string
+        idempotency_key:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        user_visible_outcome:
+          type: string
     EvalResult:
       type: object
       description: Stored eval result projection from eval_results.summary, runner, and storage contract columns; admin reads expose replay provenance, source fixture digests, QA/export gates, and trace contracts without re-running the eval suite.

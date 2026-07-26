@@ -1,0 +1,25 @@
+{
+  "blocking_reasons": [
+    "strict_stage1_load_evidence_missing",
+    "production_like_staging_load_rows_missing",
+    "load_threshold_metrics_missing"
+  ],
+  "can_clear_stage1_production_launch_gate": false,
+  "can_clear_stage1_staging_runtime_gate": false,
+  "environment": "staging_metadata_draft",
+  "kind": "load",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "required_strict_components": [
+    "chat_task",
+    "worker_generation",
+    "zip_export",
+    "signed_download",
+    "crawler_throttle",
+    "quota_contention",
+    "workspace_rendering"
+  ],
+  "schema_version": "stage1.release_candidate_load_draft.v1",
+  "slot": "load_evidence",
+  "status": "blocked",
+  "strict_usable": false
+}

@@ -1,0 +1,78 @@
+{
+  "admin_url": "http://127.0.0.1:26081",
+  "allow_local_devport_evidence": false,
+  "authorization_header_persisted": false,
+  "canonical_pass_path": true,
+  "cookie_persisted": false,
+  "coverage": {
+    "admin_web": {
+      "evidence_refs": [
+        "ops/ci/playwright-smoke.spec.ts#admin operations shell renders",
+        "ops/evidence/ci/playwright-smoke-run/20260628T221422Z-playwright-smoke-3204.log"
+      ],
+      "status": "pass",
+      "url": "http://127.0.0.1:26081"
+    },
+    "billing": {
+      "evidence_refs": [
+        "ops/ci/playwright-smoke.spec.ts#billing smoke validates quota, invoices, team seats, and checkout guards",
+        "ops/evidence/ci/playwright-smoke-run/20260628T221422Z-playwright-smoke-3204.log"
+      ],
+      "status": "pass"
+    },
+    "user_web": {
+      "evidence_refs": [
+        "ops/ci/playwright-smoke.spec.ts#web workspace shell renders",
+        "ops/evidence/ci/playwright-smoke-run/20260628T221422Z-playwright-smoke-3204.log"
+      ],
+      "status": "pass",
+      "url": "http://127.0.0.1:26080"
+    },
+    "workspace": {
+      "evidence_refs": [
+        "ops/ci/playwright-smoke.spec.ts#workspace smoke validates core workspace shell",
+        "ops/evidence/ci/playwright-smoke-run/20260628T221422Z-playwright-smoke-3204.log"
+      ],
+      "status": "pass"
+    }
+  },
+  "dry_run": false,
+  "environment": "ci",
+  "evidence_refs": [
+    "ops/evidence/ci/playwright-smoke-run/20260628T221422Z-playwright-smoke-3204.json",
+    "ops/evidence/ci/playwright-smoke-run/20260628T221422Z-playwright-smoke-3204.log",
+    "ops/ci/playwright-smoke.spec.ts",
+    "scripts/playwright_smoke.sh"
+  ],
+  "gate_impact": {
+    "can_clear_ci_gate_check": true,
+    "release_gate_check_id": "ci_playwright_smoke"
+  },
+  "kind": "ci_playwright_smoke",
+  "local_devport_debug": false,
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "ci_playwright_smoke",
+  "release_sha": "42a1f8391818025f0dcccfcbea5a0880b9e3e825",
+  "schema_version": "stage1.ci_playwright_smoke.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_report": "ops/evidence/ci/playwright-smoke-run/20260628T221422Z-playwright-smoke-3204.json",
+  "spec_path": "ops/ci/playwright-smoke.spec.ts",
+  "status": "pass",
+  "trigger": {
+    "base_ref": "main",
+    "event_name": "pull_request",
+    "head_ref": "stage1-launch-candidate-with-workflow-20260629",
+    "ref": "refs/pull/3/merge"
+  },
+  "web_url": "http://127.0.0.1:26080",
+  "workflow_run": {
+    "conclusion": "success",
+    "run_id": "28337686861",
+    "run_url": "https://github.com/alphane-ai/zenart/actions/runs/28337686861",
+    "workflow_file": ".github/workflows/stage0-rev2-ci.yml"
+  }
+}

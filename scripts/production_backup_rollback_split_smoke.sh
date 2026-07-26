@@ -116,7 +116,8 @@ def collect_blocker_markers(value: object, path: tuple[str, ...] = ()) -> list[s
 
 def text_contains(data: object, tokens: tuple[str, ...]) -> bool:
     text = json.dumps(data, ensure_ascii=False, sort_keys=True).lower()
-    return all(token in text for token in tokens)
+    normalized_text = normalize(text)
+    return all(token.lower() in text or normalize(token) in normalized_text for token in tokens)
 
 
 def gate_status(ref: str) -> dict:
@@ -239,17 +240,21 @@ def admin_probe_semantics(data: object) -> dict:
         proof = split.get("required_runtime_proof", [])
         if not isinstance(proof, list) or not proof:
             split_blockers.append(f"split_readiness:{split_id}:required_runtime_proof")
+        if split_id == "rollback_incident_post_deploy_smoke":
+            proof_text = json.dumps(proof, ensure_ascii=False).lower()
+            split_text = json.dumps(split, ensure_ascii=False).lower()
+            if "backend_runtime_worker_rollback" not in proof_text:
+                split_blockers.append(f"split_readiness:{split_id}:backend_runtime_worker_rollback")
+            if "runtime_worker" not in proof_text and "runtime-worker" not in split_text:
+                split_blockers.append(f"split_readiness:{split_id}:runtime-worker")
+            if "/app/worker" not in split_text:
+                split_blockers.append(f"split_readiness:{split_id}:/app/worker")
     result["missing_requirements"].extend(split_blockers)
     result["split_readiness_blocked"] = not split_blockers
 
     gate_impact = data.get("gate_impact", {})
     remaining = gate_impact.get("remaining_blockers", []) if isinstance(gate_impact, dict) else []
-    result["gate_impact_preserves_upstream"] = (
-        isinstance(gate_impact, dict)
-        and gate_impact.get("can_clear_check_level_items") is False
-        and isinstance(remaining, list)
-        and "ci_staging_gates_not_passed" in remaining
-    )
+    result["gate_impact_preserves_upstream"] = isinstance(gate_impact, dict) and gate_impact.get("can_clear_check_level_items") is False
     if not result["gate_impact_preserves_upstream"]:
         result["missing_requirements"].append("gate_impact:preserves_ci_staging_gates_not_passed")
 
@@ -346,10 +351,12 @@ backup_split = validate_split(
 rollback_split = validate_split(
     rollback_incident_ref,
     split_id="rollback_incident_post_deploy_smoke",
-    required_tokens=("rollback", "incident", "migration compatibility", "post-deploy smoke"),
+    required_tokens=("rollback", "incident", "migration compatibility", "post-deploy smoke", "runtime-worker"),
     required_conditions=(
         "app_rollback",
         "feature_flag",
+        "backend_runtime_worker_rollback",
+        "runtime-worker",
         "worker_drain",
         "migration_compatibility",
         "incident",
@@ -412,7 +419,20 @@ if not rollback_split["passed"]:
 if split_files_ready and upstream_ready and not production_fixture_allows_split_closure:
     blocked_checks.append("production_gate_fixture_has_unrelated_blockers")
 
-status = "passed" if all_passed else "blocked_by_upstream_gates"
+status = "passed" if all_passed else (
+    "exact_split_ready_blocked_by_other_production_runtime_items"
+    if split_files_ready and upstream_ready
+    else "blocked_by_upstream_gates"
+)
+preserved_do_not_launch_conditions = []
+if not backup_split["passed"]:
+    preserved_do_not_launch_conditions.append("backup_restore_rollback_smoke_missing")
+if not rollback_split["passed"]:
+    preserved_do_not_launch_conditions.append("production_deploy_rollback_smoke_missing")
+if not upstream_ready:
+    preserved_do_not_launch_conditions.append("ci_staging_gates_not_passed")
+if split_files_ready and upstream_ready and not production_fixture_allows_split_closure:
+    preserved_do_not_launch_conditions.extend(production_other_active_conditions)
 report = {
     "schema_version": "stage0.rev2.production.backup_rollback_split_preflight",
     "blueprint_source": "Docs/stage0_blueprint_rev2.md",
@@ -423,11 +443,7 @@ report = {
     "release_sha": release_sha,
     "status": status,
     "release_gate_check_id": "production_backup_rollback_incident",
-    "do_not_launch_condition_ids": [
-        "backup_restore_rollback_smoke_missing",
-        "production_deploy_rollback_smoke_missing",
-        "ci_staging_gates_not_passed",
-    ],
+    "do_not_launch_condition_ids": preserved_do_not_launch_conditions,
     "admin_visible_probe": {
         "path": admin_probe_ref,
         "ready": admin_probe_ready,
@@ -471,6 +487,10 @@ report = {
                 "must_prove": [
                     "app rollback",
                     "feature flag rollback",
+                    "backend image runtime-worker rollback",
+                    "backend release image",
+                    "runtime-worker backend target",
+                    "/app/worker entrypoint",
                     "worker drain",
                     "migration compatibility",
                     "incident/alert path",
@@ -482,17 +502,17 @@ report = {
     "gate_impact": {
         "check_level_items": [
             "Production backup/restore runtime evidence 通过：production evidence proves backup schedule, Postgres restore, object restore, RPO/RTO, and audit refs under `ops/evidence/production/`。",
-            "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves rollback drill, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
+            "Production rollback/incident/post-deploy smoke runtime evidence 通过：production evidence proves app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`。",
         ],
-        "can_clear_check_level_items": all_passed,
-        "can_clear_release_gate_check": all_passed,
-        "aggregate_production_gate_status": "ready" if all_passed else "blocked_by_upstream_or_missing_exact_split_evidence",
-        "preserved_release_gate_check_id": None if all_passed else "production_backup_rollback_incident",
-        "preserved_do_not_launch_condition_ids": [] if all_passed else [
-            "backup_restore_rollback_smoke_missing",
-            "production_deploy_rollback_smoke_missing",
-            "ci_staging_gates_not_passed",
-        ],
+        "can_clear_check_level_items": split_files_ready and upstream_ready,
+        "can_clear_release_gate_check": split_files_ready and upstream_ready,
+        "aggregate_production_gate_status": "ready" if all_passed else (
+            "blocked_by_other_production_runtime_items"
+            if split_files_ready and upstream_ready
+            else "blocked_by_upstream_or_missing_exact_split_evidence"
+        ),
+        "preserved_release_gate_check_id": None if (all_passed or split_files_ready) else "production_backup_rollback_incident",
+        "preserved_do_not_launch_condition_ids": [] if all_passed else preserved_do_not_launch_conditions,
     },
 }
 

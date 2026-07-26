@@ -1,0 +1,123 @@
+{
+  "schema_version": "stage1.load.contract.v1",
+  "fixture_id": "stage1_load_local_contract",
+  "kind": "stage1_load_contract",
+  "blueprint_items": ["OP-7", "WK-12", "OP-6", "VF-6"],
+  "canonical_evidence_path": "ops/evidence/staging/stage1-load.json",
+  "canonical_results_path": "ops/evidence/staging/stage1-load.ndjson",
+  "preflight_evidence_path": "ops/evidence/staging/stage1-load.preflight.json",
+  "preflight_can_clear_staging_gate": false,
+  "blocked_diagnostic_evidence_path": "ops/evidence/staging/stage1-load.blocked.json",
+  "blocked_diagnostic_results_path": "ops/evidence/staging/stage1-load.blocked.ndjson",
+  "blocked_diagnostic_can_clear_staging_gate": false,
+  "legacy_stage0_load_evidence_path": "ops/evidence/staging/20260527T2120Z-load.json",
+  "local_devport_evidence_path": "ops/evidence/staging/local-devport/stage1-load.local-devport.json",
+  "local_devport_results_path": "ops/evidence/staging/local-devport/stage1-load.local-devport.ndjson",
+  "local_devport_can_clear_staging_gate": false,
+  "strict_schema_version": "stage1.load.v1",
+  "release_gate_status": "contract_ready_staging_load_evidence_open",
+  "required_environment": "staging",
+  "required_release_gate_check_id": "staging_observability_backup_load",
+  "required_release_sha_pattern": "^[0-9a-f]{40}$",
+  "strict_staging_target_policy": {
+    "required_target_urls": ["api", "web", "admin"],
+    "require_absolute_https_urls": true,
+    "reject_reserved_test_domains": true,
+    "reject_localhost_private_link_local_ips": true,
+    "reserved_domain_examples": ["example.test", "localhost", "127.0.0.1", "10.0.0.1", "staging.local"]
+  },
+  "required_modes": [
+    "chat_task",
+    "worker_generation",
+    "zip_export",
+    "signed_download",
+    "crawler_throttle",
+    "quota_contention",
+    "workspace_rendering"
+  ],
+  "required_thresholds": {
+    "min_requests_per_mode": 20,
+    "min_concurrency": 4,
+    "max_error_rate": 0.01,
+    "max_p95_ms": 2500,
+    "max_queue_delay_ms": 5000,
+    "max_provider_fallback_rate": 0.2,
+    "max_billing_webhook_failure_rate": 0.0
+  },
+  "required_result_rows": [
+    "chat_task",
+    "worker_generation",
+    "zip_export",
+    "signed_download",
+    "crawler_throttle",
+    "quota_contention",
+    "workspace_rendering"
+  ],
+  "required_stage1_anchors": [
+    "scripts/load_smoke.sh",
+    "scripts/validate_stage1_load_evidence.py",
+    "scripts/staging_observability_backup_load_smoke.sh",
+    "scripts/validate_stage1_staging_runtime.py",
+    "fixtures/stage1/staging_runtime/local_contract.json",
+    "web/tests/stage1-batch-generation.spec.ts",
+    "backend/internal/worker/batch_runner.go",
+    "backend/internal/task/batch_executor.go",
+    "backend/internal/billing/stripe_webhook.go"
+  ],
+  "preflight_policy": {
+    "load_mode": "preflight_stage1",
+    "status_ready_does_not_clear_gate": true,
+    "requires_target_urls": ["api", "web", "admin"],
+    "requires_release_sha_full_length": true,
+    "requires_canonical_write_enabled": true,
+    "blocked_by_default_local_devport": true
+  },
+  "required_metrics": [
+    "request_count",
+    "error_rate",
+    "p95_ms",
+    "queue_delay_p95_ms",
+    "provider_fallback_rate",
+    "export_success_rate",
+    "billing_webhook_failure_rate"
+  ],
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false
+  },
+  "strict_evidence_policy": {
+    "environment": "staging",
+    "kind": "stage1_load",
+    "status": "pass",
+    "release_gate_check_id": "staging_observability_backup_load",
+    "allow_local_devport_debug": false,
+    "allow_local_devport_evidence": false,
+    "allow_dry_run": false,
+    "allow_legacy_stage0_load_only": false,
+    "all_modes_required": true,
+    "result_rows_required": true,
+    "thresholds_must_pass": true,
+    "safe_projection_must_pass": true,
+    "canonical_pass_path_required": true,
+    "gate_impact_can_clear_load_slot_required": true
+  },
+  "generator_safety_policy": {
+    "canonical_paths_are_never_written_before_candidate_validation": true,
+    "strict_validator_required_before_canonical_replace": true,
+    "pass_evidence_written_only_after_strict_validator_accepts": true,
+    "canonical_outputs_are_atomic": true,
+    "failed_strict_candidate_writes_blocked_evidence_only": true
+  },
+  "remaining_staging_evidence": [
+    "strict OP-7 canonical stage1-load evidence missing until ops/evidence/staging/stage1-load.json and .ndjson are generated from production-like staging targets",
+    "preflight_stage1 can verify canonical load inputs but cannot clear Stage 1 staging runtime",
+    "local/devport load smoke may be useful debug evidence but cannot clear Stage 1 staging runtime",
+    "legacy Stage0 load evidence remains useful historical input but cannot replace Stage1 canonical load evidence"
+  ]
+}

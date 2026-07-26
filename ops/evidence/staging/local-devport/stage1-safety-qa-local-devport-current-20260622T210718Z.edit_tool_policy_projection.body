@@ -1,0 +1,22 @@
+{
+  "blocked": false,
+  "code": "validation_error",
+  "details": {
+    "taxonomy": {
+      "blocked": false,
+      "category": "validation",
+      "retryable": false,
+      "user_actionable": true
+    }
+  },
+  "field_errors": [],
+  "message": "stage0 validation failed\nunsupported analytics subject_type \"provider_request\"",
+  "request_id": "stage1-safety-qa-local-devport-current-20260622T210718Z-edit_tool_policy_projection",
+  "retryable": false,
+  "taxonomy": {
+    "blocked": false,
+    "category": "validation",
+    "retryable": false,
+    "user_actionable": true
+  }
+}

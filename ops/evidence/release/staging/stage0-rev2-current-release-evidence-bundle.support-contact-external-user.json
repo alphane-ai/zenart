@@ -1,0 +1,243 @@
+{
+  "allow_local_devport_evidence": false,
+  "blocked_checks": [],
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "coverage": [
+    {
+      "area": "support_contact_visibility",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "evidence_refs": [
+        "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson",
+        "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.json"
+      ],
+      "expected_tokens": [
+        "Billing",
+        "Cancellation",
+        "Report Problem",
+        "Submit Ticket",
+        "and Refund Policy",
+        "export",
+        "project",
+        "quota",
+        "support@zenari.ai",
+        "task",
+        "trace"
+      ],
+      "external_user_evidence": "Staging external-user HTTP visibility probe over deployed web routes; source files alone do not satisfy this check.",
+      "routes": [
+        "/support",
+        "/report-problem",
+        "/legal/billing-policy"
+      ],
+      "runtime_probe": "External user staging support contact probe verifies visible support contact, report-problem path, and support/billing policy visibility.",
+      "source_results": [
+        {
+          "category": "support_contact",
+          "check_id": "support_contact",
+          "expected_tokens": [
+            "support@zenari.ai",
+            "Report Problem",
+            "Submit Ticket"
+          ],
+          "http_status": 200,
+          "path": "/support",
+          "reason": "ok",
+          "status": "passed",
+          "url": "https://staging.zenari.ai/support"
+        },
+        {
+          "category": "support_contact",
+          "check_id": "report_problem",
+          "expected_tokens": [
+            "Report Problem",
+            "Submit Ticket",
+            "project",
+            "task",
+            "trace",
+            "export",
+            "quota"
+          ],
+          "http_status": 200,
+          "path": "/report-problem",
+          "reason": "ok",
+          "status": "passed",
+          "url": "https://staging.zenari.ai/report-problem"
+        },
+        {
+          "category": "support_contact",
+          "check_id": "billing_policy",
+          "expected_tokens": [
+            "Billing",
+            "Cancellation",
+            "and Refund Policy",
+            "support@zenari.ai",
+            "Cancellation"
+          ],
+          "http_status": 200,
+          "path": "/legal/billing-policy",
+          "reason": "ok",
+          "status": "passed",
+          "url": "https://staging.zenari.ai/legal/billing-policy"
+        }
+      ],
+      "status": "pass"
+    },
+    {
+      "area": "billing_policy_visibility",
+      "evidence_path_policy": "ops/evidence/staging/",
+      "evidence_refs": [
+        "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson",
+        "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.json"
+      ],
+      "expected_tokens": [
+        "Billing",
+        "Cancellation",
+        "and Refund Policy",
+        "support@zenari.ai"
+      ],
+      "external_user_evidence": "Staging external-user HTTP visibility probe over deployed billing-policy route; source files alone do not satisfy this check.",
+      "routes": [
+        "/legal/billing-policy"
+      ],
+      "runtime_probe": "External user staging billing policy probe verifies billing, cancellation, refund, and support contact visibility.",
+      "source_results": [
+        {
+          "category": "support_contact",
+          "check_id": "billing_policy",
+          "expected_tokens": [
+            "Billing",
+            "Cancellation",
+            "and Refund Policy",
+            "support@zenari.ai",
+            "Cancellation"
+          ],
+          "http_status": 200,
+          "path": "/legal/billing-policy",
+          "reason": "ok",
+          "status": "passed",
+          "url": "https://staging.zenari.ai/legal/billing-policy"
+        }
+      ],
+      "status": "pass"
+    }
+  ],
+  "do_not_launch_condition_id": "external_user_legal_pages_missing",
+  "environment": "staging",
+  "evidence_id": "support-contact-external-user",
+  "gate_impact": {
+    "aggregate_private_beta_gate_status": "blocked_by_other_staging_runtime_items",
+    "can_clear_check_level_item": true,
+    "can_clear_release_gate_check": false,
+    "can_clear_support_contact_subitem": true,
+    "check_level_item": "Private Beta/Staging support contact external-user visibility evidence \u901a\u8fc7\uff1astaging evidence proves visible support contact/report-problem path for external users under `ops/evidence/staging/`\u3002"
+  },
+  "kind": "support_contact_external_user_visibility",
+  "local_devport_debug": false,
+  "probe_contract": {
+    "blocked_without_runtime_inputs": true,
+    "canonical_legal_pages_report": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-pages-external-user.json",
+    "canonical_support_contact_report": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.support-contact-external-user.json",
+    "contract_id": "legal_support_external_user_visibility_runtime_probe",
+    "do_not_launch_condition_id": "external_user_legal_pages_missing",
+    "environment": "staging",
+    "local_blocked_command": "DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh || test \"$?\" = 2",
+    "local_devport_debug_command": "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 WEB_URL=http://127.0.0.1:26080 scripts/staging_legal_support_visibility_smoke.sh || test \"$?\" = 2",
+    "release_gate_check_id": "staging_legal_external_user_pages",
+    "required_env": [
+      "STAGING_WEB_URL or WEB_URL"
+    ],
+    "required_routes": [
+      "/legal/terms",
+      "/legal/privacy",
+      "/legal/acceptable-use",
+      "/legal/ip-complaints",
+      "/support",
+      "/report-problem",
+      "/legal/billing-policy"
+    ],
+    "results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson",
+    "schema_version": "stage0.rev2.staging.probe_contract",
+    "staging_pass_command": "STAGING_WEB_URL=https://<staging-web> scripts/staging_legal_support_visibility_smoke.sh",
+    "success_criteria": [
+      "all required external-user routes return HTTP 200",
+      "legal pages expose Terms, Privacy, Acceptable Use, AI/content disclaimer, and IP complaint tokens",
+      "support routes expose support contact, report-problem, and billing/support policy tokens",
+      "canonical split reports are written under ops/evidence/staging/"
+    ]
+  },
+  "release_gate_check_id": "staging_legal_external_user_pages",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "runtime_checks_status": "passed",
+  "runtime_input_requirements": {
+    "required_web_url": "STAGING_WEB_URL or WEB_URL pointing at the deployed staging web surface",
+    "source_file_policy": "web source files or checked-in policy text alone cannot satisfy this split; source_results must come from deployed external-user HTTP probes.",
+    "source_results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson"
+  },
+  "schema_version": "stage0.rev2.staging.legal_support_visibility.split",
+  "source_report_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.json",
+  "source_results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson",
+  "status": "pass",
+  "support_surfaces": [
+    {
+      "http_status": 200,
+      "path": "/support",
+      "probe_result": "Visible to an external staging user through deployed support or billing-policy routes.",
+      "required_tokens": [
+        "support@zenari.ai",
+        "Report Problem",
+        "Submit Ticket"
+      ],
+      "surface_id": "support_contact",
+      "visibility": "external_user"
+    },
+    {
+      "http_status": 200,
+      "path": "/report-problem",
+      "probe_result": "Visible to an external staging user through deployed support or billing-policy routes.",
+      "required_tokens": [
+        "Report Problem",
+        "Submit Ticket",
+        "project",
+        "task",
+        "trace",
+        "export",
+        "quota"
+      ],
+      "surface_id": "report_problem",
+      "visibility": "external_user"
+    },
+    {
+      "http_status": 200,
+      "path": "/legal/billing-policy",
+      "probe_result": "Visible to an external staging user through deployed support or billing-policy routes.",
+      "required_tokens": [
+        "Billing",
+        "Cancellation",
+        "and Refund Policy",
+        "support@zenari.ai",
+        "Cancellation"
+      ],
+      "surface_id": "billing_policy",
+      "visibility": "external_user"
+    }
+  ],
+  "ticket_context_probe": {
+    "captured_context_fields": [
+      "user_id",
+      "project_id",
+      "task_id",
+      "trace_id",
+      "export_id",
+      "quota_transaction_id",
+      "contact_email"
+    ],
+    "linked_admin_ticket_ids": [
+      "stage0-rev2-current-release-evidence-bundle.legal-support-visibility-support-ticket-context"
+    ],
+    "mode": "dry_run",
+    "privacy_redaction": "Prompt text, uploaded assets, raw support body, and provider payloads are redacted from the external-user support visibility split.",
+    "source_results_path": "ops/evidence/release/staging/stage0-rev2-current-release-evidence-bundle.legal-support-visibility.ndjson"
+  },
+  "validated_by_role": "external_user_smoke",
+  "web_url": "https://staging.zenari.ai"
+}

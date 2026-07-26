@@ -1,0 +1,372 @@
+{
+  "authorization_header_persisted": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_clear_stage1_staging_runtime_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "cookie_persisted": false,
+  "do_not_launch_conditions_preserved": [
+    "stage1_production_launch_evidence_incomplete"
+  ],
+  "environment": "release",
+  "generated_at": "2026-06-28T21:51:39+00:00",
+  "kind": "stage1_release_evidence_closure_queue_preflight",
+  "operator_action_packet_summary": {
+    "blocked": 5,
+    "can_clear_stage1_production_launch_gate": false,
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_close_do_not_launch": false,
+    "canonical_pass_path": false,
+    "gate_impact_counts": {
+      "non_clearing_operator_shortlist_only": 5
+    },
+    "items": [
+      {
+        "agent_command_after_return": "python3 scripts/ingest_stage1_production_return_artifacts.py || test $? -eq 2",
+        "can_clear_stage1_production_launch_gate": false,
+        "can_clear_stage1_staging_runtime_gate": false,
+        "can_close_do_not_launch": false,
+        "evidence_ref": "ops/evidence/non_clearing/stage1-next-blockers-summary.json",
+        "gate_impact": "non_clearing_operator_shortlist_only",
+        "item_id": "production_source_probes_missing",
+        "order": 0,
+        "owner": "agent_after_operator_input",
+        "required_return_artifact": "sanitized live production source evidence for billing, security, legal/support HTTPS, and governance.",
+        "requires_external_input": true,
+        "status": "blocked",
+        "validation_after_return": "python3 scripts/validate_stage1_next_blockers_summary.py"
+      },
+      {
+        "agent_command_after_return": "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
+        "can_clear_stage1_production_launch_gate": false,
+        "can_clear_stage1_staging_runtime_gate": false,
+        "can_close_do_not_launch": false,
+        "evidence_ref": "ops/evidence/non_clearing/production-legal-support-operator-packet.json",
+        "gate_impact": "non_clearing_operator_shortlist_only",
+        "item_id": "production_dns_https",
+        "order": 1,
+        "owner": "operator_cloudflare_dns",
+        "required_return_artifact": "Cloudflare DNS Edit token/Zone ID plus PRODUCTION_DNS_TARGET in a private env file, or manual apex/www DNS records with HTTPS resolver proof",
+        "requires_external_input": true,
+        "status": "blocked",
+        "validation_after_return": "python3 scripts/stage1_production_dns_readiness.py --env <private-production-env> --output ops/evidence/non_clearing/production-dns-readiness.json || test $? -eq 2"
+      },
+      {
+        "agent_command_after_return": "python3 scripts/ingest_stage1_production_return_artifacts.py || test $? -eq 2",
+        "can_clear_stage1_production_launch_gate": false,
+        "can_clear_stage1_staging_runtime_gate": false,
+        "can_close_do_not_launch": false,
+        "evidence_ref": "ops/evidence/non_clearing/production-billing-operator-packet.json",
+        "gate_impact": "non_clearing_operator_shortlist_only",
+        "item_id": "production_live_billing",
+        "order": 2,
+        "owner": "operator_production_account",
+        "required_return_artifact": "sanitized Stripe live IDs and production audit refs for checkout, subscription, invoice, refund, quota, webhook, and team-seat lifecycle",
+        "requires_external_input": true,
+        "status": "blocked",
+        "validation_after_return": "python3 scripts/ingest_stage1_production_return_artifacts.py || test $? -eq 2"
+      },
+      {
+        "agent_command_after_return": "python3 scripts/ingest_stage1_production_return_artifacts.py || test $? -eq 2",
+        "can_clear_stage1_production_launch_gate": false,
+        "can_clear_stage1_staging_runtime_gate": false,
+        "can_close_do_not_launch": false,
+        "evidence_ref": "ops/evidence/non_clearing/production-security-operator-packet.json",
+        "gate_impact": "non_clearing_operator_shortlist_only",
+        "item_id": "production_security_runtime",
+        "order": 3,
+        "owner": "operator_production_account",
+        "required_return_artifact": "production runtime request/audit refs for session cookie, CSRF, redaction, admin privacy, key containment, CSP, RBAC, audit, rate limit, and spend cap",
+        "requires_external_input": true,
+        "status": "blocked",
+        "validation_after_return": "python3 scripts/ingest_stage1_production_return_artifacts.py || test $? -eq 2"
+      },
+      {
+        "agent_command_after_return": "python3 scripts/ingest_stage1_production_return_artifacts.py || test $? -eq 2",
+        "can_clear_stage1_production_launch_gate": false,
+        "can_clear_stage1_staging_runtime_gate": false,
+        "can_close_do_not_launch": false,
+        "evidence_ref": "ops/evidence/non_clearing/production-governance-operator-packet.json",
+        "gate_impact": "non_clearing_operator_shortlist_only",
+        "item_id": "production_governance_release",
+        "order": 4,
+        "owner": "operator_production_account",
+        "required_return_artifact": "production activation, abuse, and skill release runtime request IDs plus immutable audit refs",
+        "requires_external_input": true,
+        "status": "blocked",
+        "validation_after_return": "python3 scripts/ingest_stage1_production_return_artifacts.py || test $? -eq 2"
+      }
+    ],
+    "owner_counts": {
+      "agent_after_operator_input": 1,
+      "operator_cloudflare_dns": 1,
+      "operator_production_account": 3
+    },
+    "release_gate_decision": "no_go",
+    "requires_external_input": 5,
+    "source_gate_flags_all_false": true,
+    "source_path": "ops/evidence/non_clearing/stage1-next-blockers-summary.json",
+    "source_schema_version": "stage1.next_blockers_summary.v1",
+    "status": "blocked",
+    "total": 5
+  },
+  "parallel_operational_blockers": [],
+  "queue": [
+    {
+      "current_blocker": "stage1 staging runtime strict aggregate passed",
+      "dnl_impact": "no current DNL impact; strict staging runtime gate is go",
+      "gate": "stage1_staging_runtime_preflight",
+      "generator": "python3 scripts/generate_stage1_staging_runtime_evidence.py writes blocked aggregate diagnostics until quota replay, object retention, and load canonical pass evidence exists; strict python3 scripts/validate_stage1_staging_runtime.py must still reject blocked aggregate evidence",
+      "lane": "staging",
+      "priority": "P0",
+      "required_evidence": "ops/evidence/staging/stage1-runtime.json + .ndjson blocked aggregate diagnostic",
+      "row_status": "passed",
+      "validator": "python3 scripts/validate_stage1_staging_runtime.py --allow-preflight"
+    },
+    {
+      "current_blocker": "canonical staging quota replay evidence passed",
+      "dnl_impact": "no current DNL impact; quota replay is verified by staging runtime aggregate",
+      "gate": "staging_quota_replay",
+      "generator": "python3 scripts/generate_stage1_staging_quota_replay_evidence.py --preflight writes ops/evidence/staging/stage1-quota-replay.preflight.json, then python3 scripts/generate_stage1_staging_quota_replay_evidence.py",
+      "lane": "staging",
+      "priority": "P0",
+      "required_evidence": "ops/evidence/staging/stage1-quota-replay.json + .ndjson",
+      "row_status": "passed",
+      "validator": "python3 scripts/validate_stage1_staging_quota_replay_evidence.py"
+    },
+    {
+      "current_blocker": "canonical Stage 1 load evidence passed",
+      "dnl_impact": "no current DNL impact; OP-7 load is verified by staging runtime aggregate",
+      "gate": "stage1_load",
+      "generator": "LOAD_MODE=preflight_stage1 scripts/load_smoke.sh, then WRITE_CANONICAL_STAGE1_LOAD_EVIDENCE=1 LOAD_MODE=all scripts/load_smoke.sh",
+      "lane": "staging",
+      "priority": "P0",
+      "required_evidence": "ops/evidence/staging/stage1-load.json + .ndjson",
+      "row_status": "passed",
+      "validator": "python3 scripts/validate_stage1_load_evidence.py"
+    },
+    {
+      "current_blocker": "canonical object retention cleanup evidence passed; R2 bucket access ready",
+      "dnl_impact": "no current DNL impact; object retention cleanup is verified by staging runtime aggregate",
+      "gate": "object_retention_cleanup",
+      "generator": "OBJECT_RETENTION_MODE=preflight_stage1 scripts/staging_object_storage_retention_cleanup_smoke.sh writes ops/evidence/staging/object-storage-retention-cleanup.preflight.json, then WRITE_CANONICAL_STAGE1_OBJECT_RETENTION_EVIDENCE=1 scripts/staging_object_storage_retention_cleanup_smoke.sh",
+      "lane": "staging",
+      "priority": "P0",
+      "required_evidence": "ops/evidence/staging/object-storage-retention-cleanup.json + .ndjson",
+      "row_status": "passed",
+      "validator": "python3 scripts/validate_stage1_staging_object_retention_evidence.py"
+    },
+    {
+      "current_blocker": "ci_pr_main_run: exact CI artifacts strict-pass for 55ef88a19b8e176d910c5b292bc934865470a4d0, but current candidate is 7123957dcc3371c6e2d1912b5c2ca418a551b943; fetch current GitHub Actions artifacts",
+      "dnl_impact": "keeps CI gate and production launch blocked",
+      "gate": "ci_pr_main_run",
+      "generator": "python3 scripts/generate_stage1_ci_exact_preflight.py, then python3 scripts/fetch_stage1_ci_artifacts.py --run-url <github-actions-run-url> downloads artifacts, validates, and publishes canonical evidence",
+      "lane": "ci",
+      "priority": "P0",
+      "required_evidence": "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+      "row_status": "open",
+      "validator": "python3 scripts/validate_stage1_ci_exact_evidence.py"
+    },
+    {
+      "current_blocker": "ci_playwright_smoke: exact CI artifacts strict-pass for 55ef88a19b8e176d910c5b292bc934865470a4d0, but current candidate is 7123957dcc3371c6e2d1912b5c2ca418a551b943; fetch current GitHub Actions artifacts",
+      "dnl_impact": "keeps browser smoke release coverage unverified",
+      "gate": "ci_playwright_smoke",
+      "generator": "python3 scripts/generate_stage1_ci_exact_preflight.py, then python3 scripts/fetch_stage1_ci_artifacts.py --run-url <github-actions-run-url> downloads artifacts, validates, and publishes canonical evidence",
+      "lane": "ci",
+      "priority": "P0",
+      "required_evidence": "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+      "row_status": "open",
+      "validator": "python3 scripts/validate_stage1_ci_exact_evidence.py"
+    },
+    {
+      "current_blocker": "ci_docker_image_build: exact CI artifacts strict-pass for 55ef88a19b8e176d910c5b292bc934865470a4d0, but current candidate is 7123957dcc3371c6e2d1912b5c2ca418a551b943; fetch current GitHub Actions artifacts",
+      "dnl_impact": "keeps production image build evidence incomplete",
+      "gate": "ci_docker_image_build",
+      "generator": "python3 scripts/generate_stage1_ci_exact_preflight.py, then python3 scripts/fetch_stage1_ci_artifacts.py --run-url <github-actions-run-url> downloads artifacts, validates, and publishes canonical evidence",
+      "lane": "ci",
+      "priority": "P0",
+      "required_evidence": "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+      "row_status": "open",
+      "validator": "python3 scripts/validate_stage1_ci_exact_evidence.py"
+    },
+    {
+      "current_blocker": "strict child validator failed: python3 scripts/validate_stage1_production_security_launch_evidence.py: stage1 production security launch evidence validation failed: evidence contains blocked/debug-only gate signal(s): ['evidence.blocked_checks is not empty', 'evidence.canonical_pass_path is false', 'evidence.gate_impact.can_clear_security_launch_check is false', 'evidence.gate_impact.preserved_release_gate_check_id is not cleared', 'evidence.gate_impact.remaining_blockers is not empty']",
+      "dnl_impact": "does not clear production launch; preserves stage1_production_launch_evidence_incomplete",
+      "gate": "stage1_production_launch_preflight",
+      "generator": "python3 scripts/generate_stage1_production_launch_evidence.py writes blocked aggregate diagnostics until CI, strict staging, release bundle, and production child evidence are all canonical pass; strict python3 scripts/validate_stage1_production_launch.py must still reject blocked aggregate evidence",
+      "lane": "production",
+      "priority": "P0",
+      "required_evidence": "ops/evidence/production/stage1-production-launch.json + .ndjson blocked aggregate diagnostic",
+      "row_status": "open",
+      "validator": "python3 scripts/validate_stage1_production_launch.py --allow-preflight"
+    },
+    {
+      "current_blocker": "canonical production backup/rollback split evidence passed",
+      "dnl_impact": "no current DNL impact; backup/rollback split evidence is verified",
+      "gate": "production_backup_rollback_split",
+      "generator": "scripts/production_backup_rollback_split_smoke.sh writes production_backup_rollback_split_preflight at ops/evidence/production/backup-rollback-split.blocked.json, then python3 scripts/generate_stage1_production_backup_rollback_evidence.py writes canonical production split evidence after CI and staging gates are go",
+      "lane": "production",
+      "priority": "P1",
+      "required_evidence": "ops/evidence/production/backup-restore.json + rollback-incident-post-deploy-smoke.json",
+      "row_status": "passed",
+      "validator": "python3 scripts/validate_stage1_production_backup_rollback_evidence.py"
+    },
+    {
+      "current_blocker": "canonical production provider/claims invite-comp-only evidence passed",
+      "dnl_impact": "no current DNL impact; provider/claims component is verified",
+      "gate": "production_provider_claims",
+      "generator": "python3 scripts/generate_stage1_production_provider_claims_evidence.py writes blocked diagnostics accepted by --allow-preflight until production provider/claims source evidence exists",
+      "lane": "production",
+      "priority": "P1",
+      "required_evidence": "ops/evidence/production/provider-mode.json + public-paid-real-generation-claims.json",
+      "row_status": "passed",
+      "validator": "python3 scripts/validate_stage1_production_provider_claims_evidence.py"
+    },
+    {
+      "current_blocker": "source_probe_missing: ops/evidence/production/billing-paid-lifecycle-source.json",
+      "dnl_impact": "keeps paid billing lifecycle and production launch blocked",
+      "gate": "production_paid_billing_lifecycle",
+      "generator": "python3 scripts/generate_stage1_production_billing_evidence.py writes blocked diagnostics accepted by --allow-preflight until production Stripe live-mode source evidence exists",
+      "lane": "production",
+      "priority": "P1",
+      "required_evidence": "ops/evidence/production/billing-lifecycle.json + billing-refund-credit-webhook.json",
+      "row_status": "open",
+      "validator": "python3 scripts/validate_stage1_production_billing_evidence.py"
+    },
+    {
+      "current_blocker": "source_probe_missing: ops/evidence/production/production-security-launch-source.json",
+      "dnl_impact": "keeps production security launch checks and aggregate launch blocked",
+      "gate": "production_security_launch_checks",
+      "generator": "python3 scripts/generate_stage1_production_security_launch_evidence.py writes blocked diagnostics accepted by --allow-preflight until production security source evidence exists",
+      "lane": "production",
+      "priority": "P1",
+      "required_evidence": "ops/evidence/production/20260527T1700Z-security-launch-checks.json",
+      "row_status": "open",
+      "validator": "python3 scripts/validate_stage1_production_security_launch_evidence.py"
+    },
+    {
+      "current_blocker": "source_probe_missing: ops/evidence/production/production-legal-support-source.json",
+      "dnl_impact": "keeps legal/support policy and production launch blocked",
+      "gate": "production_legal_support_policy",
+      "generator": "python3 scripts/generate_stage1_production_legal_support_evidence.py writes blocked diagnostics accepted by --allow-preflight until production legal/support source evidence exists",
+      "lane": "production",
+      "priority": "P1",
+      "required_evidence": "ops/evidence/production/public-legal-policy.json + public-support-billing-policy.json",
+      "row_status": "open",
+      "validator": "python3 scripts/validate_stage1_production_legal_support_evidence.py"
+    },
+    {
+      "current_blocker": "source_probe_missing: ops/evidence/production/production-governance-release-source.json",
+      "dnl_impact": "keeps activation review, abuse hold, skill canary, and aggregate launch blocked",
+      "gate": "production_governance_release",
+      "generator": "python3 scripts/generate_stage1_production_governance_release_evidence.py writes blocked diagnostics accepted by --allow-preflight until production governance/release source evidence exists",
+      "lane": "production",
+      "priority": "P2",
+      "required_evidence": "ops/evidence/production/20260527T1430Z-activation-review-audit.json + 20260527T1330Z-abuse-throttle-hold.json + 20260527T1600Z-skill-release-eval-canary.json",
+      "row_status": "open",
+      "validator": "python3 scripts/validate_stage1_production_governance_release_evidence.py"
+    }
+  ],
+  "queue_summary": {
+    "by_lane": {
+      "ci": 3,
+      "production": 5,
+      "staging": 0
+    },
+    "by_priority": {
+      "P0": 4,
+      "P1": 3,
+      "P2": 1
+    },
+    "completed": 6,
+    "completion_percent": 42.9,
+    "open": 8,
+    "open_gates": [
+      "ci_pr_main_run",
+      "ci_playwright_smoke",
+      "ci_docker_image_build",
+      "stage1_production_launch_preflight",
+      "production_paid_billing_lifecycle",
+      "production_security_launch_checks",
+      "production_legal_support_policy",
+      "production_governance_release"
+    ],
+    "operator_action_packet_items": 5,
+    "parallel_operational_blockers": 0,
+    "total": 14
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "safe_projection_policy": {
+    "authorization_header_persisted": false,
+    "cookie_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "secret_material_persisted": false,
+    "signed_url_persisted": false
+  },
+  "schema_version": "stage1.release_evidence_closure_queue.preflight.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_aggregates": {
+    "ci_exact_preflight": {
+      "blocker_count": 0,
+      "do_not_launch_conditions": [],
+      "environment": "ci",
+      "generated_at": "2026-06-28T17:45:41+00:00",
+      "kind": "ci_exact_evidence_preflight",
+      "path": "ops/evidence/ci/stage1-ci-exact.preflight.json",
+      "release_gate_decision": null,
+      "schema_version": "stage1.ci_exact.preflight.v1",
+      "status": "blocked"
+    },
+    "production_launch": {
+      "blocker_count": 87,
+      "do_not_launch_conditions": [
+        "stage1_production_launch_evidence_incomplete"
+      ],
+      "environment": "production",
+      "generated_at": "2026-06-28T13:36:35+00:00",
+      "kind": "stage1_production_launch",
+      "path": "ops/evidence/production/stage1-production-launch.json",
+      "release_gate_decision": "no_go",
+      "schema_version": "stage1.production_launch.v1",
+      "status": "blocked"
+    },
+    "r2_bucket_readiness": {
+      "blocker_count": 0,
+      "do_not_launch_conditions": [],
+      "environment": "release",
+      "generated_at": "2026-06-28T14:16:10+00:00",
+      "kind": "stage1_r2_bucket_readiness_preflight",
+      "path": "ops/evidence/release/staging/stage1-r2-bucket-readiness.preflight.json",
+      "release_gate_decision": "no_go",
+      "schema_version": "stage1.r2_bucket_readiness.preflight.v1",
+      "status": "ready"
+    },
+    "staging_runtime": {
+      "blocker_count": 0,
+      "do_not_launch_conditions": [],
+      "environment": "staging",
+      "generated_at": "2026-06-28T13:36:53+00:00",
+      "kind": "stage1_staging_runtime",
+      "path": "ops/evidence/staging/stage1-runtime.json",
+      "release_gate_decision": "go",
+      "schema_version": "stage1.staging_runtime.v1",
+      "status": "pass"
+    }
+  },
+  "status": "blocked",
+  "strict_launch_evidence_required": [
+    "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+    "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+    "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+    "ops/evidence/staging/stage1-runtime.json",
+    "ops/evidence/production/stage1-production-launch.json"
+  ]
+}

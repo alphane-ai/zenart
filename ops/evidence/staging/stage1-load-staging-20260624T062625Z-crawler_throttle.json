@@ -1,0 +1,77 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "created_at": "20260624T062651Z",
+  "run_id": "stage1-load-staging-20260624T062625Z-crawler_throttle",
+  "kind": "load",
+  "environment": "staging",
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "mode": "crawler_throttle",
+  "status": "passed",
+  "base_url": "https://staging.zenari.ai",
+  "requests": 20,
+  "concurrency": 4,
+  "paths": ["/readyz", "/api/admin/v1/crawler/sources"],
+  "expected_statuses": ["/readyz:200", "/api/admin/v1/crawler/sources:401", "/api/admin/v1/crawler/sources:403", "/api/admin/v1/crawler/sources:404", "/api/admin/v1/crawler/sources:501"],
+  "results_path": "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.ndjson",
+  "summary": {"failure_count": 0, "max_ms": 750, "p50_ms": 689, "p95_ms": 743, "request_count": 20, "statuses": {"/api/admin/v1/crawler/sources:401": 10, "/readyz:200": 10}},
+  "checks": [
+    {
+      "check_id": "chat_task",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "worker_generation",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "zip_export",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "signed_download",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "crawler_throttle",
+      "status": "passed",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "quota_contention",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "workspace_rendering",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-crawler_throttle.ndjson"
+      ]
+    }
+  ],
+  "production_gate": "open_until_runtime_thresholds_and_full_staging_load_results_exist"
+}

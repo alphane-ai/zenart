@@ -1,0 +1,113 @@
+{
+  "alert_runtime_ref": "ops/evidence/staging/20260526T1000Z-alert-runtime.json",
+  "base_url": "http://127.0.0.1:31080",
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "body_path": "ops/evidence/observability/local/20260628T201801Z-observability-smoke-7875.json.body",
+  "checks": {
+    "access_log_request_context_declared": true,
+    "alert_definition_validated": true,
+    "backend_metrics_definition_validated": true,
+    "backend_metrics_runtime_endpoint_passed": false,
+    "backend_worker_crawler_metrics_contract_validated": false,
+    "compose_log_format_json_declared": true,
+    "crawler_metrics_definition_validated": true,
+    "dashboard_definition_validated": true,
+    "json_response_body": false,
+    "metrics_config_declared": false,
+    "metrics_runtime_endpoint_passed": false,
+    "otel_config_declared": true,
+    "otel_runtime_instrumentation_detected": false,
+    "recover_log_includes_request_id": false,
+    "request_id_json_body_echo": false,
+    "request_id_response_header_echo": false,
+    "structured_log_json_handler_declared": true,
+    "worker_metrics_definition_validated": true
+  },
+  "created_at": "20260628T201801Z",
+  "created_by_lane": "lane5",
+  "dashboard_runtime_ref": "ops/evidence/staging/20260526T1000Z-dashboard-runtime.json",
+  "environment": "local",
+  "headers_path": "ops/evidence/observability/local/20260628T201801Z-observability-smoke-7875.headers",
+  "http_status": 0,
+  "kind": "observability",
+  "log_query_ref": "ops/evidence/observability/local/20260628T201801Z-observability-smoke-7875.logs.query",
+  "metrics_body_path": "ops/evidence/observability/local/20260628T201801Z-observability-smoke-7875.metrics.body",
+  "metrics_http_status": 0,
+  "metrics_url": "http://127.0.0.1:31990/metrics",
+  "open_items": [
+    "staging_log_capture_with_request_id_user_id_tenant_id_route_status_latency",
+    "opentelemetry_backend_worker_crawler_span_export",
+    "staging_backend_worker_crawler_metrics_capture_with_release_sha_and_bounded_labels",
+    "staging_dashboard_import_with_release_sha_labels",
+    "staging_alert_route_notifications_and_threshold_evaluations"
+  ],
+  "private_beta_gate": "open_until_staging_logs_metrics_traces_dashboards_alerts_have_runtime_evidence",
+  "production_gate": "open_until_observability_evidence_is_attached_to_release_go_no_go",
+  "release_sha": "",
+  "request_id_header": "X-Request-ID",
+  "request_id_value": "stage0-observability-smoke",
+  "run_id": "20260628T201801Z-observability-smoke-7875",
+  "signal_statuses": {
+    "alerts": "passed",
+    "backend_worker_crawler_metrics": "open",
+    "dashboards": "passed",
+    "opentelemetry_traces": "open",
+    "request_id_propagation": "open",
+    "structured_json_logs": "definition_validated_recovery_log_request_id_open"
+  },
+  "signals": [
+    {
+      "evidence_refs": [
+        "ops/evidence/observability/local/20260628T201801Z-observability-smoke-7875.headers",
+        "ops/evidence/observability/local/20260628T201801Z-observability-smoke-7875.json.body"
+      ],
+      "signal_id": "request_id_propagation",
+      "status": "open"
+    },
+    {
+      "evidence_refs": [
+        "ops/evidence/observability/local/20260628T201801Z-observability-smoke-7875.logs.query",
+        "backend/internal/server/middleware.go",
+        "backend/internal/app/runtime.go"
+      ],
+      "signal_id": "structured_json_logs",
+      "status": "open"
+    },
+    {
+      "evidence_refs": [
+        "missing_trace_id_ref"
+      ],
+      "signal_id": "opentelemetry_traces",
+      "status": "open"
+    },
+    {
+      "evidence_refs": [
+        "ops/evidence/observability/local/20260628T201801Z-observability-smoke-7875.metrics.body",
+        "ops/evidence/observability/local/20260628T201801Z-observability-smoke-7875.metrics.status",
+        "backend/internal/server/metrics.go",
+        "backend/internal/worker/metrics.go",
+        "backend/internal/crawler/metrics.go"
+      ],
+      "signal_id": "backend_worker_crawler_metrics",
+      "status": "open"
+    },
+    {
+      "evidence_refs": [
+        "ops/evidence/staging/20260526T1000Z-dashboard-runtime.json",
+        "ops/observability/dashboards/stage0_rev2_overview.json"
+      ],
+      "signal_id": "dashboard_import",
+      "status": "passed"
+    },
+    {
+      "evidence_refs": [
+        "ops/evidence/staging/20260526T1000Z-alert-runtime.json",
+        "ops/observability/alerts/stage0_rev2_alerts.json"
+      ],
+      "signal_id": "alert_routes",
+      "status": "passed"
+    }
+  ],
+  "status": "planned",
+  "trace_id_ref": ""
+}

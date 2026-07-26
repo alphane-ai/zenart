@@ -70,15 +70,18 @@ func TestClassifyValueFindsNestedSecrets(t *testing.T) {
 }
 
 func TestRedactStringHandlesProviderKeysAndInlineAssignments(t *testing.T) {
-	input := `openai_api_key="sk-proj-abcdefghijklmnopqrstuvwxyz123456" ok stripe=rk_live_abcdefghijklmnop`
+	zaiKey := strings.Repeat("a", 32) + "." + strings.Repeat("b", 16)
+	input := `openai_api_key="` + "sk-proj-" + "abcdefghijklmnopqrstuvwxyz123456" + `" zai=` + zaiKey + ` ok stripe=` + "rk_live_" + "abcdefghijklmnop"
 	got := RedactString(input)
-	if got != `openai_api_key=`+Redacted+` ok stripe=`+Redacted {
+	if got != `openai_api_key=`+Redacted+` zai=`+Redacted+` ok stripe=`+Redacted {
 		t.Fatalf("RedactString() = %q", got)
 	}
+	findings := ClassifyString(input)
+	assertSignal(t, findings, "zai_key")
 }
 
 func TestRedactStringCoversCloudAndProviderTokens(t *testing.T) {
-	input := `google=AIza12345678901234567890123456789012345 anthropic=sk-ant-abcdefghijklmnopqrstuvwxyz123456 linear=lin_api_abcdefghijklmnopqrstuvwxyz azure=DefaultEndpointsProtocol=https;AccountName=zenart;AccountKey=abcdefghijklmnopqrstuvwxyz1234567890==`
+	input := `google=AIza12345678901234567890123456789012345 anthropic=` + "sk-ant-" + "abcdefghijklmnopqrstuvwxyz123456" + ` linear=lin_api_abcdefghijklmnopqrstuvwxyz azure=DefaultEndpointsProtocol=https;AccountName=zenari;AccountKey=abcdefghijklmnopqrstuvwxyz1234567890==`
 	got := RedactString(input)
 	if got != `google=`+Redacted+` anthropic=`+Redacted+` linear=`+Redacted+` azure=`+Redacted {
 		t.Fatalf("RedactString() = %q", got)
@@ -607,7 +610,7 @@ func TestRedactStringCoversLaunchBackupAndIncidentSecrets(t *testing.T) {
 	ageKey := "AGE-SECRET-KEY-" + strings.Repeat("A", 32)
 	input := strings.Join([]string{
 		"RESTIC_PASSWORD=restic-password-value",
-		"RESTIC_REPOSITORY=s3:s3.example.test/zenart-prod-backups",
+		"RESTIC_REPOSITORY=s3:s3.example.test/zenari-prod-backups",
 		"KOPIA_SERVER_PASSWORD=kopia-server-password",
 		"BORG_PASSPHRASE=borg-passphrase",
 		"PGBACKREST_REPO1_CIPHER_PASS=pgbackrest-cipher-pass",
@@ -627,7 +630,7 @@ func TestRedactStringCoversLaunchBackupAndIncidentSecrets(t *testing.T) {
 	got := RedactString(input)
 	for _, leaked := range []string{
 		"restic-password-value",
-		"s3.example.test/zenart-prod-backups",
+		"s3.example.test/zenari-prod-backups",
 		"kopia-server-password",
 		"borg-passphrase",
 		"pgbackrest-cipher-pass",
@@ -663,7 +666,7 @@ func TestRedactMapCoversLaunchBackupAndIncidentMetadataKeys(t *testing.T) {
 	metadata := map[string]any{
 		"backup": map[string]any{
 			"resticPassword":            "restic-password-value",
-			"kopiaRepository":           "s3:s3.example.test/zenart-prod-backups",
+			"kopiaRepository":           "s3:s3.example.test/zenari-prod-backups",
 			"borgPassphrase":            "borg-passphrase",
 			"pgbackrestRepo1CipherPass": "pgbackrest-cipher-pass",
 			"walgS3Prefix":              "s3://backup-access:backup-secret@bucket/path",
@@ -690,7 +693,7 @@ func TestRedactMapCoversLaunchBackupAndIncidentMetadataKeys(t *testing.T) {
 	}
 	for _, leaked := range []string{
 		"restic-password-value",
-		"s3.example.test/zenart-prod-backups",
+		"s3.example.test/zenari-prod-backups",
 		"borg-passphrase",
 		"pgbackrest-cipher-pass",
 		"backup-access",
@@ -813,7 +816,7 @@ func TestRedactStringCoversWebhookAndGitLabTokens(t *testing.T) {
 }
 
 func TestRedactStringCoversEmbeddedSignedURLsAndRegistryTokens(t *testing.T) {
-	input := `download https://s3.local/zenart/export.zip?X-Amz-Credential=AKIAIOSFODNN7EXAMPLE&X-Amz-Signature=abcdef&X-Goog-Signature=secret-goog&se=2026-05-27&sp=r&sv=2024-01-01&response-content-type=application%2Fzip npm=npm_abcdefghijklmnopqrstuvwxyz123456`
+	input := `download https://s3.local/zenari/export.zip?X-Amz-Credential=AKIAIOSFODNN7EXAMPLE&X-Amz-Signature=abcdef&X-Goog-Signature=secret-goog&se=2026-05-27&sp=r&sv=2024-01-01&response-content-type=application%2Fzip npm=npm_abcdefghijklmnopqrstuvwxyz123456`
 	got := RedactString(input)
 	for _, leaked := range []string{"AKIAIOSFODNN7EXAMPLE", "abcdef", "secret-goog", "npm_abcdefghijklmnopqrstuvwxyz123456"} {
 		if strings.Contains(got, leaked) {
@@ -1795,7 +1798,7 @@ func TestRedactStringCoversLaunchProviderAndCommerceTokens(t *testing.T) {
 	input := strings.Join([]string{
 		"sendgrid=SG.abcdefghijklmnopqrstuvwxyz123456.abcdefghijklmnopqrstuvwxyz123456",
 		"mailgun=key-abcdefghijklmnopqrstuvwxyz123456",
-		"stripe_webhook=whsec_abcdefghijklmnopqrstuvwxyz123456",
+		"stripe_webhook=" + "whsec_" + "abcdefghijklmnopqrstuvwxyz123456",
 		"shopify=shpat_abcdefghijklmnopqrstuvwxyz123456",
 		"twilio=" + twilioKey,
 		"square=EAAAabcdefghijklmnopqrstuvwxyz123456",
@@ -1806,7 +1809,7 @@ func TestRedactStringCoversLaunchProviderAndCommerceTokens(t *testing.T) {
 	for _, leaked := range []string{
 		"SG.abcdefghijklmnopqrstuvwxyz123456.abcdefghijklmnopqrstuvwxyz123456",
 		"key-abcdefghijklmnopqrstuvwxyz123456",
-		"whsec_abcdefghijklmnopqrstuvwxyz123456",
+		"whsec_" + "abcdefghijklmnopqrstuvwxyz123456",
 		"shpat_abcdefghijklmnopqrstuvwxyz123456",
 		twilioKey,
 		"EAAAabcdefghijklmnopqrstuvwxyz123456",
@@ -1951,9 +1954,9 @@ func TestRedactStringCoversLaunchDeployCloudAndSignedDeliverySecrets(t *testing.
 		"google_oauth=ya29.abcdefghijklmnopqrstuvwxyz123456",
 		"firebase=AAAAabc1234:APA91babcdefghijklmnopqrstuvwxyz123456",
 		"fly=FlyV1 fm2_lJPECAAAAAAACfEjR0Q1JKSkZFSFlYWTM0NTY3ODkw",
-		"postgresql://db_user:db_pass@db.example.com:5432/zenart",
+		"postgresql://db_user:db_pass@db.example.com:5432/zenari",
 		"https://cdn.example.com/export.zip?Expires=1770000000&Policy=abcdef&Key-Pair-Id=K1234567890",
-		"https://storage.googleapis.com/zenart/export.zip?GoogleAccessId=service@example.iam.gserviceaccount.com&X-Goog-Signature=abcdef",
+		"https://storage.googleapis.com/zenari/export.zip?GoogleAccessId=service@example.iam.gserviceaccount.com&X-Goog-Signature=abcdef",
 		"service_account_json={\"private_key\":\"-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----\"}",
 	}, " ")
 
@@ -2034,7 +2037,7 @@ func TestRedactStringCoversStoragePostPolicyAndCustomerEncryptionSecrets(t *test
 	customerKey := strings.Repeat("A", 44)
 	input := strings.Join([]string{
 		"https://bucket.s3.amazonaws.com/export.zip?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAIOSFODNN7EXAMPLE%2F20260527%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Policy=eyJleHBpcmF0aW9uIjoiMjAyNiJ9&X-Amz-Signature=abcdef123456&X-Amz-Security-Token=session-token",
-		"https://storage.googleapis.com/zenart/export.zip?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=service@example.iam.gserviceaccount.com&X-Goog-Signature=googabcdef&GoogleAccessId=service@example.iam.gserviceaccount.com",
+		"https://storage.googleapis.com/zenari/export.zip?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Credential=service@example.iam.gserviceaccount.com&X-Goog-Signature=googabcdef&GoogleAccessId=service@example.iam.gserviceaccount.com",
 		"x-amz-server-side-encryption-customer-key=" + customerKey,
 	}, " ")
 
@@ -2476,7 +2479,7 @@ func TestRedactStringCoversLaunchInfraDSNsAndTokens(t *testing.T) {
 		"smtp_dsn=smtp://mailer:smtp-password@smtp.internal:587",
 		"elasticsearch_url=https://elastic:elastic-password@search.internal:9200",
 		"opensearch_url=https://opensearch:opensearch-password@search.internal:9200",
-		"clickhouse_url=clickhouse://analytics:clickhouse-password@clickhouse.internal:9440/zenart",
+		"clickhouse_url=clickhouse://analytics:clickhouse-password@clickhouse.internal:9440/zenari",
 		"elastic_api_key=abcdefghijklmnopqrstuvwxyz1234567890ABCD==",
 		"metabase_session=abcdefghijklmnopqrstuvwxyz1234567890",
 		"Authorization: ApiKey abcdefghijklmnopqrstuvwxyz123456",
@@ -2670,14 +2673,14 @@ func TestRedactStringCoversLaunchDataWarehouseCredentials(t *testing.T) {
 		"airbyte_client_secret=airbyte-secret",
 		"fivetran_api_secret=fivetran-secret",
 		"motherduck_token=md_abcdefghijklmnopqrstuvwxyz123456",
-		"neon_database_url=postgres://app:neon-password@ep-test.neon.tech/zenart",
+		"neon_database_url=postgres://app:neon-password@ep-test.neon.tech/zenari",
 		"planetscale_service_token=pscale_tkn_abcdefghijklmnopqrstuvwxyz",
 		"turso_auth_token=turso-secret",
 		"libsql_auth_token=libsql-secret",
 		"aiven_api_token=aiven-secret",
 		"cockroach_url=postgresql://root:roach-password@roach.internal:26257/defaultdb",
-		"mongodb_uri=mongodb+srv://app:mongo-password@cluster.example.test/zenart",
-		"mysql_dsn=mysql://app:mysql-password@mysql.internal:3306/zenart",
+		"mongodb_uri=mongodb+srv://app:mongo-password@cluster.example.test/zenari",
+		"mysql_dsn=mysql://app:mysql-password@mysql.internal:3306/zenari",
 	}, " ")
 
 	got := RedactString(input)
@@ -2723,14 +2726,14 @@ func TestRedactMapCoversLaunchDataWarehouseStructuredMetadata(t *testing.T) {
 		"airbyteClientSecret":          "airbyte-secret",
 		"fivetranApiSecret":            "fivetran-secret",
 		"motherduckToken":              "md_abcdefghijklmnopqrstuvwxyz123456",
-		"neonDatabaseUrl":              "postgres://app:neon-password@ep-test.neon.tech/zenart",
+		"neonDatabaseUrl":              "postgres://app:neon-password@ep-test.neon.tech/zenari",
 		"planetscaleServiceToken":      "pscale_tkn_abcdefghijklmnopqrstuvwxyz",
 		"tursoAuthToken":               "turso-secret",
 		"libsqlAuthToken":              "libsql-secret",
 		"aivenApiToken":                "aiven-secret",
 		"cockroachUrl":                 "postgresql://root:roach-password@roach.internal:26257/defaultdb",
-		"mongoUri":                     "mongodb+srv://app:mongo-password@cluster.example.test/zenart",
-		"mysqlDsn":                     "mysql://app:mysql-password@mysql.internal:3306/zenart",
+		"mongoUri":                     "mongodb+srv://app:mongo-password@cluster.example.test/zenari",
+		"mysqlDsn":                     "mysql://app:mysql-password@mysql.internal:3306/zenari",
 		"publicWarehouseRegion":        "us-east-1",
 	})
 	body, err := json.Marshal(redacted)
@@ -3202,7 +3205,7 @@ func TestRedactValueCoversMixedCaseLaunchSecretKeys(t *testing.T) {
 		"idToken":            "id-token-value",
 		"authToken":          "auth-token-value",
 		"secretKey":          "secret-key-value",
-		"databaseUrl":        "postgres://user:pass@example.test:5432/zenart",
+		"databaseUrl":        "postgres://user:pass@example.test:5432/zenari",
 		"serviceAccountJSON": `{"private_key":"-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----"}`,
 		"registryPassword":   "registry-password-value",
 		"publicLabel":        "visible",
@@ -3235,7 +3238,7 @@ func TestRedactValueCoversMixedCaseLaunchSecretKeys(t *testing.T) {
 }
 
 func TestRedactStringCoversMixedCaseRawJSONSecretKeys(t *testing.T) {
-	input := `{"clientSecret":"client-secret-value","accessToken":"access-token-value","refreshToken":"refresh-token-value","idToken":"id-token-value","databaseUrl":"postgres://user:pass@example.test:5432/zenart","serviceAccountJSON":{"private_key":"-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----"},"publicLabel":"visible"}`
+	input := `{"clientSecret":"client-secret-value","accessToken":"access-token-value","refreshToken":"refresh-token-value","idToken":"id-token-value","databaseUrl":"postgres://user:pass@example.test:5432/zenari","serviceAccountJSON":{"private_key":"-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----"},"publicLabel":"visible"}`
 	got := RedactString(input)
 
 	for _, leaked := range []string{

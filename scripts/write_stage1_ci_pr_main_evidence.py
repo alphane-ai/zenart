@@ -70,11 +70,13 @@ def normalize_trigger(args: argparse.Namespace) -> dict[str, str]:
     head_ref = env_or_arg(args.head_ref, "GITHUB_HEAD_REF")
     require(event_name in {"pull_request", "push", "workflow_dispatch"}, "trigger must be pull_request, push, or workflow_dispatch")
     require(base_ref == "main" or ref == "refs/heads/main", "trigger must target main")
+    target_ref = "refs/heads/main" if base_ref == "main" or ref == "refs/heads/main" else ref
     return {
         "event_name": event_name,
         "ref": ref,
         "base_ref": base_ref,
         "head_ref": head_ref,
+        "target_ref": target_ref,
     }
 
 

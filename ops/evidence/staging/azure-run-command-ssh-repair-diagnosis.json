@@ -1,0 +1,28 @@
+{
+  "can_clear_stage1_production_launch_gate": false,
+  "can_clear_stage1_staging_runtime_gate": false,
+  "findings": [
+    "missing_output"
+  ],
+  "generated_at": "2026-06-28T04:35:22+00:00",
+  "input_path": "ops/evidence/staging/azure-run-command-ssh-repair.output.txt",
+  "input_present": false,
+  "kind": "stage1_azure_run_command_ssh_repair_diagnosis",
+  "next_repair_lane": "ssh_transport",
+  "origin_runtime_status": "missing",
+  "output_path": "ops/evidence/staging/azure-run-command-ssh-repair-diagnosis.json",
+  "password_persisted": false,
+  "present_sections": [],
+  "private_key_persisted": false,
+  "raw_output_persisted": false,
+  "raw_run_command_output_persisted": false,
+  "recommended_actions": [
+    "Run scripts/azure_staging_run_command_payload.sh, paste the generated payload into Azure Portal VM Run Command, save the non-secret output locally, then rerun this classifier.",
+    "Do not use a missing-output diagnosis to clear staging or production gates."
+  ],
+  "release_gate_decision": "no_go",
+  "schema_version": "stage1.azure_run_command_ssh_repair_diagnosis.v1",
+  "secret_material_persisted": false,
+  "ssh_repair_status": "blocked",
+  "status": "blocked"
+}

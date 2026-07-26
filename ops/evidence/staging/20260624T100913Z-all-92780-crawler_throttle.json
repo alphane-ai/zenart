@@ -1,0 +1,77 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "created_at": "20260624T100942Z",
+  "run_id": "20260624T100913Z-all-92780-crawler_throttle",
+  "kind": "load",
+  "environment": "local",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "mode": "crawler_throttle",
+  "status": "passed",
+  "base_url": "https://staging.zenari.ai",
+  "requests": 20,
+  "concurrency": 4,
+  "paths": ["/readyz", "/api/admin/v1/crawler/sources"],
+  "expected_statuses": ["/readyz:200", "/api/admin/v1/crawler/sources:401", "/api/admin/v1/crawler/sources:403", "/api/admin/v1/crawler/sources:404", "/api/admin/v1/crawler/sources:501"],
+  "results_path": "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.ndjson",
+  "summary": {"failure_count": 0, "max_ms": 819, "p50_ms": 737, "p95_ms": 801, "request_count": 20, "statuses": {"/api/admin/v1/crawler/sources:401": 10, "/readyz:200": 10}},
+  "checks": [
+    {
+      "check_id": "chat_task",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.json",
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "worker_generation",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.json",
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "zip_export",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.json",
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "signed_download",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.json",
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "crawler_throttle",
+      "status": "passed",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.json",
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "quota_contention",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.json",
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.ndjson"
+      ]
+    },
+    {
+      "check_id": "workspace_rendering",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.json",
+        "ops/evidence/staging/20260624T100913Z-all-92780-crawler_throttle.ndjson"
+      ]
+    }
+  ],
+  "production_gate": "open_until_runtime_thresholds_and_full_staging_load_results_exist"
+}

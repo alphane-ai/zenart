@@ -1,6 +1,8 @@
 import {
   Candidate,
+  CanvasInteractionState,
   BriefUploadConfirmationRuntimeEvidence,
+  ExportDownloadAccessBoundaryEvidence,
   ExportDownloadParityEvidence,
   ExportZipPayloadSmokeEvidence,
   ExportFormat,
@@ -10,6 +12,7 @@ import {
   PackageManifest,
   PptReadyMetadata,
   QaFinding,
+  RenderedExportAssetEvidence,
   ReferenceAsset,
   ReferenceUploadIntegrationSmoke,
   ReferenceUploadValidationMatrixEvidence,
@@ -19,8 +22,11 @@ import {
   WorkspaceRenderingPerformanceSmoke,
   ShareLink,
   SupportTicket,
+  TeamSeatState,
   WorkflowApiSmokeEvidence,
-  WorkspaceState
+  WorkspaceState,
+  AssetLibraryState,
+  EditToolState
 } from "./contracts";
 import { ApiOperation, apiOperations } from "./generated/zenart-api";
 import { defaultSameSiteCsrfContract } from "./request-security";
@@ -32,7 +38,150 @@ const sessionRefreshMs = 20 * 60 * 1000;
 const devUser: SessionUser = {
   id: "user-dev-001",
   name: "Dev User",
-  email: "dev@zenart.local"
+  email: "dev@zenari.ai"
+};
+
+export const defaultTeamSeatState: TeamSeatState = {
+  usage: {
+    teamId: "team_1",
+    tenantId: "tenant_1",
+    planId: "plan-local-alpha",
+    seatLimit: 5,
+    activeSeats: 2,
+    invitedSeats: 1,
+    billableSeats: 3,
+    availableSeats: 2
+  },
+  entitlement: {
+    allowed: true,
+    reason: "ok",
+    additionalSeats: 1,
+    checkedAt: now
+  },
+  billingProjection: {
+    provider: "stripe",
+    prorationBehavior: "create_prorations",
+    invoiceImpact: "prorated_on_next_invoice",
+    nextBillableSeats: 3,
+    syncStatus: "local",
+    lastSyncedAt: now,
+    auditEvent: "team.seat.refresh",
+    safeProjection: true
+  },
+  pendingInvite: {
+    teamId: "team_1",
+    inviteId: "invite_1",
+    email: "teammate@example.com",
+    role: "member",
+    status: "pending"
+  },
+  lastSyncStatus: "local"
+};
+
+export const defaultAssetLibraryState: AssetLibraryState = {
+  items: [
+    {
+      id: "library_entry_1",
+      assetId: "asset_hero_1",
+      title: "Launch hero generated image",
+      assetType: "generated_image",
+      status: "active",
+      visibility: "tenant",
+      favorite: true,
+      archived: false,
+      reusable: true,
+      allowedProjects: ["project-001", "project-002"],
+      tags: ["approved", "hero"],
+      objectKey: "tenants/tenant_1/assets/launch-hero.png",
+      thumbnailKey: "tenants/tenant_1/assets/launch-hero-thumb.png",
+      lineageKind: "batch_child_provider_result",
+      traceId: "trace_asset_hero_1",
+      createdAt: "2026-06-22T10:00:00.000Z",
+      updatedAt: "2026-06-22T10:00:00.000Z"
+    },
+    {
+      id: "library_entry_2",
+      assetId: "asset_logo_1",
+      title: "Primary logo reference",
+      assetType: "image",
+      status: "active",
+      visibility: "project",
+      favorite: false,
+      archived: false,
+      reusable: true,
+      allowedProjects: ["project-001"],
+      tags: ["brand", "logo"],
+      objectKey: "tenants/tenant_1/assets/logo.png",
+      lineageKind: "asset_library",
+      traceId: "trace_asset_logo_1",
+      createdAt: "2026-06-22T10:05:00.000Z",
+      updatedAt: "2026-06-22T10:05:00.000Z"
+    }
+  ],
+  brandKits: [
+    {
+      id: "brand_kit_1",
+      name: "Aurora Retail",
+      status: "active",
+      logos: [{ assetId: "asset_logo_1", objectMetadataId: "object_logo_1", usage: "primary" }],
+      palette: [
+        { name: "Ink", hex: "#111827", role: "primary" },
+        { name: "Signal", hex: "#2563eb", role: "accent" },
+        { name: "Canvas", hex: "#ffffff", role: "background" }
+      ],
+      fonts: [{ family: "Inter", assetId: "asset_font_1", role: "body" }],
+      guidelines: [
+        {
+          id: "guideline_1",
+          title: "Logo clearance",
+          body: "Keep the primary logo clear of dense imagery.",
+          severity: "required"
+        }
+      ],
+      sourceRefs: [{ kind: "asset_library", assetId: "asset_logo_1", traceId: "trace_asset_logo_1" }],
+      projectBindings: [{ projectId: "project-001", default: true }],
+      createdAt: "2026-06-22T10:00:00.000Z",
+      updatedAt: "2026-06-22T10:00:00.000Z"
+    }
+  ],
+  defaultBrandKit: undefined,
+  syncStatus: "local",
+  syncedAt: "2026-06-22T10:00:00.000Z",
+  operations: [
+    "listAssetLibrary",
+    "createAssetLibraryEntry",
+    "updateAssetLibraryEntry",
+    "listBrandKits",
+    "createBrandKit",
+    "updateBrandKit",
+    "getProjectDefaultBrandKit",
+    "setProjectDefaultBrandKit"
+  ],
+  packagedAssetIds: []
+};
+
+defaultAssetLibraryState.defaultBrandKit = defaultAssetLibraryState.brandKits[0];
+
+export const defaultEditToolState: EditToolState = {
+  contract: "stage1.edit-tools-mask-local-contract",
+  availableTools: ["crop", "rotate", "flip", "remove_background", "upscale", "erase", "expand"],
+  activeTool: "erase",
+  mask: {
+    assetId: "mask_local_001",
+    objectKey: "tenants/tenant_1/masks/mask_local_001.png",
+    width: 1024,
+    height: 768,
+    kind: "brush",
+    coveragePct: 0.18,
+    sourceNodeId: "node-brief"
+  },
+  sourceAssetId: "asset_hero_1",
+  sourceNodeId: "node-brief",
+  sourceWidth: 1024,
+  sourceHeight: 768,
+  revisions: [],
+  lastAction: "load",
+  syncStatus: "local"
 };
 
 export const requiredExportPackageOutputs = [
@@ -45,8 +194,10 @@ export const requiredExportPackageOutputs = [
   "assets/"
 ] as const;
 
+export const renderedAssetManifestPayloadName = "assets/local-rendered-asset-manifest.json";
+
 export const requiredExportZipPayloadNames = requiredExportPackageOutputs.map((outputName) =>
-  outputName === "assets/" ? "assets/README.txt" : outputName
+  outputName === "assets/" ? renderedAssetManifestPayloadName : outputName
 );
 
 export const isSafeExportZipPayloadName = (payloadName: string) => {
@@ -64,8 +215,30 @@ export const isSafeExportZipPayloadName = (payloadName: string) => {
   );
 };
 
+const renderedOutputExtensions = [".png", ".jpg", ".jpeg", ".webp", ".pdf"] as const;
+
+const isRenderedAssetOutputName = (payloadName: string) =>
+  payloadName.startsWith("assets/") &&
+  renderedOutputExtensions.some((extension) => payloadName.toLowerCase().endsWith(extension));
+
+const toRenderedAssetPayloadName = (outputName: string) => {
+  const normalized = outputName.replace(/^assets\//, "").replace(/[^a-zA-Z0-9._-]+/g, "-");
+  const stem = normalized.replace(/\.[^.]+$/, "");
+  const sourceExtension = normalized.includes(".") ? normalized.slice(normalized.lastIndexOf(".") + 1).toLowerCase() : "asset";
+  const payloadName = `assets/rendered/${stem}-${sourceExtension}.svg`;
+
+  return isSafeExportZipPayloadName(payloadName) ? payloadName : "";
+};
+
 export const toExportZipPayloadName = (outputName: string) => {
-  const payloadName = outputName === "assets/" ? "assets/README.txt" : outputName;
+  const payloadName =
+    outputName === "assets/"
+      ? renderedAssetManifestPayloadName
+      : isRenderedAssetOutputName(outputName)
+        ? isSafeExportZipPayloadName(outputName)
+          ? toRenderedAssetPayloadName(outputName)
+          : ""
+        : outputName;
 
   return isSafeExportZipPayloadName(payloadName) ? payloadName : "";
 };
@@ -110,7 +283,7 @@ export const buildExportIdentityContractDigest = (record: ExportRecord) => {
 export const buildExportManifestPayload = (record: ExportRecord) => ({
   ...record.manifest,
   export_id: record.id,
-  generated_by: "zenart-web-dev-client",
+  generated_by: "zenari-web-dev-client",
   workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
   workflow_fixture_id: record.manifest.workflow_acceptance?.fixture_id ?? "none",
   provider: "dev-provider",
@@ -125,7 +298,7 @@ export const buildExportWorkflowMetadataPayload = (record: ExportRecord, outputN
   package_id: record.manifest.package_id,
   project_id: record.manifest.project_id,
   output_name: outputName,
-  generated_by: "zenart-web-dev-client",
+  generated_by: "zenari-web-dev-client",
   workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
   workflow_fixture_id: record.manifest.workflow_acceptance?.fixture_id ?? "none",
   provider: "dev-provider",
@@ -140,7 +313,7 @@ export const buildAiContentDisclaimerPayload = (record: ExportRecord) => ({
   export_id: record.id,
   package_id: record.manifest.package_id,
   project_id: record.manifest.project_id,
-  generated_by: "zenart-web-dev-client",
+  generated_by: "zenari-web-dev-client",
   generation_mode: "deterministic-local-alpha",
   applies_to: "export-package",
   workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
@@ -173,6 +346,160 @@ export const buildExportZipPayloadContentDigest = (
     .sort()
     .join("|");
 
+export const toDownloadableRenderedAssetPayloadName = (outputName: string) => {
+  if (!isRenderedAssetOutputName(outputName)) {
+    return "";
+  }
+
+  return toRenderedAssetPayloadName(outputName);
+};
+
+const escapeSvgText = (value: string) =>
+  value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+
+const buildLocalRenderedAssetSvg = (record: ExportRecord, outputName: string, index: number) => {
+  const workflowId = record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export";
+  const taxonomy = record.manifest.workflow_acceptance?.strategy_taxonomy[index % Math.max(1, record.manifest.workflow_acceptance?.strategy_taxonomy.length ?? 1)] ?? "local-render";
+  const title = outputName.replace(/^assets\//, "");
+  const accentColors = ["#2563eb", "#16a34a", "#dc2626", "#ca8a04", "#0891b2", "#7c3aed"];
+  const accent = accentColors[index % accentColors.length];
+
+  return [
+    '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-label="Zenari local rendered export asset">',
+    "<defs>",
+    '<linearGradient id="surface" x1="0" y1="0" x2="1" y2="1">',
+    '<stop offset="0" stop-color="#f8fafc"/>',
+    '<stop offset="1" stop-color="#e5e7eb"/>',
+    "</linearGradient>",
+    "</defs>",
+    '<rect width="1200" height="900" fill="url(#surface)"/>',
+    `<rect x="64" y="64" width="1072" height="772" rx="18" fill="#ffffff" stroke="${accent}" stroke-width="8"/>`,
+    `<rect x="112" y="128" width="320" height="72" rx="12" fill="${accent}"/>`,
+    '<rect x="112" y="248" width="360" height="360" rx="20" fill="#111827"/>',
+    `<circle cx="292" cy="428" r="118" fill="${accent}" opacity="0.88"/>`,
+    '<rect x="528" y="252" width="520" height="38" rx="8" fill="#111827"/>',
+    '<rect x="528" y="322" width="420" height="28" rx="6" fill="#475569"/>',
+    '<rect x="528" y="376" width="480" height="28" rx="6" fill="#64748b"/>',
+    '<rect x="528" y="430" width="360" height="28" rx="6" fill="#94a3b8"/>',
+    '<rect x="528" y="540" width="220" height="64" rx="14" fill="#111827"/>',
+    `<text x="136" y="176" font-family="Inter, Arial, sans-serif" font-size="32" font-weight="700" fill="#ffffff">${escapeSvgText(workflowId)}</text>`,
+    `<text x="112" y="704" font-family="Inter, Arial, sans-serif" font-size="42" font-weight="700" fill="#111827">${escapeSvgText(title)}</text>`,
+    `<text x="112" y="762" font-family="Inter, Arial, sans-serif" font-size="26" fill="#475569">local deterministic render · ${escapeSvgText(taxonomy)}</text>`,
+    `<text x="528" y="580" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700" fill="#ffffff">${escapeSvgText(record.id)}</text>`,
+    "</svg>"
+  ].join("");
+};
+
+export const buildRenderedExportAssetEntries = (record: ExportRecord) => {
+  const outputNames = record.manifest.required_outputs.filter(
+    (outputName) => isRenderedAssetOutputName(outputName) && isSafeExportZipPayloadName(outputName)
+  );
+
+  return outputNames.map((outputName, index) => {
+    const payloadName = toRenderedAssetPayloadName(outputName);
+    const body = buildLocalRenderedAssetSvg(record, outputName, index);
+
+    return {
+      outputName,
+      payloadName,
+      contentType: "image/svg+xml",
+      byteSize: new TextEncoder().encode(body).length,
+      contentDigest: buildPayloadBodyDigest(body),
+      body
+    };
+  }).filter((entry) => entry.payloadName);
+};
+
+export const buildRenderedExportAssetManifestPayload = (record: ExportRecord) => {
+  const renderedAssets = buildRenderedExportAssetEntries(record);
+
+  return {
+    schema_version: "stage1.rendered-export-asset-local-manifest.v1",
+    export_id: record.id,
+    package_id: record.manifest.package_id,
+    project_id: record.manifest.project_id,
+    render_mode: "deterministic-local-svg-pdf",
+    renderer: "zenari-web-dev-client",
+    source_manifest_required_output_count: record.manifest.required_outputs.length,
+    staging_signed_url_evidence: "open",
+    object_retention_cleanup_evidence: "open",
+    can_clear_stage1_staging_runtime_gate: false,
+    assets: renderedAssets.map(({ outputName, payloadName, contentType, byteSize, contentDigest }) => ({
+      source_output_name: outputName,
+      payload_name: payloadName,
+      content_type: contentType,
+      byte_size: byteSize,
+      content_digest: contentDigest
+    }))
+  };
+};
+
+export const buildRenderedExportAssetEvidence = (record: ExportRecord): RenderedExportAssetEvidence => {
+  const renderedAssets = buildRenderedExportAssetEntries(record);
+  const renderedAssetPayloadNames = renderedAssets.map((asset) => asset.payloadName);
+  const placeholderPayloadNames = buildDownloadableExportZipPayloadNames(record).filter((payloadName) =>
+    /placeholder|README\.txt/i.test(payloadName)
+  );
+  const unsafePayloadNames = [
+    renderedAssetManifestPayloadName,
+    ...renderedAssetPayloadNames
+  ].filter((payloadName) => !isSafeExportZipPayloadName(payloadName));
+  const manifestPayload = buildRenderedExportAssetManifestPayload(record);
+  const failures: RenderedExportAssetEvidence["failures"] = [];
+
+  if (record.format !== "zip") {
+    failures.push("format");
+  }
+  if (record.status !== "ready") {
+    failures.push("status");
+  }
+  if (manifestPayload.assets.length !== renderedAssets.length || renderedAssets.length === 0) {
+    failures.push("manifest");
+  }
+  if (renderedAssets.length === 0 || renderedAssets.some((asset) => asset.byteSize <= 0 || asset.contentType !== "image/svg+xml")) {
+    failures.push("rendered-assets");
+  }
+  if (placeholderPayloadNames.length > 0) {
+    failures.push("placeholder-payload");
+  }
+  if (unsafePayloadNames.length > 0) {
+    failures.push("unsafe-payload");
+  }
+
+  return {
+    schema_version: "stage1.rendered-export-asset-local-contract.v1",
+    status: failures.length === 0 ? "pass" : "fail",
+    exportId: record.id,
+    packageId: record.manifest.package_id,
+    projectId: record.manifest.project_id,
+    renderMode: "deterministic-local-svg-pdf",
+    renderedAssetManifestPayloadName,
+    manifestAssetOutputCount: record.manifest.required_outputs.filter(isRenderedAssetOutputName).length,
+    renderedAssetPayloadCount: renderedAssets.length,
+    renderedAssetPayloadNames,
+    renderedAssetOutputNames: renderedAssets.map((asset) => asset.outputName),
+    renderedAssetContentTypes: Array.from(new Set(renderedAssets.map((asset) => asset.contentType))),
+    renderedAssetByteCount: renderedAssets.reduce((total, asset) => total + asset.byteSize, 0),
+    placeholderPayloadCount: placeholderPayloadNames.length,
+    placeholderPayloadNames,
+    unsafePayloadCount: unsafePayloadNames.length,
+    unsafePayloadNames,
+    rawProviderPayloadProjected: false,
+    rawSafetyPayloadProjected: false,
+    secretLikeValueProjected: false,
+    signedUrlPersisted: false,
+    stagingSignedUrlEvidence: "open",
+    objectRetentionCleanupEvidence: "open",
+    canClearStage1StagingRuntimeGate: false,
+    canClearStage1ProductionLaunchGate: false,
+    failures
+  };
+};
+
 export const buildExportZipPayloadEntries = (record: ExportRecord) => {
   const entries = new Map<string, string>();
   const put = (payloadName: string, body: string) => {
@@ -196,7 +523,7 @@ export const buildExportZipPayloadEntries = (record: ExportRecord) => {
         export_id: record.id,
         package_id: record.manifest.package_id,
         project_id: record.manifest.project_id,
-        generated_by: "zenart-web-dev-client",
+        generated_by: "zenari-web-dev-client",
         workflow_id: record.manifest.workflow_acceptance?.workflow_id ?? "generic-stage0-export",
         provider: "dev-provider",
         model: "deterministic-local-alpha",
@@ -212,12 +539,15 @@ export const buildExportZipPayloadEntries = (record: ExportRecord) => {
       2
     )
   );
-  put(
-    "assets/README.txt",
-    "Deterministic local alpha export placeholder. Replace with object-storage asset references in backend export builder."
-  );
+  put(renderedAssetManifestPayloadName, JSON.stringify(buildRenderedExportAssetManifestPayload(record), null, 2));
+  for (const renderedAsset of buildRenderedExportAssetEntries(record)) {
+    put(renderedAsset.payloadName, renderedAsset.body);
+  }
 
   for (const requiredPayload of buildDownloadableExportZipPayloadNames(record)) {
+    if (entries.has(requiredPayload)) {
+      continue;
+    }
     put(requiredPayload, JSON.stringify(buildExportWorkflowMetadataPayload(record, requiredPayload), null, 2));
   }
   for (const outputName of record.manifest.required_outputs) {
@@ -228,7 +558,9 @@ export const buildExportZipPayloadEntries = (record: ExportRecord) => {
     if (!payloadName) {
       throw new Error(`Unsafe export ZIP payload name: ${outputName}`);
     }
-    put(payloadName, JSON.stringify(buildExportWorkflowMetadataPayload(record, payloadName), null, 2));
+    if (!entries.has(payloadName)) {
+      put(payloadName, JSON.stringify(buildExportWorkflowMetadataPayload(record, payloadName), null, 2));
+    }
   }
 
   return buildDownloadableExportZipPayloadNames(record)
@@ -356,7 +688,7 @@ export const createSessionContract = (
     expiresAt: new Date(issuedTime + sessionTtlMs).toISOString(),
     refreshAfter: new Date(issuedTime + sessionRefreshMs).toISOString(),
     cookie: {
-      name: "__Host-zenart_session",
+      name: "__Host-zenari_session",
       httpOnly: true,
       secure: true,
       sameSite: "lax",
@@ -569,8 +901,37 @@ export const createInitialWorkspace = (): WorkspaceState => ({
     quotaLimit: 40,
     quotaUsed: 8,
     resetAt: "2026-06-01T00:00:00.000Z",
-    renewalMode: "mock-checkout"
+    renewalMode: "mock-checkout",
+    invoices: [
+      {
+        id: "in_test_local_alpha_001",
+        provider: "stripe",
+        status: "paid",
+        currency: "USD",
+        amountDueCents: 2900,
+        amountPaidCents: 2900,
+        invoiceUrl: "https://invoice.stripe.test/in_test_local_alpha_001",
+        receiptUrl: "https://invoice.stripe.test/in_test_local_alpha_001.pdf",
+        createdAt: "2026-06-21T10:00:00.000Z"
+      },
+      {
+        id: "in_test_local_alpha_002",
+        provider: "stripe",
+        status: "open",
+        currency: "USD",
+        amountDueCents: 4900,
+        amountPaidCents: 0,
+        invoiceUrl: "https://invoice.stripe.test/in_test_local_alpha_002",
+        receiptUrl: "https://invoice.stripe.test/in_test_local_alpha_002.pdf",
+        createdAt: "2026-06-22T10:00:00.000Z"
+      }
+    ],
+    invoiceSyncStatus: "local",
+    invoiceSyncedAt: "2026-06-22T10:00:00.000Z"
   },
+  teamSeats: defaultTeamSeatState,
+  assetLibrary: defaultAssetLibraryState,
+  editTools: defaultEditToolState,
   projects: [
     {
       id: "project-001",
@@ -623,6 +984,11 @@ export const createInitialWorkspace = (): WorkspaceState => ({
         kind: "brief",
         x: 80,
         y: 110,
+        width: 230,
+        height: 118,
+        zIndex: 1,
+        locked: false,
+        hidden: false,
         body: "Campaign direction board with four strategic routes, packageable assets, manifest, and QA."
       }
     ],
@@ -632,16 +998,48 @@ export const createInitialWorkspace = (): WorkspaceState => ({
         id: "version-001",
         label: "Initial brief",
         createdAt: now,
-        nodeCount: 1
+        nodeCount: 1,
+        versionNumber: 1,
+        snapshot: {
+          nodes: [
+            {
+              id: "node-brief",
+              title: "Confirmed Brief",
+              kind: "brief",
+              x: 80,
+              y: 110,
+              width: 230,
+              height: 118,
+              zIndex: 1,
+              locked: false,
+              hidden: false,
+              body: "Campaign direction board with four strategic routes, packageable assets, manifest, and QA."
+            }
+          ],
+          edges: []
+        },
+        diff: {
+          addedNodeIds: ["node-brief"],
+          removedNodeIds: [],
+          changedNodeIds: [],
+          unchangedNodeIds: []
+        },
+        restorePreview: {
+          restoresNodeIds: ["node-brief"],
+          preservesNodeIds: [],
+          conflictNodeIds: []
+        }
       }
     ],
     activeVersionId: "version-001",
-    autosavedAt: now
+    autosavedAt: now,
+    interaction: defaultCanvasInteraction
   },
   packageItems: [],
   exports: [],
   shareLinks: [],
-  supportTickets: []
+  supportTickets: [],
+  batchGenerations: []
 });
 
 export const buildManifest = (
@@ -726,13 +1124,13 @@ export const buildPptReadyMetadata = (items: PackageItem[]): PptReadyMetadata =>
           notes: `${item.type} exported from ${item.sourceId} with safe-area bounds and presenter handoff context.`
         }))
       : [
-          {
-            id: "slide-01",
-            source_item_id: "empty-package",
-            title: "Package placeholder",
-            layout: "handoff-notes",
-            notes: "Export is blocked until package items are added."
-          }
+	      {
+	        id: "slide-01",
+	        source_item_id: "empty-package",
+	        title: "Empty package draft",
+	        layout: "handoff-notes",
+	        notes: "Export is blocked until package items are added."
+	      }
         ],
   handoff_checklist: [
     "16:9 presentation canvas",
@@ -936,6 +1334,87 @@ export const workspaceRenderingPerformanceBudget: WorkspaceRenderingPerformanceS
   maxInteractionMs: 100
 };
 
+export const defaultCanvasInteraction: CanvasInteractionState = {
+  contract: "stage1.canvas-interaction-user-contract",
+  tool: "select",
+  zoom: 1,
+  selectedNodeIds: ["node-brief"],
+  pan: {
+    x: 0,
+    y: 0
+  },
+  lastAction: "load",
+  keyboardShortcuts: ["delete", "duplicate", "undo", "redo", "zoom_in", "zoom_out", "space_hand", "shift_multi_select"],
+  toolbarTools: ["select", "hand", "frame", "text", "shape", "upload"],
+  layersPanelEnabled: true
+};
+
+const cloneCanvasNodes = (nodes: WorkspaceState["canvas"]["nodes"]) => nodes.map((node) => ({ ...node }));
+
+const cloneCanvasEdges = (edges: WorkspaceState["canvas"]["edges"]) => edges.map((edge) => ({ ...edge }));
+
+const buildCanvasVersionDiff = (
+  previousNodes: WorkspaceState["canvas"]["nodes"],
+  nextNodes: WorkspaceState["canvas"]["nodes"]
+) => {
+  const previousById = new Map(previousNodes.map((node) => [node.id, node]));
+  const nextById = new Map(nextNodes.map((node) => [node.id, node]));
+  const addedNodeIds: string[] = [];
+  const removedNodeIds: string[] = [];
+  const changedNodeIds: string[] = [];
+  const unchangedNodeIds: string[] = [];
+
+  for (const node of nextNodes) {
+    const previous = previousById.get(node.id);
+    if (!previous) {
+      addedNodeIds.push(node.id);
+    } else if (JSON.stringify(previous) === JSON.stringify(node)) {
+      unchangedNodeIds.push(node.id);
+    } else {
+      changedNodeIds.push(node.id);
+    }
+  }
+  for (const node of previousNodes) {
+    if (!nextById.has(node.id)) {
+      removedNodeIds.push(node.id);
+    }
+  }
+
+  return {
+    addedNodeIds: addedNodeIds.sort(),
+    removedNodeIds: removedNodeIds.sort(),
+    changedNodeIds: changedNodeIds.sort(),
+    unchangedNodeIds: unchangedNodeIds.sort()
+  };
+};
+
+export const createCanvasVersionSnapshot = (state: WorkspaceState, label: string) => {
+  const nextVersionNumber = state.canvas.versions.length + 1;
+  const previousVersion = state.canvas.versions.at(-1);
+  const previousNodes = previousVersion?.snapshot?.nodes ?? [];
+  const snapshotNodes = cloneCanvasNodes(state.canvas.nodes);
+  const snapshotEdges = cloneCanvasEdges(state.canvas.edges);
+  const nodeIds = snapshotNodes.map((node) => node.id).sort();
+
+  return {
+    id: `version-${String(nextVersionNumber).padStart(3, "0")}`,
+    label,
+    createdAt: new Date().toISOString(),
+    nodeCount: snapshotNodes.length,
+    versionNumber: nextVersionNumber,
+    snapshot: {
+      nodes: snapshotNodes,
+      edges: snapshotEdges
+    },
+    diff: buildCanvasVersionDiff(previousNodes, snapshotNodes),
+    restorePreview: {
+      restoresNodeIds: nodeIds,
+      preservesNodeIds: [],
+      conflictNodeIds: []
+    }
+  };
+};
+
 const workspaceRenderingStepWeights = {
   load: 1,
   "brief-confirm": 2,
@@ -1133,10 +1612,10 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     zipPayloadPathSafetyStatus === "pass" ? buildExportZipPayloadContentDigest(buildExportZipPayloadEntries(record)) : "";
   const workflowPayloadStatuses = record.manifest.workflow_acceptance?.required_files.map((payloadName) => ({
     name: payloadName,
-    present: zipPayloadNames.includes(payloadName)
+    present: zipPayloadNames.includes(toExportZipPayloadName(payloadName))
   })) ?? [];
   const workflowZipPayloadCount = record.manifest.workflow_acceptance?.required_files.filter((payloadName) =>
-    zipPayloadNames.includes(payloadName)
+    zipPayloadNames.includes(toExportZipPayloadName(payloadName))
   ).length ?? 0;
   const workflowMetadataPayloadPresent = zipPayloadNames.includes("metadata.json");
   const workflowTraceProvenancePayloadPresent = zipPayloadNames.includes("trace_provenance.json");
@@ -1184,7 +1663,7 @@ export const buildPackageExportMetadataEvidence = (record: ExportRecord): Packag
     zipPayloadNames.includes("provenance.json") &&
     aiContentDisclaimerPayloadPresent &&
     zipPayloadNames.includes("ppt-ready-metadata.json") &&
-    zipPayloadNames.includes("assets/README.txt")
+    zipPayloadNames.includes(renderedAssetManifestPayloadName)
       ? "pass"
       : "fail";
   const status =
@@ -1306,13 +1785,13 @@ export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): Export
   const missingBaselinePayloadNames = requiredBaselinePayloadNames.filter(
     (payloadName) => !expectedPayloadNames.includes(payloadName)
   );
-  const workflowPayloadNames = record.manifest.workflow_acceptance?.required_files.filter((payloadName) =>
-    expectedPayloadNames.includes(payloadName)
-  ) ?? [];
+  const workflowPayloadNames = record.manifest.workflow_acceptance?.required_files
+    .map(toExportZipPayloadName)
+    .filter((payloadName) => expectedPayloadNames.includes(payloadName)) ?? [];
   const metadataPayloadPresent = expectedPayloadNames.includes("metadata.json");
   const traceProvenancePayloadPresent = expectedPayloadNames.includes("trace_provenance.json");
   const aiContentDisclaimerPayloadPresent = expectedPayloadNames.includes("ai-content-disclaimer.json");
-  const assetsPayloadPresent = expectedPayloadNames.includes("assets/README.txt");
+  const assetsPayloadPresent = expectedPayloadNames.includes(renderedAssetManifestPayloadName);
   const failures: ExportZipPayloadSmokeEvidence["failures"] = [];
 
   if (missingBaselinePayloadNames.length > 0) {
@@ -1331,7 +1810,7 @@ export const buildExportZipPayloadSmokeEvidence = (record: ExportRecord): Export
     failures.push("trace-provenance");
   }
   if (!assetsPayloadPresent) {
-    failures.push("assets-readme");
+    failures.push("rendered-asset-manifest");
   }
   if (!aiContentDisclaimerPayloadPresent) {
     failures.push("ai-content-disclaimer");
@@ -1561,6 +2040,69 @@ export const buildExportDownloadParityEvidence = (
   };
 };
 
+export const buildExportDownloadAccessBoundaryEvidence = (
+  record: ExportRecord,
+  downloadParityEvidence = buildExportDownloadParityEvidence(record),
+  zipPayloadSmoke = buildExportZipPayloadSmokeEvidence(record),
+  renderedAssetEvidence = buildRenderedExportAssetEvidence(record)
+): ExportDownloadAccessBoundaryEvidence => {
+  const failures: ExportDownloadAccessBoundaryEvidence["failures"] = [];
+
+  if (downloadParityEvidence.downloadHandoffStatus !== "pass") {
+    failures.push("local-download");
+  }
+  if (zipPayloadSmoke.status !== "pass") {
+    failures.push("zip-payload");
+  }
+  if (renderedAssetEvidence.status !== "pass") {
+    failures.push("rendered-assets");
+  }
+  if (renderedAssetEvidence.signedUrlPersisted !== false) {
+    failures.push("signed-url-persisted");
+  }
+  if (renderedAssetEvidence.stagingSignedUrlEvidence !== "open") {
+    failures.push("staging-signed-url");
+  }
+  if (renderedAssetEvidence.objectRetentionCleanupEvidence !== "open") {
+    failures.push("retention");
+  }
+
+  const gateBoundaryIntact =
+    renderedAssetEvidence.canClearStage1StagingRuntimeGate === false &&
+    renderedAssetEvidence.canClearStage1ProductionLaunchGate === false;
+  if (!gateBoundaryIntact) {
+    failures.push("gate-boundary");
+  }
+
+  return {
+    schema_version: "stage1.export-download-access-boundary-local-contract.v1",
+    status: failures.length === 0 ? "pass" : "fail",
+    scenario: "local-browser-zip-does-not-clear-server-signed-url-or-retention-gates",
+    exportId: record.id,
+    packageId: record.manifest.package_id,
+    fileName: record.fileName,
+    localBrowserDownloadStatus: downloadParityEvidence.downloadHandoffStatus,
+    localZipPayloadStatus: zipPayloadSmoke.status,
+    renderedAssetStatus: renderedAssetEvidence.status,
+    productDownloadUrlPolicy: "server-mediated-relative-signed-url",
+    serverDownloadRoute: "GET /api/v1/objects/download",
+    objectStoreDirectSigningUsedForExportDownload: false,
+    signedUrlPersisted: false,
+    signedUrlMaterialProjected: false,
+    downloadResponseDisclosesObjectKeyHeader: false,
+    requiresActiveRetentionMetadata: true,
+    requiresDownloadAudit: true,
+    requiresDownloadAnalytics: true,
+    strictStagingSignedUrlEvidence: "open",
+    strictStagingRetentionCleanupEvidence: "open",
+    productionObjectStorageEvidence: "open",
+    canClearStage1StagingRuntimeGate: false,
+    canClearStage1ProductionLaunchGate: false,
+    canClearObjectStorageDoNotLaunch: false,
+    failures
+  };
+};
+
 const acceptedImageExtensions = [".png", ".jpg", ".jpeg", ".webp"];
 const acceptedDocumentExtensions = [".pdf"];
 
@@ -1738,7 +2280,7 @@ export const buildReferenceUploadIntegrationSmoke = (state: WorkspaceState): Ref
       reference.upload.method === "POST" &&
       reference.upload.path === "/uploads" &&
       reference.upload.credentialMode === "include" &&
-      reference.upload.csrfHeaderName === "X-ZenArt-CSRF" &&
+      reference.upload.csrfHeaderName === "X-Zenari-CSRF" &&
       reference.upload.idempotencyRequired &&
       reference.upload.previewScope === "tenant-scoped-dev-preview" &&
       reference.upload.previewUrl === `/dev-preview/uploads/${reference.id}`
@@ -1994,7 +2536,7 @@ const buildWorkflowApiSmokeEvidence = (
   if (
     apiOperationContracts.length !== ecommerceGrowthApiSmokeOperationIds.length ||
     apiOperationContracts.some((contract) => contract.credentialMode !== "include") ||
-    apiOperationContracts.some((contract) => contract.csrfProtected && contract.csrfHeaderName !== "X-ZenArt-CSRF")
+    apiOperationContracts.some((contract) => contract.csrfProtected && contract.csrfHeaderName !== "X-Zenari-CSRF")
   ) {
     failures.push("operation-contract");
   }
@@ -2044,6 +2586,7 @@ export const buildSupportProblemContext = (state: WorkspaceState, linkedExportId
     projectId: state.activeProjectId,
     projectName: state.projects.find((project) => project.id === state.activeProjectId)?.name ?? "Unknown project",
     linkedExportId: linkedExport?.id,
+    linkedBatchId: state.batchGenerations[0]?.id ?? "batch-local-workspace",
     linkedTaskId: state.selectedCandidateId ? `task-${state.selectedCandidateId}` : "task-brief",
     linkedTraceId: linkedExport ? `trace-${linkedExport.id}` : "trace-local-workspace",
     linkedAssetIds: acceptedReferences.map((reference) => reference.id),
@@ -2054,7 +2597,12 @@ export const buildSupportProblemContext = (state: WorkspaceState, linkedExportId
       remaining: Math.max(0, state.billing.quotaLimit - state.billing.quotaUsed),
       status: state.billing.status,
       resetAt: state.billing.resetAt
-    }
+    },
+    linkedBillingReferenceId:
+      state.billing.invoices[0]?.id ??
+      state.billing.checkoutSessionId ??
+      state.billing.portalSessionId ??
+      `quota:${state.billing.status}:${state.billing.resetAt}`
   };
 };
 
@@ -2072,10 +2620,12 @@ export const createSupportTicket = (
     body: input.body,
     status: "open",
     linkedExportId: context.linkedExportId,
+    linkedBatchId: context.linkedBatchId,
     linkedTaskId: context.linkedTaskId,
     linkedTraceId: context.linkedTraceId,
     linkedAssetIds: context.linkedAssetIds,
-    linkedQuotaSnapshot: context.linkedQuotaSnapshot
+    linkedQuotaSnapshot: context.linkedQuotaSnapshot,
+    linkedBillingReferenceId: context.linkedBillingReferenceId
   };
 };
 
@@ -2089,4 +2639,4 @@ export const createDisabledShareLink = (exportId: string, index: number): ShareL
 });
 
 export const formatExportFileName = (format: ExportFormat, exportCount: number) =>
-  `zenart-${String(exportCount + 1).padStart(3, "0")}.${format === "zip" ? "zip" : "pdf"}`;
+  `zenari-${String(exportCount + 1).padStart(3, "0")}.${format === "zip" ? "zip" : "pdf"}`;

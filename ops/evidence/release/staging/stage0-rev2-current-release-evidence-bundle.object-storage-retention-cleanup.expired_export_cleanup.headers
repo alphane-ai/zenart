@@ -1,0 +1,23 @@
+HTTP/2 401 
+date: Fri, 26 Jun 2026 03:36:00 GMT
+content-type: application/json
+content-length: 479
+access-control-allow-credentials: true
+access-control-allow-headers: Content-Type, Authorization, X-Request-ID, X-Zenari-User-ID, X-Zenari-Tenant-ID, X-Zenari-Roles, Idempotency-Key, X-Zenari-CSRF
+access-control-allow-methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+access-control-allow-origin: https://staging.zenari.ai
+alt-svc: h3=":443"; ma=86400
+content-security-policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'
+cross-origin-resource-policy: same-site
+permissions-policy: camera=(), microphone=(), geolocation=(), payment=()
+referrer-policy: no-referrer
+server: cloudflare
+vary: Origin
+x-content-type-options: nosniff
+x-frame-options: DENY
+x-request-id: stage0-object-retention-cleanup-expired_export_cleanup
+cf-cache-status: DYNAMIC
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=K55aHhiy3o8HbICQouhhPYh8col3Z4GFdMY%2BtA9Xji5xY61BqjIfvzKBdBj7dhz69BRmZeIsYHrzSZc3QTflb6oVis61AwR%2FPhkEjEBvmBbcRa5VN%2FnZFM62A4Pp4E5Y86J1j5Vlf0P7RPmakbV73g%3D%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+cf-ray: a1192a491a60b876-PDX
+

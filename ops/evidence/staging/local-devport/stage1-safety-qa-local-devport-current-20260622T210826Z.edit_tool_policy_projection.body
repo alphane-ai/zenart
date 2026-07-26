@@ -1,0 +1,11 @@
+{
+  "id": "safety_decision_52d50f9b60381a8e479b9beb",
+  "tenant_id": "tenant_local",
+  "rule_id": "safety_stage0_runtime_allow_v1",
+  "subject_type": "agent_task",
+  "subject_id": "task_31a3fa302eefc6768e6e8db4",
+  "enforcement_point": "provider_request",
+  "decision": "allow",
+  "rationale": "active safety rule matched enforcement point",
+  "created_at": "2026-06-22T21:08:27.468434Z"
+}

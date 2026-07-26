@@ -1,0 +1,294 @@
+{
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+    "public DNS probes returned no public A/AAAA records for zenari.ai",
+    "production HTTPS failed for https://zenari.ai/: skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+    "CLOUDFLARE_ZONE_ID_or_CF_ZONE_ID",
+    "CLOUDFLARE_API_TOKEN_or_CF_API_TOKEN",
+    "CLOUDFLARE_ZONE_DNS_SCOPE_PREFLIGHT_FAILED"
+  ],
+  "can_apply_dns_changes": false,
+  "can_clear_production_legal_support_policy": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "cloudflare_api_plan": [
+    "Do not export OBJECT_STORAGE_ACCESS_KEY or OBJECT_STORAGE_SECRET_KEY for DNS writes.",
+    "Export CLOUDFLARE_ZONE_ID or CF_ZONE_ID only in the operator shell.",
+    "Export CLOUDFLARE_API_TOKEN or CF_API_TOKEN with Zone DNS Edit permission only in the operator shell.",
+    "Export PRODUCTION_DNS_TARGET as the production web ingress IPv4 address or hostname.",
+    "Run stage1_production_dns_cutover_plan.py without --apply and confirm status ready_to_apply.",
+    "Run stage1_production_dns_cutover_plan.py --verify-cloudflare and confirm cloudflare_scope_preflight.status is pass.",
+    "Run stage1_production_dns_cutover_plan.py --apply only after reviewing the non-clearing plan."
+  ],
+  "cloudflare_ui_steps": [
+    "Do not use Cloudflare R2 S3 access keys for this DNS change; they are object-storage credentials only.",
+    "Open Cloudflare dashboard for the zenari.ai zone.",
+    "Go to DNS > Records and create or update the apex record named @ using PRODUCTION_DNS_TARGET.",
+    "Create or update www as a CNAME to zenari.ai.",
+    "Keep records proxied unless the production ingress requires DNS-only validation during certificate issuance.",
+    "Do not copy staging.zenari.ai records as the production target unless PRODUCTION_DNS_TARGET explicitly names that production ingress."
+  ],
+  "commands_after_inputs": [
+    "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
+    "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --verify-cloudflare --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
+    "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --apply --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
+    "python3 scripts/stage1_production_dns_readiness.py --output ops/evidence/non_clearing/production-dns-readiness.json",
+    "python3 scripts/stage1_production_source_probe.py --legal-support --release-sha $(git rev-parse HEAD) --production-web-url https://zenari.ai --write-canonical-source",
+    "python3 scripts/generate_stage1_production_legal_support_evidence.py --source ops/evidence/production/production-legal-support-source.json",
+    "python3 scripts/validate_stage1_production_legal_support_evidence.py",
+    "python3 scripts/generate_stage1_production_launch_evidence.py",
+    "python3 scripts/validate_stage1_production_launch.py"
+  ],
+  "cookie_persisted": false,
+  "credential_scope": {
+    "cloudflare_api_token_configured": false,
+    "cloudflare_dns_credentials_configured": false,
+    "cloudflare_zone_id_configured": false,
+    "dns_write_requires": [
+      "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+      "CLOUDFLARE_API_TOKEN or CF_API_TOKEN with Zone DNS Edit permission",
+      "PRODUCTION_DNS_TARGET"
+    ],
+    "operator_note": "Cloudflare R2 S3 access keys are object-storage credentials only and cannot create or edit zenari.ai DNS records; use a Cloudflare API token with Zone DNS Edit permission.",
+    "r2_s3_can_manage_dns": false,
+    "r2_s3_credentials_detected": true,
+    "r2_s3_present_keys": [
+      "OBJECT_STORAGE_ENDPOINT",
+      "OBJECT_STORAGE_BUCKET",
+      "OBJECT_STORAGE_ACCESS_KEY",
+      "OBJECT_STORAGE_SECRET_KEY"
+    ]
+  },
+  "current_dns": {
+    "apex_a_records": [],
+    "apex_aaaa_records": [],
+    "apex_cname_records": [],
+    "staging_a_records": [
+      "172.67.219.243",
+      "104.21.62.40"
+    ],
+    "www_a_records": [],
+    "www_cname_records": []
+  },
+  "dns_over_https_probe_summary": [
+    {
+      "addresses": [],
+      "error": "<urlopen error [Errno 54] Connection reset by peer>",
+      "host": "zenari.ai",
+      "probe_id": "production_a_cloudflare",
+      "resolver": "cloudflare",
+      "rrtype": "A",
+      "status": "blocked"
+    },
+    {
+      "addresses": [],
+      "error": "<urlopen error [Errno 54] Connection reset by peer>",
+      "host": "zenari.ai",
+      "probe_id": "production_aaaa_cloudflare",
+      "resolver": "cloudflare",
+      "rrtype": "AAAA",
+      "status": "blocked"
+    },
+    {
+      "addresses": [],
+      "error": "hard timeout after 12.0s",
+      "host": "zenari.ai",
+      "probe_id": "production_a_google",
+      "resolver": "google",
+      "rrtype": "A",
+      "status": "blocked"
+    },
+    {
+      "addresses": [],
+      "error": "hard timeout after 12.0s",
+      "host": "zenari.ai",
+      "probe_id": "production_aaaa_google",
+      "resolver": "google",
+      "rrtype": "AAAA",
+      "status": "blocked"
+    },
+    {
+      "addresses": [],
+      "error": "<urlopen error [Errno 54] Connection reset by peer>",
+      "host": "staging.zenari.ai",
+      "probe_id": "staging_a_cloudflare",
+      "resolver": "cloudflare",
+      "rrtype": "A",
+      "status": "blocked"
+    },
+    {
+      "addresses": [],
+      "error": "hard timeout after 12.0s",
+      "host": "staging.zenari.ai",
+      "probe_id": "staging_a_google",
+      "resolver": "google",
+      "rrtype": "A",
+      "status": "blocked"
+    }
+  ],
+  "environment": "production",
+  "gate_impact": {
+    "can_clear_production_legal_support_policy": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "can_close_do_not_launch": false,
+    "non_clearing_evidence_only": true,
+    "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete"
+  },
+  "generated_at": "2026-06-28T21:51:13+00:00",
+  "kind": "stage1_production_dns_repair_packet",
+  "non_clearing_repair_packet": true,
+  "operator_command_packet": [
+    {
+      "command": "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
+      "may_write_dns": false,
+      "requires_review": false,
+      "side_effect": "non-clearing plan only",
+      "step_id": "generate_plan_with_private_env"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_dns_cutover_plan.py --plan ops/evidence/non_clearing/production-dns-cutover-plan.json",
+      "may_write_dns": false,
+      "requires_review": false,
+      "side_effect": "local validation only",
+      "step_id": "validate_plan"
+    },
+    {
+      "command": "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --verify-cloudflare --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
+      "may_write_dns": false,
+      "requires_review": false,
+      "side_effect": "read-only Cloudflare zone and DNS permission preflight",
+      "step_id": "verify_cloudflare_scope"
+    },
+    {
+      "command": "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --apply --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
+      "may_write_dns": true,
+      "requires_review": true,
+      "side_effect": "operator-owned Cloudflare DNS write after review",
+      "step_id": "apply_reviewed_dns"
+    },
+    {
+      "command": "python3 scripts/stage1_production_dns_readiness.py --output ops/evidence/non_clearing/production-dns-readiness.json",
+      "may_write_dns": false,
+      "requires_review": false,
+      "side_effect": "read-only DNS and HTTPS probe",
+      "step_id": "wait_and_probe_dns"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_dns_repair_packet.py --operator-markdown ops/evidence/non_clearing/production-dns-operator-checklist.md",
+      "may_write_dns": false,
+      "requires_review": false,
+      "side_effect": "non-clearing evidence refresh",
+      "step_id": "regenerate_repair_packet"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_dns_repair_packet.py --operator-markdown ops/evidence/non_clearing/production-dns-operator-checklist.md",
+      "may_write_dns": false,
+      "requires_review": false,
+      "side_effect": "local validation only",
+      "step_id": "validate_repair_packet"
+    },
+    {
+      "command": "python3 scripts/refresh_stage1_production_non_clearing_evidence.py || test $? -eq 2",
+      "may_write_dns": false,
+      "requires_review": false,
+      "side_effect": "non-clearing summary refresh",
+      "step_id": "refresh_non_clearing_summary"
+    }
+  ],
+  "operator_next_actions": [
+    "Set the explicit production DNS target; do not use staging host as an implicit production target.",
+    "Provide Cloudflare zone id and a DNS-edit token only in the operator environment; do not persist token values.",
+    "Generate the cutover plan, apply DNS only after reviewing the non-clearing plan, then wait for public propagation.",
+    "Rerun DNS readiness and legal/support source probe after zenari.ai resolves and HTTPS public paths return pass."
+  ],
+  "private_env_template": {
+    "allowed_variable_names": [
+      "PRODUCTION_DNS_TARGET",
+      "CLOUDFLARE_ZONE_ID",
+      "CF_ZONE_ID",
+      "CLOUDFLARE_API_TOKEN",
+      "CF_API_TOKEN"
+    ],
+    "blank_values_only": true,
+    "gitignore_required": true,
+    "path_placeholder": "<private-production-env>",
+    "template_lines": [
+      "PRODUCTION_DNS_TARGET=",
+      "CLOUDFLARE_ZONE_ID=",
+      "CF_ZONE_ID=",
+      "CLOUDFLARE_API_TOKEN=",
+      "CF_API_TOKEN="
+    ]
+  },
+  "production_web_url": "https://zenari.ai",
+  "public_production_addresses_observed": [],
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "recommended_records": [
+    {
+      "content": "52.237.80.117",
+      "current_status": "missing",
+      "host": "zenari.ai",
+      "name": "@",
+      "proxied": true,
+      "required_when": "PRODUCTION_DNS_TARGET is an IPv4 production web ingress",
+      "ttl": "auto",
+      "type": "A"
+    },
+    {
+      "content": "zenari.ai",
+      "current_status": "missing",
+      "host": "www.zenari.ai",
+      "name": "www",
+      "proxied": true,
+      "required_when": "Apex zenari.ai is configured",
+      "ttl": "auto",
+      "type": "CNAME"
+    }
+  ],
+  "release_gate_decision": "no_go",
+  "required_inputs": [
+    "PRODUCTION_DNS_TARGET",
+    "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+    "CLOUDFLARE_API_TOKEN or CF_API_TOKEN"
+  ],
+  "schema_version": "stage1.production_dns_repair_packet.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_refs": {
+    "dns_cutover_plan": "ops/evidence/non_clearing/production-dns-cutover-plan.json",
+    "dns_readiness": "ops/evidence/non_clearing/production-dns-readiness.json",
+    "source_probe_runbook": "ops/evidence/non_clearing/production-source-probe-runbook.json"
+  },
+  "status": "blocked",
+  "summary": {
+    "cloudflare_api_token_configured": false,
+    "cloudflare_dns_credentials_configured": false,
+    "cloudflare_zone_id_configured": false,
+    "dns_blocker_count": 6,
+    "production_a_status": "missing",
+    "production_aaaa_status": "missing",
+    "production_dns_target_status": "ready",
+    "production_system_resolver_status": "blocked",
+    "public_production_address_count": 0,
+    "r2_s3_can_manage_dns": false,
+    "r2_s3_credentials_detected": true,
+    "required_input_count": 3,
+    "source_runbook_blocking_input_count": 2,
+    "source_runbook_step_id": "production_dns_https",
+    "staging_a_status": "pass",
+    "staging_control_resolver_status": "pass"
+  },
+  "verification_commands": [
+    "dig +short A zenari.ai",
+    "dig +short AAAA zenari.ai",
+    "dig +short CNAME www.zenari.ai",
+    "curl -I --max-time 12 https://zenari.ai/",
+    "curl -I --max-time 12 https://zenari.ai/legal/terms",
+    "python3 scripts/stage1_production_dns_readiness.py --output ops/evidence/non_clearing/production-dns-readiness.json"
+  ]
+}

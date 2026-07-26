@@ -1,0 +1,60 @@
+{
+  "schema_version": "stage1.skill_eval_release.contract.v1",
+  "fixture_id": "stage1_skill_eval_release_admin_contract",
+  "kind": "skill_eval_release_admin_contract",
+  "blueprint_items": ["AD-9", "QA-6", "QA-7", "VF-5"],
+  "required_backend_routes": [
+    "GET /api/admin/v1/skills",
+    "GET /api/admin/v1/skills/{skill_id}/versions",
+    "GET /api/admin/v1/eval/results",
+    "GET /api/admin/v1/eval/results/{result_id}/artifact"
+  ],
+  "required_permissions": {
+    "read": "skill_release:admin",
+    "eval_results": "skill_release:admin",
+    "artifact": "skill_release:admin"
+  },
+  "required_controls": [
+    "admin skill and release pages prefer live API rows and fall back to fixtures only when backend is unavailable",
+    "skill list projection is tenant-or-global scoped from the authenticated admin principal",
+    "skill version projection derives canary and active eligibility from latest tenant-scoped eval_results rows",
+    "eval result list reads stored eval_results rows without re-running eval suites",
+    "eval result projections redact secret-like summary, fixture, runner, and storage metadata",
+    "eval artifact endpoint returns audited admin retrieval metadata and keeps direct object access disabled",
+    "release pages expose OpenAPI operation anchors and skill_release:admin permission",
+    "local contract is read-only and does not include release/canary/rollback mutation buttons"
+  ],
+  "required_openapi_operations": [
+    "listSkills",
+    "listSkillVersions",
+    "listEvalResults",
+    "getEvalResultArtifact"
+  ],
+  "required_generated_client_operations": [
+    "listSkills",
+    "listSkillVersions",
+    "listEvalResults",
+    "getEvalResultArtifact"
+  ],
+  "required_files": [
+    "backend/internal/stage0/services.go",
+    "backend/internal/stage0/services_test.go",
+    "backend/internal/server/server.go",
+    "backend/internal/server/server_test.go",
+    "backend/migrations/0002_stage0_rev2_domains.sql",
+    "openapi/zenart.v1.yaml",
+    "admin/lib/generated/zenart-api.ts",
+    "admin/lib/admin-api.ts",
+    "admin/lib/types.ts",
+    "admin/app/skills/page.tsx",
+    "admin/app/skills/releases/page.tsx",
+    "admin/tests/admin-data.test.mjs"
+  ],
+  "non_launch_status": {
+    "local_contract": "pass",
+    "staging_evidence": "open",
+    "production_evidence": "open",
+    "can_clear_skill_release_eval_canary_gate": false,
+    "can_clear_stage1_safety_qa_gate": false
+  }
+}

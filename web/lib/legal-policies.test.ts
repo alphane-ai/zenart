@@ -13,9 +13,9 @@ describe("legal policy route contracts", () => {
   });
 
   it("keeps visible support contact and local alpha billing limits in policy copy", () => {
-    expect(supportContactEmail).toBe("support@zenart.local");
+    expect(supportContactEmail).toBe("support@zenari.ai");
     expect(legalPolicies.privacy.sections.map((section) => section.body).join(" ")).toContain("Client analytics capture");
     expect(legalPolicies["billing-policy"].sections.map((section) => section.body).join(" ")).toContain("mock checkout");
-    expect(legalPolicies["ip-complaints"].contact).toBe("legal@zenart.local");
+    expect(legalPolicies["ip-complaints"].contact).toBe("legal@zenari.ai");
   });
 });

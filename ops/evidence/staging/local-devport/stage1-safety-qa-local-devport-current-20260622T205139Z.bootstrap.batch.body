@@ -1,0 +1,59 @@
+{
+  "id": "batch_7b6a94a2467d65e454c8e994",
+  "tenant_id": "tenant_local",
+  "user_id": "user_local_user",
+  "project_id": "project_local_ecommerce_growth",
+  "workspace_id": "ws_stage1_smoke",
+  "prompt_context": {
+    "text": "Stage 1 safety QA local devport probe",
+    "tool_hint": "image.generate"
+  },
+  "requested_count": 1,
+  "quota_reservation_id": "quota_reservation_88cde2967ec89d7c5536bbe0",
+  "quota_estimated_units": 4,
+  "quota_committed_units": 0,
+  "quota_refunded_units": 0,
+  "trace_id": "trace_batch_4111fa0aeec8c73f5a8df171",
+  "status": "queued",
+  "children": [
+    {
+      "id": "child_674b1393d5b78d5b827e6886",
+      "batch_id": "batch_7b6a94a2467d65e454c8e994",
+      "tenant_id": "tenant_local",
+      "status": "queued",
+      "provider_id": "zenari-image-sandbox",
+      "model_id": "image-fast-v1",
+      "tool_type": "image.generate",
+      "seed": "batch_7b6a94a2467d65e454c8e994_01",
+      "retry_count": 0,
+      "max_retries": 2,
+      "quota_estimate_units": 4,
+      "quota_committed_units": 0,
+      "quota_refunded_units": 0,
+      "trace_id": "trace_child_fc181f71bc0b85f103272004",
+      "visible_trace_ref": "trace_projection_5bf19acd4bb933ab2f5d3ee0",
+      "metadata": {
+        "fanout_index": "0",
+        "routing_considered": "zenari-image-sandbox",
+        "routing_fallback_providers": "dev",
+        "routing_selection_policy": "weighted",
+        "routing_selection_reason": "weighted_slot",
+        "routing_strategy_group_id": "image-generation-default",
+        "source": "api"
+      },
+      "created_at": "2026-06-22T20:51:39.893488Z",
+      "updated_at": "2026-06-22T20:51:39.893488Z"
+    }
+  ],
+  "metadata": {
+    "fanout_stage": "queued_children_created_by_api",
+    "idempotency_fingerprint": "3720f33714ca812b23c3eebb2f3d563c12f88f1b6a6d097d6411c22dbbc93291",
+    "routing_selection_policy": "weighted",
+    "routing_strategy_group_id": "image-generation-default",
+    "routing_strategy_group_name": "Zenari image generation default",
+    "scheduler_note": "worker_policy_fanout_pending",
+    "source": "api"
+  },
+  "created_at": "2026-06-22T20:51:39.893488Z",
+  "updated_at": "2026-06-22T20:51:39.893488Z"
+}

@@ -1,0 +1,65 @@
+{
+  "schema_version": "stage1.provider_video_adapter.contract.v1",
+  "kind": "provider_video_adapter_local_contract",
+  "blueprint_source": "Docs/Stage1_20260621_blueprint.md",
+  "blueprint_items": ["PR-7", "PR-1", "PR-2", "AS-1", "AS-2", "QA-9"],
+  "source_files": [
+    "backend/internal/provider/adapters/video/video.go",
+    "backend/internal/provider/adapters/video/video_test.go"
+  ],
+  "adapter_contract": {
+    "package": "backend/internal/provider/adapters/video",
+    "endpoint": "video.generate",
+    "status_endpoint": "video.status",
+    "endpoint_version": "zenari_video_generate_adapter_v1",
+    "provider_schema_name": "zenari.video_generate.v1",
+    "status_schema_name": "zenari.video_status.v1",
+    "duration_seconds_min": 1,
+    "duration_seconds_max": 30,
+    "aspect_ratios": ["1:1", "16:9", "9:16"],
+    "first_frame_input": true,
+    "last_frame_input": true,
+    "frame_inputs_must_be_storage_keys": true,
+    "poll_statuses": ["queued", "running", "succeeded", "failed", "cancelled"],
+    "polling_projection_required": true,
+    "storage_result_required": true,
+    "result_kind": "video_generation_result",
+    "status_kind": "video_generation_status",
+    "video_asset_required": true,
+    "poster_asset_required": true,
+    "provider_client_wrapped": true,
+    "request_hash_required": true,
+    "request_hash_encoding": "json",
+    "secret_like_input_rejection": true,
+    "secret_like_payload_rejection": true,
+    "secret_like_result_rejection": true,
+    "raw_provider_payload_projected": false,
+    "raw_payload_persisted": false
+  },
+  "capability_contract": {
+    "endpoints": ["video.generate", "video.status"],
+    "input_types": ["prompt", "first_frame", "last_frame", "json"],
+    "output_types": ["video", "thumbnail"],
+    "tool_types": ["video.generate"]
+  },
+  "focused_tests": {
+    "go": [
+      "TestBuildProviderRequestRequiresDurationAspectAndFrameStorageKeys",
+      "TestClientInvokeProjectsQueuedStatusWithoutRawPayload",
+      "TestClientInvokeProjectsStorageResultAssetAndPoster",
+      "TestPollStatusBuildsStatusRequestAndProjectsSafeStatus",
+      "TestProjectResultAssetRejectsSecretLikeStorageResult",
+      "TestCapabilitiesExposeVideoGenerateStatusAndFrameInputs",
+      "TestValidateInputRejectsSecretLikePrompt"
+    ]
+  },
+  "non_launch_status": {
+    "local_provider_video_adapter_contract": "pass",
+    "video_sandbox_fixture_replay": "pass",
+    "real_provider_video_runtime": "open",
+    "staging_provider_video_evidence": "open",
+    "production_security_evidence": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_security_gate": false
+  }
+}

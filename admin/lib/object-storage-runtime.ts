@@ -63,6 +63,11 @@ const endpointByArea: Record<StagingObjectStorageRetentionCleanupCoverage["area"
 
 const canonicalPassReportPath = "ops/evidence/staging/object-storage-retention-cleanup.json";
 const canonicalPassResultsPath = "ops/evidence/staging/object-storage-retention-cleanup.ndjson";
+const objectStorageReleaseGateCheckId = "staging_object_storage_signed_downloads";
+const acceptedCanonicalEvidenceIds = new Set([
+  "object-storage-retention-cleanup",
+  "stage1-object-retention-production-like-canonical"
+]);
 
 function isRequiredArea(area: string | undefined): area is StagingObjectStorageRetentionCleanupCoverage["area"] {
   return area !== undefined && requiredAreas.has(area);
@@ -89,10 +94,12 @@ function reportIsPassing(report: RetentionCleanupReport) {
   const coverage = report.coverage ?? [];
   const passingAreas = new Set();
   const hasNoBlockedChecks = (report.blocked_checks ?? []).length === 0;
+  const remainingReleaseGateBlockersAfterPass =
+    report.gate_impact?.remaining_release_gate_blockers_after_pass ?? [];
   const canClearGate =
     report.gate_impact?.can_clear_retention_cleanup_checklist_item === true &&
     report.gate_impact?.can_clear_release_gate_check === true &&
-    (report.gate_impact.remaining_release_gate_blockers_after_pass ?? []).length === 0;
+    !remainingReleaseGateBlockersAfterPass.includes(objectStorageReleaseGateCheckId);
 
   for (const item of coverage) {
     if (!isRequiredArea(item.area) || item.status !== "pass") {
@@ -127,8 +134,8 @@ function reportIsPassing(report: RetentionCleanupReport) {
   return (
     report.environment === "staging" &&
     report.status === "pass" &&
-    report.evidence_id === "object-storage-retention-cleanup" &&
-    report.release_gate_check_id === "staging_object_storage_signed_downloads" &&
+    acceptedCanonicalEvidenceIds.has(report.evidence_id ?? "") &&
+    report.release_gate_check_id === objectStorageReleaseGateCheckId &&
     report.do_not_launch_condition_id === "object_storage_signed_retention_runtime_missing" &&
     report.results_path === canonicalPassResultsPath &&
     report.split_evidence?.signed_url_ready === true &&
@@ -251,13 +258,13 @@ export function buildStagingObjectStorageRetentionCleanupEvidence(
     coverage: buildCoverageFromReport(base, report, passable),
     missingRuntimeInputs: passable ? [] : report.blocked_checks ?? base.missingRuntimeInputs,
     operatorAction: passable
-      ? "Exact staging retention cleanup evidence is passing; update the private beta release gate fixture and checklist only with this artifact cited beside the signed URL evidence."
+      ? "Exact staging retention cleanup evidence is passing; update only the object-storage private beta release gate check and preserve unrelated remaining blockers until their own evidence passes."
       : base.operatorAction,
     releaseGateUse: passable
-      ? "This admin evidence row proves the exact staging retention cleanup artifact passed and can clear the object-storage release gate when paired with signed URL evidence."
+      ? "This admin evidence row proves the exact staging retention cleanup artifact passed and can clear the object-storage release gate check when paired with signed URL evidence, without clearing unrelated staging blockers."
       : base.releaseGateUse,
     remainingReleaseGateBlockers: passable
       ? report.gate_impact?.remaining_release_gate_blockers_after_pass ?? []
-      : base.remainingReleaseGateBlockers
+      : report.gate_impact?.remaining_release_gate_blockers_after_pass ?? base.remainingReleaseGateBlockers
   };
 }

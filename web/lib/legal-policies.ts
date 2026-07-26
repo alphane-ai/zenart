@@ -15,8 +15,8 @@ export interface LegalPolicy {
   sections: LegalPolicySection[];
 }
 
-export const supportContactEmail = "support@zenart.local";
-export const legalContactEmail = "legal@zenart.local";
+export const supportContactEmail = "support@zenari.ai";
+export const legalContactEmail = "legal@zenari.ai";
 
 export const legalPolicies: Record<LegalPolicyKey, LegalPolicy> = {
   terms: {
@@ -29,7 +29,7 @@ export const legalPolicies: Record<LegalPolicyKey, LegalPolicy> = {
     sections: [
       {
         title: "Access Mode",
-        body: "ZenArt Stage 0 is an authenticated local alpha and private beta surface. Access can be limited, suspended, or removed when quota, safety, abuse, billing, or support obligations require it."
+        body: "zenari.ai Stage 1 is an authenticated local alpha and private beta surface. Access can be limited, suspended, or removed when quota, safety, abuse, billing, or support obligations require it."
       },
       {
         title: "Workspace Content",
@@ -37,7 +37,7 @@ export const legalPolicies: Record<LegalPolicyKey, LegalPolicy> = {
       },
       {
         title: "Local Alpha Generation",
-        body: "Unless a real provider is explicitly configured and disclosed in the product, previews and exports use deterministic development generation evidence and must not be represented as production provider output."
+        body: "Unless a real provider is explicitly configured and disclosed in the product, previews and exports use deterministic development generation evidence and must not be represented as production provider output. AI content responsibility stays with the user and every export should be reviewed before use."
       },
       {
         title: "Exports and Sharing",
@@ -45,7 +45,7 @@ export const legalPolicies: Record<LegalPolicyKey, LegalPolicy> = {
       },
       {
         title: "Support",
-        body: "Support requests may attach project, export, task, trace, accepted reference, and quota context so the issue can be investigated. Contact support for account access, deletion assistance, billing questions, and product incidents."
+        body: "Support requests may attach project, export, task, trace, accepted reference, and quota context so the issue can be investigated. Use the visible support contact for account access, deletion assistance, billing questions, AI content review, and product incidents."
       }
     ]
   },
@@ -63,7 +63,7 @@ export const legalPolicies: Record<LegalPolicyKey, LegalPolicy> = {
       },
       {
         title: "Support Context",
-        body: "When you report a problem, ZenArt attaches the active project, latest export when available, task, trace, accepted reference identifiers, and quota snapshot. Ticket text should not include secrets or unrelated personal data."
+        body: "When you report a problem, zenari.ai attaches the active project, latest export when available, task, trace, accepted reference identifiers, and quota snapshot. Ticket text should not include secrets or unrelated personal data."
       },
       {
         title: "Telemetry",
@@ -71,11 +71,11 @@ export const legalPolicies: Record<LegalPolicyKey, LegalPolicy> = {
       },
       {
         title: "Retention and Deletion",
-        body: "Local alpha state is stored in local browser storage for repeatable testing. Private beta retention and deletion requests are handled by support or admin-assisted deletion until self-serve deletion is available."
+        body: "Local alpha state is stored in local browser storage for repeatable testing. Private beta retention and data deletion requests are handled by support or admin-assisted deletion until self-serve deletion is available."
       },
       {
         title: "Contact",
-        body: "Use the visible support contact for privacy requests, deletion assistance, access issues, and data questions."
+        body: "Use the visible support contact for privacy requests, data deletion assistance, access issues, and data questions."
       }
     ]
   },
@@ -97,15 +97,15 @@ export const legalPolicies: Record<LegalPolicyKey, LegalPolicy> = {
       },
       {
         title: "Deceptive Claims",
-        body: "Do not use ZenArt to create misleading claims about product capabilities, legal rights, medical or financial outcomes, endorsements, identity, or origin of content."
+        body: "Do not use zenari.ai to create misleading claims about product capabilities, legal rights, medical or financial outcomes, endorsements, identity, or origin of content."
       },
       {
         title: "Security",
-        body: "Do not probe, overload, reverse engineer, scrape, or attempt unauthorized access to ZenArt user, admin, API, object storage, provider, billing, support, or audit surfaces."
+        body: "Do not probe, overload, reverse engineer, scrape, or attempt unauthorized access to zenari.ai user, admin, API, object storage, provider, billing, support, or audit surfaces."
       },
       {
         title: "Enforcement",
-        body: "Violations can result in blocked exports, support review, quota holds, account suspension, or abuse escalation."
+        body: "Violations can result in blocked exports, support review, quota holds, account suspension, or abuse escalation through the visible support contact."
       }
     ]
   },
@@ -119,15 +119,15 @@ export const legalPolicies: Record<LegalPolicyKey, LegalPolicy> = {
     sections: [
       {
         title: "What To Send",
-        body: "Send the work, mark, likeness, or brand right at issue; the ZenArt project or export identifier if known; your relationship to the rightsholder; and a concise explanation of the complaint."
+        body: "Send the copyright work, trademark, likeness, or brand right at issue; the zenari.ai project or export identifier if known; your relationship to the rightsholder; and a concise explanation of the IP complaint."
       },
       {
         title: "Where To Send It",
-        body: "Send IP complaints to legal@zenart.local. If the issue also affects account access, billing, or an active incident, copy support@zenart.local."
+        body: "Send IP complaints to legal@zenari.ai. If the issue also affects account access, billing, or an active incident, copy support@zenari.ai."
       },
       {
         title: "Review",
-        body: "ZenArt can disable sharing, block export use, attach safety or QA findings, request more information, or escalate to admin review while a complaint is investigated."
+        body: "zenari.ai can disable sharing, block export use, start a takedown review, attach safety or QA findings, request more information, or escalate to admin review while a complaint is investigated."
       },
       {
         title: "Counter Context",
@@ -149,7 +149,7 @@ export const legalPolicies: Record<LegalPolicyKey, LegalPolicy> = {
       },
       {
         title: "Subscription State",
-        body: "Quota-consuming actions can be blocked when a subscription is inactive, past due, cancelled, or quota exhausted. Billing state changes should be visible on the Billing page before export actions proceed."
+        body: "Quota-consuming actions can be blocked when a subscription is inactive, past due (past_due), cancelled, or quota exhausted. Billing state changes should be visible on the Billing page before export actions proceed."
       },
       {
         title: "Cancellation",
@@ -157,11 +157,11 @@ export const legalPolicies: Record<LegalPolicyKey, LegalPolicy> = {
       },
       {
         title: "Refunds and Credits",
-        body: "Refunds, credits, and quota corrections are handled through support review until self-serve billing operations are available. Include the account email, project or export identifier, and reason for the request."
+        body: "Refunds, credits, and quota reset corrections are handled through support review until self-serve billing operations are available. Include the account email, project or export identifier, and reason for the request."
       },
       {
         title: "Receipts and Issues",
-        body: "For billing questions, payment failures, quota mismatches, cancellation requests, or refund review, contact support@zenart.local."
+        body: "For billing questions, payment failures, quota mismatches, cancellation requests, or refund review, contact support@zenari.ai."
       }
     ]
   }

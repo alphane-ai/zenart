@@ -4,26 +4,83 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-BASE_URL="${BASE_URL:-${STAGING_BASE_URL:-}}"
+BASE_URL="${BASE_URL:-${STAGING_API_URL:-${STAGING_BASE_URL:-}}}"
+BASE_URL_RESOLVE_ADDR="${BASE_URL_RESOLVE_ADDR:-${STAGING_API_URL_RESOLVE_ADDR:-${STAGING_BASE_URL_RESOLVE_ADDR:-${STAGING_API_RESOLVE_ADDR:-}}}}"
+BASE_URL_CA_CERT="${BASE_URL_CA_CERT:-${STAGING_API_URL_CA_CERT:-${STAGING_BASE_URL_CA_CERT:-${STAGING_API_CA_CERT:-}}}}"
 TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-8}"
 DRY_RUN="${DRY_RUN:-0}"
+ALLOW_LOCAL_DEVPORT_EVIDENCE="${ALLOW_LOCAL_DEVPORT_EVIDENCE:-0}"
+WRITE_CANONICAL_STAGE1_OBJECT_RETENTION_EVIDENCE="${WRITE_CANONICAL_STAGE1_OBJECT_RETENTION_EVIDENCE:-0}"
+OBJECT_RETENTION_MODE="${OBJECT_RETENTION_MODE:-${RETENTION_MODE:-}}"
+RUN_ID="${RUN_ID:-object-storage-retention-cleanup}"
 OUT_DIR_WAS_SET=0
+REPORT_PATH_WAS_SET=0
+RESULTS_PATH_WAS_SET=0
+if [[ -n "${REPORT_PATH+x}" ]]; then
+  REPORT_PATH_WAS_SET=1
+fi
+if [[ -n "${RESULTS_PATH+x}" ]]; then
+  RESULTS_PATH_WAS_SET=1
+fi
 if [[ -n "${OUT_DIR+x}" || -n "${REPORT_PATH+x}" || -n "${RESULTS_PATH+x}" ]]; then
   OUT_DIR_WAS_SET=1
 fi
-if [[ "$DRY_RUN" == "1" && "$OUT_DIR_WAS_SET" != "1" ]]; then
+if [[ "$OBJECT_RETENTION_MODE" == "preflight_stage1" && "$OUT_DIR_WAS_SET" != "1" ]]; then
+  OUT_DIR="ops/evidence/staging"
+elif [[ "$DRY_RUN" == "1" && "$OUT_DIR_WAS_SET" != "1" ]]; then
   OUT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/stage0-object-retention-dry-run.XXXXXX")"
+elif [[ "$ALLOW_LOCAL_DEVPORT_EVIDENCE" == "1" && "$OUT_DIR_WAS_SET" != "1" ]]; then
+  OUT_DIR="ops/evidence/staging/local-devport"
 else
   OUT_DIR="${OUT_DIR:-ops/evidence/staging}"
 fi
-REPORT_PATH="${REPORT_PATH:-$OUT_DIR/object-storage-retention-cleanup.json}"
-RESULTS_PATH="${RESULTS_PATH:-$OUT_DIR/object-storage-retention-cleanup.ndjson}"
-RUN_ID="${RUN_ID:-object-storage-retention-cleanup}"
+if [[ "$OBJECT_RETENTION_MODE" == "preflight_stage1" && "$OUT_DIR_WAS_SET" != "1" ]]; then
+  REPORT_PATH="${REPORT_PATH:-$OUT_DIR/object-storage-retention-cleanup.preflight.json}"
+  RESULTS_PATH="${RESULTS_PATH:-$OUT_DIR/object-storage-retention-cleanup.preflight.ndjson}"
+elif [[ "$ALLOW_LOCAL_DEVPORT_EVIDENCE" == "1" && "$OUT_DIR_WAS_SET" != "1" ]]; then
+  REPORT_PATH="${REPORT_PATH:-$OUT_DIR/object-storage-retention-cleanup.local-devport.json}"
+  RESULTS_PATH="${RESULTS_PATH:-$OUT_DIR/object-storage-retention-cleanup.local-devport.ndjson}"
+elif [[ "$WRITE_CANONICAL_STAGE1_OBJECT_RETENTION_EVIDENCE" == "1" && "$OUT_DIR_WAS_SET" != "1" ]]; then
+  REPORT_PATH="${REPORT_PATH:-$OUT_DIR/$RUN_ID.candidate.json}"
+  RESULTS_PATH="${RESULTS_PATH:-$OUT_DIR/$RUN_ID.candidate.ndjson}"
+elif [[ "$RUN_ID" == "object-storage-retention-cleanup" && "$OUT_DIR_WAS_SET" != "1" ]]; then
+  REPORT_PATH="${REPORT_PATH:-$OUT_DIR/object-storage-retention-cleanup.blocked.json}"
+  RESULTS_PATH="${RESULTS_PATH:-$OUT_DIR/object-storage-retention-cleanup.blocked.ndjson}"
+else
+  REPORT_PATH="${REPORT_PATH:-$OUT_DIR/$RUN_ID.json}"
+  RESULTS_PATH="${RESULTS_PATH:-$OUT_DIR/$RUN_ID.ndjson}"
+fi
+if [[ "$OBJECT_RETENTION_MODE" == "preflight_stage1" ]]; then
+  if [[ "$REPORT_PATH_WAS_SET" != "1" ]]; then
+    REPORT_PATH="$OUT_DIR/object-storage-retention-cleanup.preflight.json"
+  fi
+  if [[ "$RESULTS_PATH_WAS_SET" != "1" ]]; then
+    RESULTS_PATH="$OUT_DIR/object-storage-retention-cleanup.preflight.ndjson"
+  fi
+fi
+if [[ "$WRITE_CANONICAL_STAGE1_OBJECT_RETENTION_EVIDENCE" == "1" ]]; then
+  canonical_path_requested="$(
+    python3 - "$REPORT_PATH" "$RESULTS_PATH" <<'PY'
+import sys
+from pathlib import Path
+
+report_path = Path(sys.argv[1]).resolve()
+results_path = Path(sys.argv[2]).resolve()
+canonical_report = Path("ops/evidence/staging/object-storage-retention-cleanup.json").resolve()
+canonical_results = Path("ops/evidence/staging/object-storage-retention-cleanup.ndjson").resolve()
+print("1" if report_path == canonical_report or results_path == canonical_results else "0")
+PY
+  )"
+  if [[ "$canonical_path_requested" == "1" ]]; then
+    REPORT_PATH="${OUT_DIR%/}/$RUN_ID.candidate.json"
+    RESULTS_PATH="${OUT_DIR%/}/$RUN_ID.candidate.ndjson"
+  fi
+fi
 RELEASE_SHA="${RELEASE_SHA:-${GITHUB_SHA:-}}"
 SIGNED_URL_EVIDENCE="${SIGNED_URL_EVIDENCE:-ops/evidence/staging/20260527T2130Z-object-storage-signed-url.json}"
 REQUEST_ID_HEADER="${REQUEST_ID_HEADER:-X-Request-ID}"
 REQUEST_ID_VALUE="${REQUEST_ID_VALUE:-stage0-object-retention-cleanup}"
-CSRF_HEADER_NAME="${CSRF_HEADER_NAME:-X-ZenArt-CSRF}"
+CSRF_HEADER_NAME="${CSRF_HEADER_NAME:-X-Zenari-CSRF}"
 CSRF_HEADER_VALUE="${CSRF_HEADER_VALUE:-same-site-origin-check}"
 CSRF_ORIGIN="${CSRF_ORIGIN:-${STAGING_ADMIN_URL:-${ADMIN_URL:-${STAGING_WEB_URL:-${WEB_URL:-}}}}}"
 
@@ -34,8 +91,11 @@ AUDIT_REFS_URL="${AUDIT_REFS_URL:-}"
 
 ADMIN_BEARER_TOKEN="${ADMIN_BEARER_TOKEN:-${STAGING_ADMIN_BEARER_TOKEN:-}}"
 ADMIN_SESSION_COOKIE="${ADMIN_SESSION_COOKIE:-${STAGING_ADMIN_SESSION_COOKIE:-}}"
-SMOKE_ADMIN_USER_ID="${SMOKE_ADMIN_USER_ID:-}"
-SMOKE_ADMIN_TENANT_ID="${SMOKE_ADMIN_TENANT_ID:-}"
+USE_DEV_IDENTITY_HEADERS="${USE_DEV_IDENTITY_HEADERS:-0}"
+ADMIN_DEV_ROLES="${ADMIN_DEV_ROLES:-admin_operator}"
+SMOKE_ADMIN_USER_ID="${SMOKE_ADMIN_USER_ID:-${ADMIN_USER_ID:-}}"
+SMOKE_ADMIN_TENANT_ID="${SMOKE_ADMIN_TENANT_ID:-${TENANT_ID:-}}"
+LOCAL_ADMIN_SESSION_EMAIL="${LOCAL_ADMIN_SESSION_EMAIL:-admin@zenari.ai}"
 
 mkdir -p "$OUT_DIR"
 : >"$RESULTS_PATH"
@@ -47,8 +107,87 @@ if [[ -n "$BASE_URL" ]]; then
   AUDIT_REFS_URL="${AUDIT_REFS_URL:-${BASE_URL%/}/api/admin/v1/audit?subject=object_storage_cleanup&limit=20}"
 fi
 
+acquire_local_admin_session() {
+  if [[ "$ALLOW_LOCAL_DEVPORT_EVIDENCE" == "1" || -n "$ADMIN_BEARER_TOKEN" || -n "$ADMIN_SESSION_COOKIE" ]]; then
+    return 0
+  fi
+  if [[ -z "$BASE_URL" || -z "$CSRF_ORIGIN" || -z "$SMOKE_ADMIN_TENANT_ID" ]]; then
+    return 0
+  fi
+  local session_url="${BASE_URL%/}/api/admin/v1/auth/local/session"
+  local headers_path body_path http_status cookie_value
+  headers_path="$(mktemp /tmp/zenari-object-retention-admin-session-headers.XXXXXX)"
+  body_path="$(mktemp /tmp/zenari-object-retention-admin-session-body.XXXXXX)"
+  local curl_resolve_args=()
+  if [[ -n "$BASE_URL_RESOLVE_ADDR" ]]; then
+    local resolve_host resolve_port
+    read -r resolve_host resolve_port < <(
+      python3 - "$session_url" <<'PY'
+import sys
+from urllib.parse import urlparse
+
+parsed = urlparse(sys.argv[1])
+host = parsed.hostname or ""
+if not host:
+    raise SystemExit(0)
+if parsed.port:
+    port = parsed.port
+elif parsed.scheme == "https":
+    port = 443
+else:
+    port = 80
+print(host, port)
+PY
+    )
+    if [[ -n "${resolve_host:-}" && -n "${resolve_port:-}" ]]; then
+      curl_resolve_args+=(--resolve "$resolve_host:$resolve_port:$BASE_URL_RESOLVE_ADDR" --noproxy "$resolve_host")
+    fi
+  fi
+  local curl_tls_args=()
+  if [[ -n "$BASE_URL_CA_CERT" ]]; then
+    curl_tls_args+=(--cacert "$BASE_URL_CA_CERT")
+  fi
+  local curl_args=(
+    --silent
+    --show-error
+    --location
+    --max-time "$TIMEOUT_SECONDS"
+    --request POST
+    "$session_url"
+    --dump-header "$headers_path"
+    --output "$body_path"
+    --write-out "%{http_code}"
+    --header "$REQUEST_ID_HEADER: $RUN_ID-bootstrap-admin-session"
+    --header "Content-Type: application/json"
+    --header "$CSRF_HEADER_NAME: $CSRF_HEADER_VALUE"
+    --header "Origin: $CSRF_ORIGIN"
+    --data '{"email":"'"$LOCAL_ADMIN_SESSION_EMAIL"'","tenant_id":"'"$SMOKE_ADMIN_TENANT_ID"'","roles":["admin_operator"]}'
+  )
+  if [[ ${#curl_resolve_args[@]} -gt 0 ]]; then
+    curl_args+=("${curl_resolve_args[@]}")
+  fi
+  if [[ ${#curl_tls_args[@]} -gt 0 ]]; then
+    curl_args+=("${curl_tls_args[@]}")
+  fi
+  http_status="$(curl "${curl_args[@]}" || true)"
+  if [[ "$http_status" == "200" || "$http_status" == "201" ]]; then
+    cookie_value="$(
+      awk 'BEGIN{IGNORECASE=1} /^Set-Cookie:/ { sub(/\r$/, ""); sub(/^Set-Cookie:[[:space:]]*/, ""); split($0, a, ";"); print a[1]; exit }' "$headers_path"
+    )"
+    if [[ -n "$cookie_value" ]]; then
+      ADMIN_SESSION_COOKIE="$cookie_value"
+    fi
+  fi
+  rm -f "$headers_path" "$body_path"
+}
+
+acquire_local_admin_session
+
 AUTH_READY="0"
 if [[ -n "$ADMIN_BEARER_TOKEN" || -n "$ADMIN_SESSION_COOKIE" ]]; then
+  AUTH_READY="1"
+fi
+if [[ "$USE_DEV_IDENTITY_HEADERS" == "1" ]]; then
   AUTH_READY="1"
 fi
 CSRF_READY="0"
@@ -195,6 +334,47 @@ with open(result_path, "a", encoding="utf-8") as fh:
 PY
 }
 
+production_like_staging_url_ready() {
+  python3 - "$BASE_URL" "$RETENTION_POLICY_URL" "$EXPIRED_EXPORT_CLEANUP_URL" "$ORPHAN_CLEANUP_URL" "$AUDIT_REFS_URL" <<'PY'
+import ipaddress
+import sys
+from urllib.parse import urlparse
+
+
+def is_private_or_local(host: str) -> bool:
+    normalized = host.strip().lower().strip("[]")
+    if normalized in {"", "localhost", "0.0.0.0"} or normalized.endswith(".local"):
+        return True
+    reserved_suffixes = (
+        ".example",
+        ".example.com",
+        ".example.net",
+        ".example.org",
+        ".example.test",
+        ".invalid",
+        ".localhost",
+        ".test",
+    )
+    if any(normalized == suffix[1:] or normalized.endswith(suffix) for suffix in reserved_suffixes):
+        return True
+    try:
+        ip = ipaddress.ip_address(normalized)
+    except ValueError:
+        return False
+    return bool(ip.is_loopback or ip.is_private or ip.is_link_local or ip.is_unspecified)
+
+
+for raw in sys.argv[1:]:
+    raw = raw.strip()
+    if not raw:
+        continue
+    parsed = urlparse(raw)
+    if parsed.scheme != "https" or is_private_or_local(parsed.hostname or ""):
+        raise SystemExit(1)
+raise SystemExit(0)
+PY
+}
+
 run_probe() {
   local check_id="$1"
   local method="$2"
@@ -203,6 +383,35 @@ run_probe() {
   local body_file="$OUT_DIR/$RUN_ID.$check_id.body"
   local headers_file="$OUT_DIR/$RUN_ID.$check_id.headers"
   local request_id="$REQUEST_ID_VALUE-$check_id"
+  local curl_resolve_args=()
+  if [[ -n "$url" && -n "$BASE_URL_RESOLVE_ADDR" ]]; then
+    local resolve_host resolve_port
+    read -r resolve_host resolve_port < <(
+      python3 - "$url" <<'PY'
+import sys
+from urllib.parse import urlparse
+
+parsed = urlparse(sys.argv[1])
+host = parsed.hostname or ""
+if not host:
+    raise SystemExit(0)
+if parsed.port:
+    port = parsed.port
+elif parsed.scheme == "https":
+    port = 443
+else:
+    port = 80
+print(host, port)
+PY
+    )
+    if [[ -n "${resolve_host:-}" && -n "${resolve_port:-}" ]]; then
+      curl_resolve_args+=(--resolve "$resolve_host:$resolve_port:$BASE_URL_RESOLVE_ADDR" --noproxy "$resolve_host")
+    fi
+  fi
+  local curl_tls_args=()
+  if [[ -n "$BASE_URL_CA_CERT" ]]; then
+    curl_tls_args+=(--cacert "$BASE_URL_CA_CERT")
+  fi
   local curl_args=(
     --silent
     --show-error
@@ -214,16 +423,28 @@ run_probe() {
     --output "$body_file"
     --write-out "%{http_code}"
   )
+  if [[ ${#curl_resolve_args[@]} -gt 0 ]]; then
+    curl_args+=("${curl_resolve_args[@]}")
+  fi
+  if [[ ${#curl_tls_args[@]} -gt 0 ]]; then
+    curl_args+=("${curl_tls_args[@]}")
+  fi
   if [[ -n "$ADMIN_BEARER_TOKEN" ]]; then
     curl_args+=(--header "Authorization: Bearer $ADMIN_BEARER_TOKEN")
   fi
   if [[ -n "$ADMIN_SESSION_COOKIE" ]]; then
     curl_args+=(--header "Cookie: $ADMIN_SESSION_COOKIE")
   fi
+  if [[ "$USE_DEV_IDENTITY_HEADERS" == "1" ]]; then
+    curl_args+=(--header "X-Zenari-User-ID: $SMOKE_ADMIN_USER_ID")
+    curl_args+=(--header "X-Zenari-Tenant-ID: $SMOKE_ADMIN_TENANT_ID")
+    curl_args+=(--header "X-Zenari-Roles: $ADMIN_DEV_ROLES")
+  fi
   if [[ "$method" == "POST" ]]; then
     curl_args+=(
       --header "Content-Type: application/json"
       --header "$CSRF_HEADER_NAME: $CSRF_HEADER_VALUE"
+      --header "Idempotency-Key: $request_id"
       --header "Origin: $CSRF_ORIGIN"
       --data "{\"rationale\":\"stage0 retention cleanup smoke ${check_id}\",\"limit\":25,\"dry_run\":true}"
     )
@@ -239,7 +460,12 @@ run_probe() {
   append_result "$check_id" "$method" "$url" "$expected_tokens" "passed" "$http_status" "ok" "$body_file" "$request_id" "$headers_file"
 }
 
-if [[ "$DRY_RUN" == "1" ]]; then
+if [[ "$OBJECT_RETENTION_MODE" == "preflight_stage1" ]]; then
+  for check in "${CHECKS[@]}"; do
+    IFS='|' read -r check_id method url expected_tokens <<<"$check"
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "planned" "" "preflight_stage1_no_runtime_probe" "" "$REQUEST_ID_VALUE-$check_id" ""
+  done
+elif [[ "$DRY_RUN" == "1" ]]; then
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
     append_result "$check_id" "$method" "$url" "$expected_tokens" "planned" "" "dry_run_no_staging_runtime_probe" "" "$REQUEST_ID_VALUE-$check_id" ""
@@ -248,6 +474,11 @@ elif [[ -z "$BASE_URL" && -z "$RETENTION_POLICY_URL$EXPIRED_EXPORT_CLEANUP_URL$O
   for check in "${CHECKS[@]}"; do
     IFS='|' read -r check_id method url expected_tokens <<<"$check"
     append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "missing_staging_base_url_or_explicit_probe_urls" "" "$REQUEST_ID_VALUE-$check_id" ""
+  done
+elif [[ "$ALLOW_LOCAL_DEVPORT_EVIDENCE" != "1" ]] && ! production_like_staging_url_ready; then
+  for check in "${CHECKS[@]}"; do
+    IFS='|' read -r check_id method url expected_tokens <<<"$check"
+    append_result "$check_id" "$method" "$url" "$expected_tokens" "blocked" "" "production_like_staging_url_required" "" "$REQUEST_ID_VALUE-$check_id" ""
   done
 elif [[ "$AUTH_READY" != "1" ]]; then
   for check in "${CHECKS[@]}"; do
@@ -280,10 +511,15 @@ else
 fi
 
 actual_report_path="$(
-python3 - "$REPORT_PATH" "$RESULTS_PATH" "$RUN_ID" "$RELEASE_SHA" "$BASE_URL" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" "$SIGNED_URL_EVIDENCE" "$AUTH_READY" "$REQUEST_ID_HEADER" "$CSRF_READY" "$CSRF_HEADER_NAME" "$CSRF_ORIGIN" <<'PY'
+python3 - "$REPORT_PATH" "$RESULTS_PATH" "$RUN_ID" "$RELEASE_SHA" "$BASE_URL" "$SMOKE_ADMIN_USER_ID" "$SMOKE_ADMIN_TENANT_ID" "$SIGNED_URL_EVIDENCE" "$AUTH_READY" "$REQUEST_ID_HEADER" "$CSRF_READY" "$CSRF_HEADER_NAME" "$CSRF_ORIGIN" "$ALLOW_LOCAL_DEVPORT_EVIDENCE" "$USE_DEV_IDENTITY_HEADERS" "$ADMIN_DEV_ROLES" "$WRITE_CANONICAL_STAGE1_OBJECT_RETENTION_EVIDENCE" "$BASE_URL_RESOLVE_ADDR" <<'PY'
+import ipaddress
 import json
+import os
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
+from urllib.parse import urlparse
 
 report_path = Path(sys.argv[1])
 results_path = Path(sys.argv[2])
@@ -298,6 +534,44 @@ request_id_header = sys.argv[10].strip()
 csrf_ready = sys.argv[11] == "1"
 csrf_header_name = sys.argv[12].strip()
 csrf_origin = sys.argv[13].strip()
+allow_local_devport = sys.argv[14].strip() == "1"
+use_dev_identity_headers = sys.argv[15].strip() == "1"
+admin_dev_roles = sys.argv[16].strip()
+write_canonical = sys.argv[17].strip() == "1"
+base_url_resolve_addr = sys.argv[18].strip()
+preflight_mode = run_id == "object-storage-retention-cleanup" and report_path.name == "object-storage-retention-cleanup.preflight.json"
+
+
+reserved_suffixes = (
+    ".example",
+    ".example.com",
+    ".example.net",
+    ".example.org",
+    ".example.test",
+    ".invalid",
+    ".localhost",
+    ".local",
+    ".test",
+)
+
+
+def is_reserved_or_local_host(host):
+    normalized = (host or "").strip().lower().strip("[]")
+    if not normalized or normalized in {"localhost", "0.0.0.0"}:
+        return True
+    if any(normalized == suffix[1:] or normalized.endswith(suffix) for suffix in reserved_suffixes):
+        return True
+    try:
+        ip = ipaddress.ip_address(normalized)
+    except ValueError:
+        return False
+    return ip.is_loopback or ip.is_private or ip.is_link_local or ip.is_unspecified
+
+
+def strict_staging_url_ready(value):
+    parsed = urlparse(value or "")
+    return parsed.scheme == "https" and bool(parsed.netloc) and not is_reserved_or_local_host(parsed.hostname)
+
 
 results = [
     json.loads(line)
@@ -517,6 +791,11 @@ audit_linkage_verified = (
 runtime_checks_passed = required <= passed and not blocked_or_failed
 canonical_report_path = Path("ops/evidence/staging/object-storage-retention-cleanup.json")
 canonical_results_path = Path("ops/evidence/staging/object-storage-retention-cleanup.ndjson")
+source_results_path = results_path
+strict_target_ready = strict_staging_url_ready(base_url)
+strict_target_ready = strict_target_ready and strict_staging_url_ready(csrf_origin)
+strict_target_ready = strict_target_ready and all(strict_staging_url_ready(item.get("url", "")) for item in results)
+strict_target_ready = strict_target_ready and not base_url_resolve_addr
 signed_url_path = Path(signed_url_evidence) if signed_url_evidence else None
 signed_url_ready = False
 signed_url_reason = "missing_signed_url_evidence_path"
@@ -551,12 +830,27 @@ if runtime_checks_passed and not admin_tenant_id:
     release_binding_blockers.append("smoke_admin_tenant_id_missing")
 if runtime_checks_passed and not csrf_ready:
     release_binding_blockers.append("csrf_origin_or_header_missing")
+if runtime_checks_passed and preflight_mode:
+    release_binding_blockers.append("preflight_stage1_cannot_clear_staging_gate")
+if runtime_checks_passed and allow_local_devport:
+    release_binding_blockers.append("local_devport_debug_evidence_cannot_clear_staging_gate")
+if runtime_checks_passed and not strict_target_ready:
+    release_binding_blockers.append("real_staging_target_required_for_canonical_pass")
+if runtime_checks_passed and not write_canonical:
+    release_binding_blockers.append("canonical_write_not_requested")
 
 blocked_or_failed = blocked_or_failed + release_binding_blockers
 all_passed = runtime_checks_passed and signed_url_ready and release_sha_matches_signed_url
 all_passed = all_passed and auth_ready and bool(admin_user_id) and bool(admin_tenant_id)
 all_passed = all_passed and csrf_ready
+all_passed = all_passed and not preflight_mode
+all_passed = all_passed and not allow_local_devport
+all_passed = all_passed and strict_target_ready and write_canonical
 can_clear_release_gate_check = all_passed
+if all_passed:
+    canonical_report_path.parent.mkdir(parents=True, exist_ok=True)
+    results_path = canonical_results_path
+    report_path = canonical_report_path
 pass_file_policy_ok = report_path == canonical_report_path and results_path == canonical_results_path
 if all_passed and not pass_file_policy_ok:
     blocked_or_failed.append("canonical_pass_paths_required_for_gate_closure")
@@ -632,7 +926,7 @@ probe_routes = {
 runtime_input_requirements = {
         "required_release_sha": signed_url_release_sha or "must match signed URL split evidence release_sha",
         "required_auth": "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE with admin_operator access",
-        "required_base_url": "STAGING_BASE_URL or explicit probe URL env vars",
+        "required_base_url": "STAGING_API_URL, STAGING_BASE_URL, or explicit probe URL env vars",
         "required_smoke_admin_user_id": "SMOKE_ADMIN_USER_ID bound to the admin operator executing the cleanup probes",
         "required_smoke_admin_tenant_id": "SMOKE_ADMIN_TENANT_ID bound to the staging tenant whose objects and audit refs are probed",
         "required_csrf_origin": "CSRF_ORIGIN, STAGING_ADMIN_URL, ADMIN_URL, STAGING_WEB_URL, or WEB_URL matching an allowed staging origin for POST cleanup probes",
@@ -656,17 +950,43 @@ probe_contract = {
     "canonical_pass_results": str(canonical_results_path),
     "blocked_report": "ops/evidence/staging/object-storage-retention-cleanup.blocked.json",
     "blocked_results": "ops/evidence/staging/object-storage-retention-cleanup.blocked.ndjson",
+    "preflight_report": "ops/evidence/staging/object-storage-retention-cleanup.preflight.json",
+    "preflight_results": "ops/evidence/staging/object-storage-retention-cleanup.preflight.ndjson",
     "blocked_without_runtime_inputs": True,
+    "preflight_does_not_run_cleanup": True,
+    "preflight_can_clear_stage1_staging_runtime_gate": False,
     "non_canonical_reports_are_validation_only": True,
+    "pass_evidence_written_only_after_strict_validator_accepts": True,
+    "canonical_outputs_are_atomic": True,
+    "failed_strict_candidate_writes_blocked_evidence_only": True,
     "local_blocked_command": "DRY_RUN=1 scripts/staging_object_storage_retention_cleanup_smoke.sh || test \"$?\" = 2",
+    "preflight_command": "OBJECT_RETENTION_MODE=preflight_stage1 scripts/staging_object_storage_retention_cleanup_smoke.sh || test \"$?\" = 2",
+    "local_devport_debug_command": (
+        "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 BASE_URL=http://127.0.0.1:31080 "
+        "USE_DEV_IDENTITY_HEADERS=1 SMOKE_ADMIN_USER_ID=<admin-user> "
+        "SMOKE_ADMIN_TENANT_ID=<tenant> CSRF_ORIGIN=http://localhost:26081 "
+        "scripts/staging_object_storage_retention_cleanup_smoke.sh"
+    ),
+    "local_devport_report": "ops/evidence/staging/local-devport/object-storage-retention-cleanup.local-devport.json",
+    "local_devport_results": "ops/evidence/staging/local-devport/object-storage-retention-cleanup.local-devport.ndjson",
     "staging_pass_command": (
-        "STAGING_BASE_URL=https://<staging-admin-or-api> RELEASE_SHA=<signed-url-release-sha> "
+        "WRITE_CANONICAL_STAGE1_OBJECT_RETENTION_EVIDENCE=1 "
+        "STAGING_API_URL=https://<real-staging-admin-or-api> RELEASE_SHA=<signed-url-release-sha> "
         "ADMIN_BEARER_TOKEN=<token> SMOKE_ADMIN_USER_ID=<admin-user> "
         "SMOKE_ADMIN_TENANT_ID=<tenant> CSRF_ORIGIN=<allowed-origin> "
         "CSRF_HEADER_VALUE=<csrf> scripts/staging_object_storage_retention_cleanup_smoke.sh"
     ),
+    "production_like_local_fixture_command": (
+        "STAGING_API_URL=https://zenari-staging.example.test:<port> "
+        "BASE_URL_RESOLVE_ADDR=127.0.0.1 BASE_URL_CA_CERT=<self-signed-ca.pem> "
+        "RELEASE_SHA=<signed-url-release-sha> ADMIN_BEARER_TOKEN=<token> "
+        "SMOKE_ADMIN_USER_ID=<admin-user> SMOKE_ADMIN_TENANT_ID=<tenant> "
+        "CSRF_ORIGIN=https://zenari-staging.example.test:<port> "
+        "CSRF_HEADER_VALUE=<csrf> scripts/staging_object_storage_retention_cleanup_smoke.sh"
+    ),
     "required_env": [
-        "STAGING_BASE_URL or explicit RETENTION_POLICY_URL/EXPIRED_EXPORT_CLEANUP_URL/ORPHAN_CLEANUP_URL/AUDIT_REFS_URL",
+        "STAGING_API_URL or STAGING_BASE_URL or explicit RETENTION_POLICY_URL/EXPIRED_EXPORT_CLEANUP_URL/ORPHAN_CLEANUP_URL/AUDIT_REFS_URL",
+        "optional BASE_URL_RESOLVE_ADDR/STAGING_API_URL_RESOLVE_ADDR/STAGING_BASE_URL_RESOLVE_ADDR and BASE_URL_CA_CERT/STAGING_API_URL_CA_CERT/STAGING_BASE_URL_CA_CERT for production-like local HTTPS fixtures",
         "RELEASE_SHA matching signed URL evidence",
         "ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE",
         "SMOKE_ADMIN_USER_ID",
@@ -674,6 +994,7 @@ probe_contract = {
         "CSRF_ORIGIN or STAGING_ADMIN_URL/ADMIN_URL/STAGING_WEB_URL/WEB_URL",
         "CSRF_HEADER_VALUE",
     ],
+    "allow_local_devport_evidence_env": "ALLOW_LOCAL_DEVPORT_EVIDENCE=1 writes debug-only evidence under ops/evidence/staging/local-devport/ and cannot clear staging gates",
     "request_id_header": request_id_header,
     "required_checks": sorted(required),
     "probe_routes": probe_routes,
@@ -683,11 +1004,15 @@ probe_contract = {
         "each response echoes the per-probe request ID in the configured request-id header",
         "expired-export and orphan cleanup responses include cleanup audit refs",
         "the audit endpoint contains those cleanup audit refs with admin, tenant, cleanup semantics, and the exact cleanup probe request IDs",
+        "the generated pass candidate is accepted by scripts/validate_stage1_staging_object_retention_evidence.py before canonical files are replaced",
         "the canonical pass report and NDJSON paths under ops/evidence/staging/ are used",
     ],
 }
 input_readiness = {
     "probe_urls_ready": probe_urls_ready,
+    "production_like_staging_targets": strict_target_ready,
+    "canonical_write_requested": write_canonical,
+    "preflight_stage1": preflight_mode,
     "auth_ready": auth_ready,
     "admin_user_id_ready": bool(admin_user_id),
     "admin_tenant_id_ready": bool(admin_tenant_id),
@@ -695,10 +1020,16 @@ input_readiness = {
     "release_sha_provided": bool(release_sha),
     "signed_url_evidence_ready": signed_url_ready,
     "release_sha_matches_signed_url": release_sha_matches_signed_url,
-    "canonical_pass_path": report_path == canonical_report_path and results_path == canonical_results_path,
+    "canonical_pass_path": canonical_pass_paths,
+    "allow_local_devport_evidence": allow_local_devport,
+    "use_dev_identity_headers": use_dev_identity_headers,
 }
-if not probe_urls_ready:
-    runtime_input_requirements["blocked_input_reason"] = "missing STAGING_BASE_URL or explicit probe URL env vars"
+if preflight_mode:
+    runtime_input_requirements["blocked_input_reason"] = "preflight_stage1 records input readiness only and cannot run cleanup or clear canonical staging object-retention gate"
+elif not probe_urls_ready:
+    runtime_input_requirements["blocked_input_reason"] = "missing STAGING_API_URL, STAGING_BASE_URL, or explicit probe URL env vars"
+elif not strict_target_ready and not allow_local_devport:
+    runtime_input_requirements["blocked_input_reason"] = "real staging https target required; localhost, private IPs, reserved test domains, and local resolve overrides cannot write canonical pass evidence"
 elif not auth_ready:
     runtime_input_requirements["blocked_input_reason"] = "missing admin auth; set ADMIN_BEARER_TOKEN or ADMIN_SESSION_COOKIE"
 elif not admin_user_id or not admin_tenant_id:
@@ -707,6 +1038,10 @@ elif not csrf_ready:
     runtime_input_requirements["blocked_input_reason"] = "missing CSRF origin/header; set CSRF_ORIGIN or STAGING_ADMIN_URL plus CSRF_HEADER_NAME/CSRF_HEADER_VALUE for POST cleanup probes"
 elif runtime_checks_passed and not release_sha_matches_signed_url:
     runtime_input_requirements["blocked_input_reason"] = "RELEASE_SHA must match signed URL split evidence release_sha"
+elif runtime_checks_passed and allow_local_devport:
+    runtime_input_requirements["blocked_input_reason"] = "local-devport debug evidence cannot clear canonical staging object-retention gate"
+elif runtime_checks_passed and not write_canonical:
+    runtime_input_requirements["blocked_input_reason"] = "canonical pass evidence write was not requested; set WRITE_CANONICAL_STAGE1_OBJECT_RETENTION_EVIDENCE=1 only for real staging targets"
 else:
     runtime_input_requirements["blocked_input_reason"] = ""
 
@@ -719,9 +1054,12 @@ report = {
     "status": "pass" if all_passed else "blocked",
     "release_sha": release_sha,
     "base_url": base_url,
+    "local_devport_debug": allow_local_devport,
+    "use_dev_identity_headers": use_dev_identity_headers,
     "validated_by_role": "admin_operator",
     "admin_user_id": admin_user_id,
     "admin_tenant_id": admin_tenant_id,
+    "admin_dev_roles": admin_dev_roles,
     "csrf": {
         "origin": csrf_origin,
         "header_name": csrf_header_name,
@@ -775,7 +1113,105 @@ report = {
         "preserved_do_not_launch_condition_id": None if can_clear_release_gate_check else "object_storage_signed_retention_runtime_missing",
     },
 }
-report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def write_json_report(path, payload):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def replace_coverage_refs(payload, evidence_ref, results_ref):
+    for item in payload.get("coverage", []):
+        if isinstance(item, dict):
+            item["evidence_refs"] = [str(results_ref), str(evidence_ref)]
+
+
+if all_passed:
+    tmp_report_name = None
+    tmp_results_name = None
+    validation = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=canonical_report_path.parent,
+            prefix=".object-storage-retention-cleanup.",
+            suffix=".json",
+            delete=False,
+        ) as tmp_report:
+            tmp_report_name = tmp_report.name
+            json.dump(report, tmp_report, indent=2, sort_keys=True)
+            tmp_report.write("\n")
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=canonical_results_path.parent,
+            prefix=".object-storage-retention-cleanup.",
+            suffix=".ndjson",
+            delete=False,
+        ) as tmp_results:
+            tmp_results_name = tmp_results.name
+            tmp_results.write(source_results_path.read_text(encoding="utf-8"))
+        env = os.environ.copy()
+        env["PYTHONDONTWRITEBYTECODE"] = "1"
+        validation = subprocess.run(
+            [
+                sys.executable,
+                "scripts/validate_stage1_staging_object_retention_evidence.py",
+                "--evidence",
+                tmp_report_name,
+                "--results",
+                tmp_results_name,
+            ],
+            cwd=".",
+            env=env,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+        if validation.returncode == 0:
+            os.replace(tmp_results_name, canonical_results_path)
+            os.replace(tmp_report_name, canonical_report_path)
+            tmp_results_name = None
+            tmp_report_name = None
+        else:
+            all_passed = False
+            can_clear_release_gate_check = False
+            canonical_pass_paths = False
+            blocked_or_failed = blocked_or_failed + ["strict_validator_rejected_candidate"]
+            report_path = canonical_report_path.with_name("object-storage-retention-cleanup.blocked.json")
+            results_path = canonical_results_path.with_name("object-storage-retention-cleanup.blocked.ndjson")
+            results_path.write_text(source_results_path.read_text(encoding="utf-8"), encoding="utf-8")
+            report["status"] = "blocked"
+            report["results_path"] = str(results_path)
+            report["blocked_checks"] = blocked_or_failed
+            report["split_evidence"]["retention_cleanup_ready"] = False
+            report["split_evidence"]["canonical_pass_paths"] = False
+            report["input_readiness"]["canonical_pass_path"] = False
+            report["runtime_input_requirements"]["blocked_input_reason"] = (
+                "strict validator rejected pass-shaped candidate; canonical pass evidence was not written"
+            )
+            report["strict_validation"] = {
+                "validator": "scripts/validate_stage1_staging_object_retention_evidence.py",
+                "accepted_before_canonical_replace": False,
+                "return_code": validation.returncode,
+                "canonical_outputs_written": False,
+            }
+            report["gate_impact"]["can_clear_retention_cleanup_checklist_item"] = False
+            report["gate_impact"]["can_clear_release_gate_check"] = False
+            report["gate_impact"]["remaining_release_gate_blockers_after_pass"] = [
+                "staging_object_storage_signed_downloads",
+            ]
+            report["gate_impact"]["preserved_release_gate_check_id"] = "staging_object_storage_signed_downloads"
+            report["gate_impact"]["preserved_do_not_launch_condition_id"] = "object_storage_signed_retention_runtime_missing"
+            replace_coverage_refs(report, report_path, results_path)
+            write_json_report(report_path, report)
+    finally:
+        for tmp_name in (tmp_report_name, tmp_results_name):
+            if tmp_name:
+                Path(tmp_name).unlink(missing_ok=True)
+else:
+    write_json_report(report_path, report)
 if all_passed:
     print(f"staging object-storage retention cleanup passed; evidence written to {report_path}", file=sys.stderr)
 else:

@@ -1,0 +1,22 @@
+{
+  "blocked": false,
+  "code": "stage0_service_error",
+  "details": {
+    "taxonomy": {
+      "blocked": false,
+      "category": "internal",
+      "retryable": false,
+      "user_actionable": false
+    }
+  },
+  "field_errors": [],
+  "message": "stage0 service operation failed",
+  "request_id": "stage1-safety-qa-local-devport-current-20260622T205511Z-support_ticket_redaction",
+  "retryable": false,
+  "taxonomy": {
+    "blocked": false,
+    "category": "internal",
+    "retryable": false,
+    "user_actionable": false
+  }
+}

@@ -1,0 +1,219 @@
+{
+  "authoritative_public_dns_probe": {
+    "production_a": {
+      "addresses": [],
+      "error": "",
+      "exit_code": 0,
+      "host": "zenari.ai",
+      "rrtype": "A",
+      "status": "missing"
+    },
+    "production_aaaa": {
+      "addresses": [],
+      "error": "",
+      "exit_code": 0,
+      "host": "zenari.ai",
+      "rrtype": "AAAA",
+      "status": "missing"
+    },
+    "staging_a": {
+      "addresses": [
+        "172.67.219.243",
+        "104.21.62.40"
+      ],
+      "error": "",
+      "exit_code": 0,
+      "host": "staging.zenari.ai",
+      "rrtype": "A",
+      "status": "pass"
+    }
+  },
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+    "public DNS probes returned no public A/AAAA records for zenari.ai",
+    "production HTTPS failed for https://zenari.ai/: skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known"
+  ],
+  "can_clear_production_legal_support_policy": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "control_warnings": [],
+  "cookie_persisted": false,
+  "credential_scope": {
+    "cloudflare_api_token_configured": false,
+    "cloudflare_dns_credentials_configured": false,
+    "cloudflare_zone_id_configured": false,
+    "dns_write_requires": [
+      "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+      "CLOUDFLARE_API_TOKEN or CF_API_TOKEN with Zone DNS Edit permission",
+      "PRODUCTION_DNS_TARGET"
+    ],
+    "operator_note": "Cloudflare R2 S3 access keys are object-storage credentials only and cannot create or edit zenari.ai DNS records; use a Cloudflare API token with Zone DNS Edit permission.",
+    "production_dns_target_configured": true,
+    "r2_s3_can_manage_dns": false,
+    "r2_s3_credentials_detected": true,
+    "r2_s3_present_keys": [
+      "OBJECT_STORAGE_ENDPOINT",
+      "OBJECT_STORAGE_BUCKET",
+      "OBJECT_STORAGE_ACCESS_KEY",
+      "OBJECT_STORAGE_SECRET_KEY"
+    ]
+  },
+  "dns_over_https_probe": {
+    "production_a_cloudflare": {
+      "addresses": [],
+      "dns_rcode": null,
+      "error": "[Errno 54] Connection reset by peer",
+      "host": "zenari.ai",
+      "http_status": null,
+      "resolver": "cloudflare",
+      "rrtype": "A",
+      "status": "blocked"
+    },
+    "production_a_google": {
+      "addresses": [],
+      "dns_rcode": null,
+      "error": "hard timeout after 12.0s",
+      "host": "zenari.ai",
+      "http_status": null,
+      "resolver": "google",
+      "rrtype": "A",
+      "status": "blocked"
+    },
+    "production_aaaa_cloudflare": {
+      "addresses": [],
+      "dns_rcode": null,
+      "error": "<urlopen error [Errno 54] Connection reset by peer>",
+      "host": "zenari.ai",
+      "http_status": null,
+      "resolver": "cloudflare",
+      "rrtype": "AAAA",
+      "status": "blocked"
+    },
+    "production_aaaa_google": {
+      "addresses": [],
+      "dns_rcode": null,
+      "error": "hard timeout after 12.0s",
+      "host": "zenari.ai",
+      "http_status": null,
+      "resolver": "google",
+      "rrtype": "AAAA",
+      "status": "blocked"
+    },
+    "staging_a_cloudflare": {
+      "addresses": [],
+      "dns_rcode": null,
+      "error": "<urlopen error [Errno 54] Connection reset by peer>",
+      "host": "staging.zenari.ai",
+      "http_status": null,
+      "resolver": "cloudflare",
+      "rrtype": "A",
+      "status": "blocked"
+    },
+    "staging_a_google": {
+      "addresses": [],
+      "dns_rcode": null,
+      "error": "hard timeout after 12.0s",
+      "host": "staging.zenari.ai",
+      "http_status": null,
+      "resolver": "google",
+      "rrtype": "A",
+      "status": "blocked"
+    }
+  },
+  "dns_split_brain_observed": false,
+  "environment": "production",
+  "generated_at": "2026-06-28T22:03:36+00:00",
+  "https_probe": {
+    "production_paths": [
+      {
+        "error": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "status": "blocked",
+        "url": "https://zenari.ai/"
+      },
+      {
+        "error": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "status": "blocked",
+        "url": "https://zenari.ai/legal/terms"
+      },
+      {
+        "error": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "status": "blocked",
+        "url": "https://zenari.ai/legal/privacy"
+      },
+      {
+        "error": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "status": "blocked",
+        "url": "https://zenari.ai/legal/acceptable-use"
+      },
+      {
+        "error": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "status": "blocked",
+        "url": "https://zenari.ai/legal/ip-complaints"
+      },
+      {
+        "error": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "status": "blocked",
+        "url": "https://zenari.ai/legal/billing-policy"
+      },
+      {
+        "error": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "status": "blocked",
+        "url": "https://zenari.ai/support"
+      },
+      {
+        "error": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "status": "blocked",
+        "url": "https://zenari.ai/report-problem"
+      }
+    ],
+    "staging_control": {
+      "error": "",
+      "http_status": 200,
+      "status": "pass",
+      "url": "https://staging.zenari.ai/"
+    }
+  },
+  "kind": "stage1_production_dns_readiness",
+  "operator_note": "This diagnostic is non-clearing. Production legal/support can clear only after system resolver and HTTPS probes for https://zenari.ai pass and scripts/stage1_production_source_probe.py writes the canonical legal/support source.",
+  "production_web_url": "https://zenari.ai",
+  "public_production_addresses_observed": [],
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "schema_version": "stage1.production_dns_readiness.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "staging_control_url": "https://staging.zenari.ai",
+  "status": "blocked",
+  "system_resolver": {
+    "production": {
+      "addresses": [],
+      "error": "[Errno 8] nodename nor servname provided, or not known",
+      "host": "zenari.ai",
+      "status": "blocked"
+    },
+    "staging_control": {
+      "addresses": [
+        "104.21.62.40",
+        "172.67.219.243",
+        "2606:4700:3033::6815:3e28",
+        "2606:4700:3035::ac43:dbf3"
+      ],
+      "error": "",
+      "host": "staging.zenari.ai",
+      "status": "pass"
+    }
+  }
+}

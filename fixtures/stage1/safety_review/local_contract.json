@@ -1,0 +1,50 @@
+{
+  "schema_version": "stage1.safety_review.contract.v1",
+  "fixture_id": "stage1_safety_review_admin_contract",
+  "kind": "safety_review_admin_contract",
+  "blueprint_items": ["AD-8", "QA-5", "VF-5"],
+  "required_backend_routes": [
+    "GET /api/admin/v1/safety/reviews",
+    "POST /api/admin/v1/safety/reviews/{decision_id}/decision"
+  ],
+  "required_permissions": {
+    "read": "safety:read",
+    "write": "safety_rule:admin"
+  },
+  "required_controls": [
+    "tenant-scoped list from authenticated admin principal",
+    "safe projection forbids raw prompt/provider/safety payloads",
+    "state-changing review decision requires Idempotency-Key",
+    "state-changing review decision requires same-site CSRF",
+    "review decision writes audit before persistence",
+    "review rationale is required and secret-looking material is redacted",
+    "review decision persistence is idempotency-key scoped",
+    "admin safety page prefers API and falls back to fixtures only when backend is unavailable"
+  ],
+  "required_openapi_operations": [
+    "listSafetyReviews",
+    "createSafetyReviewDecision"
+  ],
+  "required_generated_client_operations": [
+    "listSafetyReviews",
+    "createSafetyReviewDecision"
+  ],
+  "required_files": [
+    "backend/migrations/0016_stage1_safety_review_ops.sql",
+    "backend/internal/stage0/services.go",
+    "backend/internal/stage0/services_test.go",
+    "backend/internal/server/server.go",
+    "backend/internal/server/server_test.go",
+    "openapi/zenart.v1.yaml",
+    "admin/lib/generated/zenart-api.ts",
+    "admin/lib/admin-api.ts",
+    "admin/lib/types.ts",
+    "admin/app/safety/page.tsx",
+    "admin/tests/admin-data.test.mjs"
+  ],
+  "non_launch_status": {
+    "local_contract": "pass",
+    "staging_evidence": "open",
+    "can_clear_stage1_safety_qa_gate": false
+  }
+}

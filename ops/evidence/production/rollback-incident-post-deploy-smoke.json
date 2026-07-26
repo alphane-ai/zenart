@@ -1,0 +1,134 @@
+{
+  "allow_local_devport_evidence": false,
+  "app_rollback": {
+    "evidence_refs": [
+      "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+      "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+      "scripts/generate_stage1_production_backup_rollback_evidence.py",
+      "scripts/validate_stage1_production_backup_rollback_evidence.py",
+      "app_rollback_verified"
+    ],
+    "status": "pass"
+  },
+  "audit_refs": {
+    "refs": [
+      "au-003",
+      "au-004",
+      "au-009",
+      "au-010",
+      "au-016",
+      "au-018"
+    ],
+    "status": "pass"
+  },
+  "authorization_header_persisted": false,
+  "backend_runtime_worker_rollback": {
+    "docker_target": "runtime-worker",
+    "entrypoint": "/app/worker",
+    "evidence_refs": [
+      "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+      "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+      "scripts/generate_stage1_production_backup_rollback_evidence.py",
+      "scripts/validate_stage1_production_backup_rollback_evidence.py",
+      "backend_runtime_worker_rollback_verified"
+    ],
+    "release_image_name": "backend",
+    "standalone_release_image": false,
+    "status": "pass"
+  },
+  "canonical_pass_path": true,
+  "cookie_persisted": false,
+  "dry_run": false,
+  "environment": "production",
+  "feature_flag_rollback": {
+    "evidence_refs": [
+      "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+      "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+      "scripts/generate_stage1_production_backup_rollback_evidence.py",
+      "scripts/validate_stage1_production_backup_rollback_evidence.py",
+      "feature_flag_rollback_verified"
+    ],
+    "status": "pass"
+  },
+  "gate_impact": {
+    "can_clear_rollback_incident_post_deploy_split": true,
+    "check_level_item": "Production rollback/incident/post-deploy smoke runtime evidence \u901a\u8fc7\uff1aproduction evidence proves app rollback, feature flag rollback, backend image runtime-worker rollback (/app/worker), worker drain, incident/alert path, migration compatibility, and post-deploy smoke under `ops/evidence/production/`\u3002",
+    "release_gate_check_id": "production_backup_rollback_incident"
+  },
+  "generated_at": "2026-06-25T17:16:54+00:00",
+  "incident_alert_path": {
+    "evidence_refs": [
+      "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+      "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+      "scripts/generate_stage1_production_backup_rollback_evidence.py",
+      "scripts/validate_stage1_production_backup_rollback_evidence.py",
+      "alert_incident_path_verified"
+    ],
+    "status": "pass"
+  },
+  "kind": "production_rollback_incident_post_deploy_smoke",
+  "local_devport_debug": false,
+  "migration_compatibility": {
+    "evidence_refs": [
+      "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+      "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+      "scripts/generate_stage1_production_backup_rollback_evidence.py",
+      "scripts/validate_stage1_production_backup_rollback_evidence.py",
+      "migration_compatibility_verified"
+    ],
+    "status": "pass"
+  },
+  "post_deploy_smoke": {
+    "evidence_refs": [
+      "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+      "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+      "scripts/generate_stage1_production_backup_rollback_evidence.py",
+      "scripts/validate_stage1_production_backup_rollback_evidence.py",
+      "post_deploy_smoke_verified"
+    ],
+    "status": "pass"
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_backup_rollback_incident",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "schema_version": "stage1.production_rollback_incident_post_deploy.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "pass",
+  "upstream_gate_dependencies": {
+    "ci_evidence_refs": [
+      "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+      "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+      "ops/evidence/ci/stage0-rev2-docker-image-build.json"
+    ],
+    "gate_decision_status_summary": "ci gate_decision.status=go; private_beta_staging gate_decision.status=go; strict_stage1_staging_runtime status=pass",
+    "gates": {
+      "ci": {
+        "path": "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+        "status": "go"
+      },
+      "private_beta_staging": {
+        "path": "fixtures/stage0/rev2/release_gate_evidence.private_beta_staging.json",
+        "status": "go"
+      },
+      "strict_stage1_staging_runtime": {
+        "path": "ops/evidence/staging/stage1-runtime.json",
+        "status": "pass"
+      }
+    },
+    "status": "pass"
+  },
+  "worker_drain": {
+    "evidence_refs": [
+      "ops/evidence/production/20260527T1800Z-backup-rollback-incident-smoke.json",
+      "ops/evidence/ci/stage0-rev2-docker-image-build.json",
+      "scripts/generate_stage1_production_backup_rollback_evidence.py",
+      "scripts/validate_stage1_production_backup_rollback_evidence.py",
+      "worker_drain_verified"
+    ],
+    "status": "pass"
+  }
+}

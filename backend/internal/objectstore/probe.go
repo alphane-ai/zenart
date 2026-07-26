@@ -52,10 +52,13 @@ func (p HTTPProbe) checkS3Compatible(ctx context.Context) error {
 	case http.StatusOK:
 		return nil
 	case http.StatusNotFound:
-		return fmt.Errorf("bucket %q not found", p.cfg.Bucket)
+		body := readS3ErrorBody(resp)
+		return fmt.Errorf("bucket %q not found: %s", p.cfg.Bucket, s3ErrorSummary(resp, body))
 	case http.StatusForbidden, http.StatusUnauthorized:
-		return fmt.Errorf("S3-compatible object storage credentials rejected with status %d", resp.StatusCode)
+		body := readS3ErrorBody(resp)
+		return fmt.Errorf("S3-compatible object storage credentials rejected: %s", s3ErrorSummary(resp, body))
 	default:
-		return fmt.Errorf("unexpected status %d", resp.StatusCode)
+		body := readS3ErrorBody(resp)
+		return fmt.Errorf("unexpected S3-compatible object storage probe response: %s", s3ErrorSummary(resp, body))
 	}
 }

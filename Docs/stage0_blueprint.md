@@ -1,10 +1,10 @@
-# ZenArt Stage 0 Blueprint
+# Zenari Stage 0 Blueprint
 
 日期：2026-05-26
 
 ## 0. 权威边界
 
-本文件是 ZenArt Stage 0 工程落地和后续执行型 cron 的唯一权威需求源。
+本文件是 Zenari Stage 0 工程落地和后续执行型 cron 的唯一权威需求源。
 
 执行型 cron 后续只能从本文件的「18. Authoritative Execution Checklist」生成每日 todo，不得把 `Docs/stage0_draft.md`、README、issue、聊天记录或其他文档当成需求源。
 
@@ -29,7 +29,7 @@
 建议仓库结构：
 
 ```text
-zenart/
+zenari/
   web/                         # 用户端 Next.js TypeScript
   admin/                       # 管理端 Next.js TypeScript
   backend/                     # Go API + worker
@@ -305,7 +305,7 @@ Crawler 必须保留：
 
 Stage 0 默认 plan：
 
-- `zenart_pro`
+- `zenari_pro`
 - `$20/month`
 - `3500 images/week`
 - 支持草稿模式、高清模式、批量模式消耗倍率。
@@ -973,4 +973,3 @@ Stage 0 不做：
 - [ ] 执行 cron 生成的每日 todo 不得成为需求源。
 - [ ] 执行 cron 每次关闭 checklist 项时必须同步更新本文件。
 - [ ] 执行 cron 不得提交 tests/spec-only/doc-only 伪完成。
-

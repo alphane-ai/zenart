@@ -1,0 +1,23 @@
+{
+  "blocking_reasons": [
+    "strict_staging_rollback_evidence_missing",
+    "image_and_feature_flag_rollback_evidence_missing",
+    "worker_drain_post_rollback_smoke_missing"
+  ],
+  "can_clear_stage1_production_launch_gate": false,
+  "can_clear_stage1_staging_runtime_gate": false,
+  "environment": "staging_metadata_draft",
+  "kind": "rollback",
+  "release_sha": "b885b7ac1c75cad256d774a1fed82008eea4aecf",
+  "required_strict_components": [
+    "image_rollback",
+    "feature_flag_rollback",
+    "migration_compatibility",
+    "worker_drain",
+    "post_rollback_smoke"
+  ],
+  "schema_version": "stage1.release_candidate_rollback_draft.v1",
+  "slot": "rollback_evidence",
+  "status": "blocked",
+  "strict_usable": false
+}

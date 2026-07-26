@@ -1,0 +1,10 @@
+2026-06-24T18:16:22+08:00	INFO	[vulndb] Need to update DB
+2026-06-24T18:16:22+08:00	INFO	[vulndb] Downloading vulnerability DB...
+2026-06-24T18:16:22+08:00	INFO	[vulndb] Downloading artifact...	repo="mirror.gcr.io/aquasec/trivy-db:2"
+2026-06-24T18:20:15+08:00	FATAL	Fatal error	run error: init error: DB error: failed to download vulnerability DB: OCI artifact error: failed to download vulnerability DB: failed to download artifact from mirror.gcr.io/aquasec/trivy-db:2: OCI repository error: 1 error occurred:
+	* Get "https://mirror.gcr.io/v2/": dial tcp [2404:6800:4008:c04::52]:443: connect: operation timed out
+
+
+2026-06-24T18:20:15+08:00	INFO	[vulndb] Need to update DB
+2026-06-24T18:20:15+08:00	INFO	[vulndb] Downloading vulnerability DB...
+2026-06-24T18:20:15+08:00	INFO	[vulndb] Downloading artifact...	repo="mirror.gcr.io/aquasec/trivy-db:2"

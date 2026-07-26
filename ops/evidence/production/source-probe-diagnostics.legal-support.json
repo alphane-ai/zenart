@@ -1,0 +1,21 @@
+{
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "production web URL host zenari.ai did not resolve via system resolver: [Errno 8] nodename nor servname provided, or not known"
+  ],
+  "canonical_source_written": false,
+  "cookie_persisted": false,
+  "environment": "production",
+  "generated_at": "2026-06-28T21:51:10+00:00",
+  "kind": "production_legal_support_source_probe",
+  "production_web_url": "https://zenari.ai",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_sha": "ddb10bc71ceafd1e0af3992abeb73f4c0df217ec",
+  "schema_version": "stage1.production_source_probe.blocked.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "blocked"
+}

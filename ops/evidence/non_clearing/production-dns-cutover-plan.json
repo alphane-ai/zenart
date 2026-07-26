@@ -1,0 +1,157 @@
+{
+  "apply_results": [],
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "CLOUDFLARE_ZONE_ID_or_CF_ZONE_ID",
+    "CLOUDFLARE_API_TOKEN_or_CF_API_TOKEN"
+  ],
+  "can_clear_production_legal_support_policy": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "cloudflare_scope_preflight": {
+    "api_token_configured": false,
+    "checks": [],
+    "reason": "verify_cloudflare_not_requested",
+    "requested": false,
+    "required_scope": "Zone DNS Read and Zone DNS Edit for zenari.ai",
+    "status": "not_run",
+    "zone_id_configured": false
+  },
+  "cloudflare_zone": {
+    "api_token_configured": false,
+    "proxied": true,
+    "zone_id_configured": false
+  },
+  "cookie_persisted": false,
+  "credential_scope": {
+    "cloudflare_api_token_configured": false,
+    "cloudflare_dns_credentials_configured": false,
+    "cloudflare_zone_id_configured": false,
+    "dns_write_requires": [
+      "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+      "CLOUDFLARE_API_TOKEN or CF_API_TOKEN with Zone DNS Edit permission",
+      "PRODUCTION_DNS_TARGET"
+    ],
+    "operator_note": "Cloudflare R2 S3 access keys are object-storage credentials only and cannot create or edit zenari.ai DNS records; use a Cloudflare API token with Zone DNS Edit permission.",
+    "r2_s3_can_manage_dns": false,
+    "r2_s3_credentials_detected": true,
+    "r2_s3_present_keys": [
+      "OBJECT_STORAGE_ENDPOINT",
+      "OBJECT_STORAGE_BUCKET",
+      "OBJECT_STORAGE_ACCESS_KEY",
+      "OBJECT_STORAGE_SECRET_KEY"
+    ]
+  },
+  "current_dns_readiness": {
+    "first_blocker": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+    "path": "ops/evidence/non_clearing/production-dns-readiness.json",
+    "status": "blocked"
+  },
+  "current_records": {
+    "apex_a": {
+      "exit_code": 0,
+      "host": "zenari.ai",
+      "records": [],
+      "rrtype": "A",
+      "status": "missing"
+    },
+    "apex_aaaa": {
+      "exit_code": 0,
+      "host": "zenari.ai",
+      "records": [],
+      "rrtype": "AAAA",
+      "status": "missing"
+    },
+    "apex_cname": {
+      "exit_code": 0,
+      "host": "zenari.ai",
+      "records": [],
+      "rrtype": "CNAME",
+      "status": "missing"
+    },
+    "staging_a": {
+      "exit_code": 0,
+      "host": "staging.zenari.ai",
+      "records": [
+        "172.67.219.243",
+        "104.21.62.40"
+      ],
+      "rrtype": "A",
+      "status": "pass"
+    },
+    "www_a": {
+      "exit_code": 0,
+      "host": "www.zenari.ai",
+      "records": [],
+      "rrtype": "A",
+      "status": "missing"
+    },
+    "www_cname": {
+      "exit_code": 0,
+      "host": "www.zenari.ai",
+      "records": [],
+      "rrtype": "CNAME",
+      "status": "missing"
+    }
+  },
+  "environment": "production",
+  "evidence_outputs": {
+    "cutover_plan": "ops/evidence/non_clearing/production-dns-cutover-plan.json",
+    "dns_readiness": "ops/evidence/non_clearing/production-dns-readiness.json",
+    "legal_support_operator_packet": "ops/evidence/non_clearing/production-legal-support-operator-packet.json"
+  },
+  "generated_at": "2026-06-28T22:03:48+00:00",
+  "kind": "stage1_production_dns_cutover_plan",
+  "manual_dns_observation": {
+    "apex_expected": "52.237.80.117",
+    "apex_matches_target": false,
+    "apex_observed": [],
+    "can_omit_cloudflare_api_credentials": false,
+    "reason": "zenari.ai does not match PRODUCTION_DNS_TARGET; www.zenari.ai does not point to zenari.ai or PRODUCTION_DNS_TARGET",
+    "status": "not_observed",
+    "www_observed": [],
+    "www_points_to_apex": false
+  },
+  "non_clearing_cutover_plan": true,
+  "operator_next_actions": [
+    "Do not use Cloudflare R2 S3 access keys for DNS; they only prove object-storage access.",
+    "Set CLOUDFLARE_ZONE_ID or CF_ZONE_ID for zenari.ai.",
+    "Set CLOUDFLARE_API_TOKEN or CF_API_TOKEN with Zone DNS Edit permission.",
+    "Set PRODUCTION_DNS_TARGET to the production web ingress IPv4 address or hostname.",
+    "If zenari.ai and www.zenari.ai are already applied manually in Cloudflare UI, rerun this plan and confirm status observed_applied.",
+    "Run with --verify-cloudflare to confirm the token can read the zone and DNS records before any DNS write.",
+    "Confirm the target origin already serves zenari.ai and www.zenari.ai over HTTPS with matching SNI before applying DNS.",
+    "Run this script without --apply first and confirm status ready_to_apply.",
+    "Run with --apply, wait for DNS propagation, then rerun stage1_production_dns_readiness.py.",
+    "Only after https://zenari.ai public legal/support paths pass should the legal/support source probe write canonical production source."
+  ],
+  "origin_https_preflight": {
+    "probes": [],
+    "reason": "cloudflare_dns_credentials_missing",
+    "required_hosts": [
+      "zenari.ai",
+      "www.zenari.ai"
+    ],
+    "status": "not_run"
+  },
+  "production_web_url": "https://zenari.ai",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "required_hosts": [
+    "zenari.ai",
+    "www.zenari.ai"
+  ],
+  "schema_version": "stage1.production_dns_cutover_plan.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "blocked",
+  "target": {
+    "status": "ready",
+    "target": "52.237.80.117",
+    "target_kind": "a"
+  }
+}

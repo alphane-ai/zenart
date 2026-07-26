@@ -1,0 +1,826 @@
+{
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "billing_proof: stage1 Stripe live billing proof blocked: 20 blocker(s); first: STRIPE_MODE_must_be_live",
+    "security_proof: stage1 production security proof blocked: secure_session_cookie_ref_missing (+9 more)",
+    "governance_proof: stage1 production governance proof blocked: 26 blocker(s); first: activation_runtime_request_ids_missing",
+    "launch_source_pipeline: wrote Stage 1 production launch source pipeline summary to ops/evidence/non_clearing/production-launch-source-pipeline.json"
+  ],
+  "canonical_sources_requested": false,
+  "configured_input_variable_names": {
+    "billing": [],
+    "governance": [],
+    "security": []
+  },
+  "cookie_persisted": false,
+  "environment": "production",
+  "gate_impact": {
+    "can_clear_stage1_production_launch_gate": false,
+    "requires_strict_validator": "python3 scripts/validate_stage1_production_launch.py"
+  },
+  "generated_at": "2026-06-28T21:51:11+00:00",
+  "input_variable_coverage": {
+    "blocking_input_count": 58,
+    "first_missing_or_invalid_inputs": [
+      "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+      "CLOUDFLARE_API_TOKEN or CF_API_TOKEN",
+      "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID",
+      "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID",
+      "STAGE1_PROD_BILLING_PRICE_ID",
+      "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID",
+      "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID",
+      "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID",
+      "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID",
+      "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID",
+      "STAGE1_PROD_BILLING_SEAT_QUANTITY",
+      "STAGE1_PROD_BILLING_SYNCED_QUANTITY"
+    ],
+    "groups": {
+      "billing": {
+        "configured_variable_names": [],
+        "invalid_required_inputs": [
+          "STRIPE_MODE=live",
+          "STRIPE_SECRET_KEY or STRIPE_API_KEY with live key shape",
+          "STRIPE_PUBLISHABLE_KEY or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY with live key shape"
+        ],
+        "missing_required_inputs": [
+          "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID",
+          "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID",
+          "STAGE1_PROD_BILLING_PRICE_ID",
+          "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID",
+          "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID",
+          "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID",
+          "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID",
+          "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID",
+          "STAGE1_PROD_BILLING_SEAT_QUANTITY",
+          "STAGE1_PROD_BILLING_SYNCED_QUANTITY",
+          "STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID",
+          "STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID",
+          "STAGE1_PROD_BILLING_REFUND_CHARGE_ID",
+          "STAGE1_PROD_BILLING_REFUND_ID",
+          "STAGE1_PROD_BILLING_QUOTA_RESET_INVOICE_ID",
+          "STAGE1_PROD_BILLING_WEBHOOK_EVENT_IDS",
+          "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_ID"
+        ],
+        "optional_or_defaulted": {
+          "configured_variable_names": [],
+          "optional_or_defaulted_configured": 0,
+          "optional_or_defaulted_total": 23
+        },
+        "required_configured": 0,
+        "required_invalid": 3,
+        "required_missing": 17,
+        "required_total": 20,
+        "requirements": [
+          {
+            "accepted_variable_names": [
+              "STRIPE_MODE"
+            ],
+            "configured_variable_name": "STRIPE_MODE",
+            "display_name": "STRIPE_MODE=live",
+            "requirement_id": "stripe_mode_live",
+            "status": "invalid"
+          },
+          {
+            "accepted_variable_names": [
+              "STRIPE_SECRET_KEY",
+              "STRIPE_API_KEY"
+            ],
+            "configured_variable_name": "STRIPE_SECRET_KEY",
+            "display_name": "STRIPE_SECRET_KEY or STRIPE_API_KEY with live key shape",
+            "requirement_id": "stripe_live_secret",
+            "status": "invalid"
+          },
+          {
+            "accepted_variable_names": [
+              "STRIPE_PUBLISHABLE_KEY",
+              "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
+            ],
+            "configured_variable_name": "STRIPE_PUBLISHABLE_KEY",
+            "display_name": "STRIPE_PUBLISHABLE_KEY or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY with live key shape",
+            "requirement_id": "stripe_live_publishable",
+            "status": "invalid"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID",
+            "requirement_id": "checkout_session_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID",
+            "requirement_id": "checkout_customer_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_PRICE_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_PRICE_ID",
+            "requirement_id": "price_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID",
+            "requirement_id": "active_subscription_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID",
+            "requirement_id": "active_customer_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID",
+            "requirement_id": "past_due_subscription_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID",
+            "requirement_id": "past_due_invoice_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID",
+            "requirement_id": "cancel_subscription_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_SEAT_QUANTITY"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_SEAT_QUANTITY",
+            "requirement_id": "seat_quantity",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_SYNCED_QUANTITY"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_SYNCED_QUANTITY",
+            "requirement_id": "synced_quantity",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID",
+            "requirement_id": "subscription_item_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID",
+            "requirement_id": "visible_invoice_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_REFUND_CHARGE_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_REFUND_CHARGE_ID",
+            "requirement_id": "refund_charge_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_REFUND_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_REFUND_ID",
+            "requirement_id": "refund_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_QUOTA_RESET_INVOICE_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_QUOTA_RESET_INVOICE_ID",
+            "requirement_id": "quota_reset_invoice_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_WEBHOOK_EVENT_IDS"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_WEBHOOK_EVENT_IDS",
+            "requirement_id": "webhook_event_ids",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_ID",
+            "requirement_id": "failed_export_refund_id",
+            "status": "missing"
+          }
+        ]
+      },
+      "governance": {
+        "configured_variable_names": [],
+        "invalid_required_inputs": [],
+        "missing_required_inputs": [
+          "STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS",
+          "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS",
+          "STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF",
+          "STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF",
+          "STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF",
+          "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF",
+          "STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF",
+          "STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS",
+          "STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS",
+          "STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF",
+          "STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF",
+          "STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF",
+          "STAGE1_PROD_GOVERNANCE_ABUSE_RBAC_AUDIT_REF",
+          "STAGE1_PROD_GOVERNANCE_SKILL_RUNTIME_REQUEST_IDS",
+          "STAGE1_PROD_GOVERNANCE_SKILL_AUDIT_REFS",
+          "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_ID",
+          "STAGE1_PROD_GOVERNANCE_SKILL_SUITE_ID",
+          "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_ID",
+          "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_ID",
+          "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_SAMPLE_SIZE",
+          "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_RISK_REF",
+          "STAGE1_PROD_GOVERNANCE_SKILL_EVAL_SUITE_REF",
+          "STAGE1_PROD_GOVERNANCE_SKILL_SAFETY_REFS_REF",
+          "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_METRICS_REF",
+          "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_REF",
+          "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_REF"
+        ],
+        "optional_or_defaulted": {
+          "configured_variable_names": [],
+          "optional_or_defaulted_configured": 0,
+          "optional_or_defaulted_total": 1
+        },
+        "required_configured": 0,
+        "required_invalid": 0,
+        "required_missing": 26,
+        "required_total": 26,
+        "requirements": [
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS",
+            "requirement_id": "activation_runtime_request_ids",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS",
+            "requirement_id": "activation_audit_refs",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF",
+            "requirement_id": "activation_high_risk_rbac_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF",
+            "requirement_id": "activation_reviewer_rationale_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF",
+            "requirement_id": "activation_second_review_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF",
+            "requirement_id": "activation_audit_immutability_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF",
+            "requirement_id": "activation_gates_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS",
+            "requirement_id": "abuse_runtime_request_ids",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS",
+            "requirement_id": "abuse_audit_refs",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF",
+            "requirement_id": "abuse_account_hold_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF",
+            "requirement_id": "abuse_rate_limit_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF",
+            "requirement_id": "abuse_spend_cap_or_kill_switch_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_ABUSE_RBAC_AUDIT_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_ABUSE_RBAC_AUDIT_REF",
+            "requirement_id": "abuse_rbac_audit_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_SKILL_RUNTIME_REQUEST_IDS"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_RUNTIME_REQUEST_IDS",
+            "requirement_id": "skill_runtime_request_ids",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_SKILL_AUDIT_REFS"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_AUDIT_REFS",
+            "requirement_id": "skill_audit_refs",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_ID",
+            "requirement_id": "skill_owner_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_SKILL_SUITE_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_SUITE_ID",
+            "requirement_id": "skill_suite_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_ID",
+            "requirement_id": "skill_rollback_target_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_ID",
+            "requirement_id": "skill_release_notes_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_SAMPLE_SIZE"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_SAMPLE_SIZE",
+            "requirement_id": "skill_canary_sample_size",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_RISK_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_RISK_REF",
+            "requirement_id": "skill_owner_risk_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_SKILL_EVAL_SUITE_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_EVAL_SUITE_REF",
+            "requirement_id": "skill_eval_suite_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_SKILL_SAFETY_REFS_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_SAFETY_REFS_REF",
+            "requirement_id": "skill_safety_refs_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_METRICS_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_METRICS_REF",
+            "requirement_id": "skill_canary_metrics_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_REF",
+            "requirement_id": "skill_rollback_target_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_REF",
+            "requirement_id": "skill_release_notes_ref",
+            "status": "missing"
+          }
+        ]
+      },
+      "production_dns": {
+        "configured_variable_names": [
+          "PRODUCTION_DNS_TARGET",
+          "PRODUCTION_WEB_URL"
+        ],
+        "invalid_required_inputs": [],
+        "missing_required_inputs": [
+          "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+          "CLOUDFLARE_API_TOKEN or CF_API_TOKEN"
+        ],
+        "optional_or_defaulted_configured": 0,
+        "optional_or_defaulted_configured_variable_names": [],
+        "optional_or_defaulted_total": 0,
+        "required_configured": 2,
+        "required_invalid": 0,
+        "required_missing": 2,
+        "required_total": 4,
+        "requirements": [
+          {
+            "accepted_variable_names": [
+              "PRODUCTION_WEB_URL"
+            ],
+            "configured_variable_name": "PRODUCTION_WEB_URL",
+            "display_name": "PRODUCTION_WEB_URL or --production-web-url",
+            "requirement_id": "production_web_url",
+            "status": "configured"
+          },
+          {
+            "accepted_variable_names": [
+              "PRODUCTION_DNS_TARGET"
+            ],
+            "configured_variable_name": "PRODUCTION_DNS_TARGET",
+            "display_name": "PRODUCTION_DNS_TARGET",
+            "requirement_id": "production_dns_target",
+            "status": "configured"
+          },
+          {
+            "accepted_variable_names": [
+              "CLOUDFLARE_ZONE_ID",
+              "CF_ZONE_ID"
+            ],
+            "configured_variable_name": null,
+            "display_name": "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+            "requirement_id": "cloudflare_zone_id",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "CLOUDFLARE_API_TOKEN",
+              "CF_API_TOKEN"
+            ],
+            "configured_variable_name": null,
+            "display_name": "CLOUDFLARE_API_TOKEN or CF_API_TOKEN",
+            "requirement_id": "cloudflare_dns_edit_token",
+            "status": "missing"
+          }
+        ]
+      },
+      "security": {
+        "configured_variable_names": [],
+        "invalid_required_inputs": [],
+        "missing_required_inputs": [
+          "STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF",
+          "STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF",
+          "STAGE1_PROD_SECURITY_SECRET_REDACTION_REF",
+          "STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF",
+          "STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF",
+          "STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF",
+          "STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF",
+          "STAGE1_PROD_SECURITY_CSP_HEADERS_REF",
+          "STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF",
+          "STAGE1_PROD_SECURITY_AUDIT_REF"
+        ],
+        "optional_or_defaulted": {
+          "configured_variable_names": [],
+          "optional_or_defaulted_configured": 0,
+          "optional_or_defaulted_total": 3
+        },
+        "required_configured": 0,
+        "required_invalid": 0,
+        "required_missing": 10,
+        "required_total": 10,
+        "requirements": [
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF",
+            "requirement_id": "secure_session_cookie_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF",
+            "requirement_id": "csrf_same_site_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_SECURITY_SECRET_REDACTION_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_SECURITY_SECRET_REDACTION_REF",
+            "requirement_id": "secret_redaction_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF",
+            "requirement_id": "admin_surface_privacy_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF",
+            "requirement_id": "provider_key_containment_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF",
+            "requirement_id": "stripe_live_test_separation_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF",
+            "requirement_id": "rate_limit_spend_cap_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_SECURITY_CSP_HEADERS_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_SECURITY_CSP_HEADERS_REF",
+            "requirement_id": "csp_headers_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF",
+            "requirement_id": "rbac_tenant_isolation_ref",
+            "status": "missing"
+          },
+          {
+            "accepted_variable_names": [
+              "STAGE1_PROD_SECURITY_AUDIT_REF"
+            ],
+            "configured_variable_name": null,
+            "display_name": "STAGE1_PROD_SECURITY_AUDIT_REF",
+            "requirement_id": "audit_ref",
+            "status": "missing"
+          }
+        ]
+      }
+    },
+    "required_completion_percent": 3.3,
+    "required_configured": 2,
+    "required_invalid": 3,
+    "required_missing": 55,
+    "required_total": 60,
+    "schema_version": "stage1.production_proof_bundle.input_variable_coverage.v1",
+    "value_redaction": "variable_names_only"
+  },
+  "kind": "stage1_production_proof_bundle",
+  "non_clearing_bundle": true,
+  "pipeline_summary": {
+    "aggregate_attempted": false,
+    "path": "ops/evidence/non_clearing/production-launch-source-pipeline.json",
+    "release_gate_decision": "no_go",
+    "status": "blocked"
+  },
+  "production_web_url": "https://zenari.ai",
+  "proofs": {
+    "billing": {
+      "blocker_count": 20,
+      "first_blocker": "STRIPE_MODE_must_be_live",
+      "path": "ops/evidence/non_clearing/production-live-billing-proof.blocked.json",
+      "sample_blockers": [
+        "STRIPE_MODE_must_be_live",
+        "STRIPE_SECRET_KEY_or_STRIPE_API_KEY_must_be_live",
+        "STRIPE_PUBLISHABLE_KEY_must_be_live_when_set",
+        "seat_quantity_must_be_integer",
+        "synced_quantity_must_be_integer",
+        "checkout_session_id_missing",
+        "checkout_customer_id_missing",
+        "price_id_missing"
+      ],
+      "schema_version": "stage1.production_live_billing_proof.blocked.v1",
+      "status": "blocked"
+    },
+    "governance": {
+      "blocker_count": 26,
+      "first_blocker": "activation_runtime_request_ids_missing",
+      "path": "ops/evidence/non_clearing/production-governance-proof.blocked.json",
+      "sample_blockers": [
+        "activation_runtime_request_ids_missing",
+        "activation_audit_refs_missing",
+        "activation_high_risk_rbac_ref_missing",
+        "activation_reviewer_rationale_ref_missing",
+        "activation_second_review_ref_missing",
+        "activation_audit_immutability_ref_missing",
+        "activation_gates_ref_missing",
+        "abuse_runtime_request_ids_missing"
+      ],
+      "schema_version": "stage1.production_governance_proof.blocked.v1",
+      "status": "blocked"
+    },
+    "security": {
+      "blocker_count": 10,
+      "first_blocker": "secure_session_cookie_ref_missing",
+      "path": "ops/evidence/non_clearing/production-security-proof.blocked.json",
+      "sample_blockers": [
+        "secure_session_cookie_ref_missing",
+        "csrf_same_site_ref_missing",
+        "secret_redaction_ref_missing",
+        "admin_surface_privacy_ref_missing",
+        "provider_key_containment_ref_missing",
+        "stripe_live_test_separation_ref_missing",
+        "rate_limit_spend_cap_ref_missing",
+        "csp_headers_ref_missing"
+      ],
+      "schema_version": "stage1.production_security_proof.blocked.v1",
+      "status": "blocked"
+    }
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "release_sha": "ddb10bc71ceafd1e0af3992abeb73f4c0df217ec",
+  "schema_version": "stage1.production_proof_bundle.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "blocked",
+  "steps": [
+    {
+      "command": "python3 scripts/stage1_stripe_live_billing_proof.py --env-file .env --release-sha ddb10bc71ceafd1e0af3992abeb73f4c0df217ec --output ops/evidence/non_clearing/production-live-billing-proof.candidate.json --diagnostic ops/evidence/non_clearing/production-live-billing-proof.blocked.json",
+      "exit_code": 2,
+      "expected_exit": true,
+      "output_summary": "stage1 Stripe live billing proof blocked: 20 blocker(s); first: STRIPE_MODE_must_be_live",
+      "status": "blocked",
+      "step_id": "billing_proof"
+    },
+    {
+      "command": "python3 scripts/stage1_production_security_proof.py --release-sha ddb10bc71ceafd1e0af3992abeb73f4c0df217ec --output ops/evidence/non_clearing/production-security-proof.candidate.json --diagnostic ops/evidence/non_clearing/production-security-proof.blocked.json",
+      "exit_code": 2,
+      "expected_exit": true,
+      "output_summary": "stage1 production security proof blocked: secure_session_cookie_ref_missing (+9 more)",
+      "status": "blocked",
+      "step_id": "security_proof"
+    },
+    {
+      "command": "python3 scripts/stage1_production_governance_proof.py --release-sha ddb10bc71ceafd1e0af3992abeb73f4c0df217ec --output ops/evidence/non_clearing/production-governance-proof.candidate.json --diagnostic ops/evidence/non_clearing/production-governance-proof.blocked.json",
+      "exit_code": 2,
+      "expected_exit": true,
+      "output_summary": "stage1 production governance proof blocked: 26 blocker(s); first: activation_runtime_request_ids_missing",
+      "status": "blocked",
+      "step_id": "governance_proof"
+    },
+    {
+      "command": "python3 scripts/run_stage1_production_launch_source_pipeline.py --release-sha ddb10bc71ceafd1e0af3992abeb73f4c0df217ec --production-web-url https://zenari.ai --billing-proof ops/evidence/non_clearing/production-live-billing-proof.candidate.json --security-proof ops/evidence/non_clearing/production-security-proof.candidate.json --governance-proof ops/evidence/non_clearing/production-governance-proof.candidate.json --legal-diagnostic ops/evidence/production/source-probe-diagnostics.legal-support.json --summary ops/evidence/non_clearing/production-launch-source-pipeline.json",
+      "exit_code": 2,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production launch source pipeline summary to ops/evidence/non_clearing/production-launch-source-pipeline.json",
+      "status": "blocked",
+      "step_id": "launch_source_pipeline"
+    }
+  ]
+}

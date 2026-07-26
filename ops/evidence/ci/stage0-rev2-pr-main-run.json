@@ -1,0 +1,76 @@
+{
+  "allow_local_devport_evidence": false,
+  "authorization_header_persisted": false,
+  "canonical_pass_path": true,
+  "cookie_persisted": false,
+  "dry_run": false,
+  "environment": "ci",
+  "evidence_refs": [
+    ".github/workflows/stage0-rev2-ci.yml",
+    "ops/ci/stage0-rev2-ci.yml",
+    "scripts/write_stage1_ci_pr_main_evidence.py"
+  ],
+  "gate_impact": {
+    "can_clear_ci_gate_check": true,
+    "release_gate_check_id": "ci_gate_runtime_execution"
+  },
+  "kind": "ci_pr_main_run",
+  "local_devport_debug": false,
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "ci_gate_runtime_execution",
+  "release_sha": "42a1f8391818025f0dcccfcbea5a0880b9e3e825",
+  "schema_version": "stage1.ci_pr_main_run.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "pass",
+  "trigger": {
+    "base_ref": "main",
+    "event_name": "pull_request",
+    "head_ref": "stage1-launch-candidate-with-workflow-20260629",
+    "ref": "refs/pull/3/merge",
+    "target_ref": "refs/heads/main"
+  },
+  "validations": {
+    "admin_checks": {
+      "evidence_refs": [
+        "Admin lint, typecheck, unit, and build"
+      ],
+      "status": "pass"
+    },
+    "backend_go_tests": {
+      "evidence_refs": [
+        "Backend fmt, vet, unit, integration, and build",
+        "backend/go test ./..."
+      ],
+      "status": "pass"
+    },
+    "stage0_rev2": {
+      "evidence_refs": [
+        "scripts/validate_stage0_rev2.py"
+      ],
+      "status": "pass"
+    },
+    "stage1_prelaunch_contracts": {
+      "evidence_refs": [
+        "scripts/validate_stage1_ci_exact_evidence.py",
+        "scripts/repo_validate.sh"
+      ],
+      "status": "pass"
+    },
+    "web_checks": {
+      "evidence_refs": [
+        "Web lint, typecheck, unit, and build"
+      ],
+      "status": "pass"
+    }
+  },
+  "workflow_run": {
+    "conclusion": "success",
+    "run_id": "28337686861",
+    "run_url": "https://github.com/alphane-ai/zenart/actions/runs/28337686861",
+    "workflow_file": ".github/workflows/stage0-rev2-ci.yml"
+  }
+}

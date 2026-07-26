@@ -28,7 +28,7 @@
     "expectedAcceptedKinds": ["image"],
     "expectedUploadMethod": "POST",
     "expectedUploadPath": "/uploads",
-    "expectedUploadCsrfHeader": "X-ZenArt-CSRF",
+    "expectedUploadCsrfHeader": "X-Zenari-CSRF",
     "expectedUploadIdempotencyRequired": "true",
     "expectedPreviewScope": "tenant-scoped-dev-preview",
     "expectedLatestReferenceId": "ref-campaign-reference-webp",

@@ -1,0 +1,267 @@
+{
+  "authorization_header_persisted": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "closure_summary": {
+    "completed": 6,
+    "completion_percent": 42.9,
+    "open": 8,
+    "open_gates": [
+      "ci_pr_main_run",
+      "ci_playwright_smoke",
+      "ci_docker_image_build",
+      "stage1_production_launch_preflight",
+      "production_paid_billing_lifecycle",
+      "production_security_launch_checks",
+      "production_legal_support_policy",
+      "production_governance_release"
+    ],
+    "path": "ops/evidence/release/staging/stage1-evidence-closure-queue.preflight.json",
+    "release_gate_decision": "no_go",
+    "status": "blocked",
+    "total": 14
+  },
+  "cookie_persisted": false,
+  "environment": "production",
+  "final_blocker_count": 4,
+  "gate_impact": {
+    "can_clear_stage1_production_launch_gate": false,
+    "can_close_do_not_launch": false,
+    "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete"
+  },
+  "generated_at": "2026-06-28T21:51:13+00:00",
+  "kind": "stage1_production_blocker_audit",
+  "local_env_classification": {
+    "env_file": ".env",
+    "env_file_present": true,
+    "llm": {
+      "api_key_class": "zai_key_shape",
+      "model": "configured",
+      "openai_base_url": "https_configured",
+      "provider": "configured"
+    },
+    "object_storage": {
+      "access_key_configured": true,
+      "bucket_is_zenari": true,
+      "endpoint": "https_configured",
+      "provider": "configured",
+      "secret_key_configured": true
+    },
+    "staging": {
+      "admin_url": "https_configured",
+      "api_url": "https_configured",
+      "database_configured": true,
+      "quota_replay_api_url": "https_configured",
+      "web_url": "https_configured"
+    },
+    "stripe": {
+      "api_key_class": "test_secret",
+      "live_secret_configured": false,
+      "mode": "test",
+      "publishable_key_class": "test_publishable",
+      "secret_key_class": "test_secret",
+      "webhook_secret_class": "webhook_secret_set"
+    }
+  },
+  "non_clearing_audit": true,
+  "open_source_probe_ids": [
+    "production_paid_billing_lifecycle",
+    "production_security_launch_checks",
+    "production_legal_support_policy",
+    "production_governance_release"
+  ],
+  "operator_summary": {
+    "additional_sandbox_or_llm_inputs_needed": false,
+    "production_live_source_inputs_needed": [
+      "production_paid_billing_lifecycle",
+      "production_security_launch_checks",
+      "production_legal_support_policy",
+      "production_governance_release"
+    ],
+    "staging_is_not_current_blocker": true,
+    "stripe_sandbox_is_not_current_blocker": true
+  },
+  "production_dns_readiness": {
+    "doh_probe_statuses": {
+      "production_a_cloudflare": "blocked",
+      "production_a_google": "blocked",
+      "production_aaaa_cloudflare": "blocked",
+      "production_aaaa_google": "blocked",
+      "staging_a_cloudflare": "blocked",
+      "staging_a_google": "blocked"
+    },
+    "first_blocker": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+    "path": "ops/evidence/non_clearing/production-dns-readiness.json",
+    "production_web_url": "https://zenari.ai",
+    "public_dns_a_status": "missing",
+    "public_dns_aaaa_status": "missing",
+    "public_production_address_count": 0,
+    "release_gate_decision": "no_go",
+    "status": "blocked",
+    "system_resolver_status": "blocked"
+  },
+  "production_proof_bundle": {
+    "canonical_sources_requested": false,
+    "exists": true,
+    "input_variable_coverage": {
+      "blocking_input_count": 58,
+      "first_missing_or_invalid_inputs": [
+        "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+        "CLOUDFLARE_API_TOKEN or CF_API_TOKEN",
+        "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID",
+        "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID",
+        "STAGE1_PROD_BILLING_PRICE_ID",
+        "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID",
+        "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID",
+        "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_SEAT_QUANTITY",
+        "STAGE1_PROD_BILLING_SYNCED_QUANTITY"
+      ],
+      "groups": {
+        "billing": {
+          "required_configured": 0,
+          "required_invalid": 3,
+          "required_missing": 17,
+          "required_total": 20
+        },
+        "governance": {
+          "required_configured": 0,
+          "required_invalid": 0,
+          "required_missing": 26,
+          "required_total": 26
+        },
+        "production_dns": {
+          "required_configured": 2,
+          "required_invalid": 0,
+          "required_missing": 2,
+          "required_total": 4
+        },
+        "security": {
+          "required_configured": 0,
+          "required_invalid": 0,
+          "required_missing": 10,
+          "required_total": 10
+        }
+      },
+      "required_completion_percent": 3.3,
+      "required_configured": 2,
+      "required_invalid": 3,
+      "required_missing": 55,
+      "required_total": 60,
+      "schema_version": "stage1.production_proof_bundle.input_variable_coverage.v1",
+      "value_redaction": "variable_names_only"
+    },
+    "path": "ops/evidence/non_clearing/production-proof-bundle.json",
+    "proof_statuses": {
+      "billing": "blocked",
+      "governance": "blocked",
+      "security": "blocked"
+    },
+    "release_gate_decision": "no_go",
+    "status": "blocked"
+  },
+  "production_source_audit": [
+    {
+      "diagnostic": {
+        "exists": true,
+        "first_blocker": "billing_proof_missing",
+        "path": "ops/evidence/production/source-probe-diagnostics.billing.json",
+        "status": "blocked"
+      },
+      "first_blocker": "billing_proof_missing",
+      "missing_input": "SANITIZED_LIVE_BILLING_PROOF_JSON",
+      "operator_action": "provide sanitized Stripe live billing proof with livemode=true",
+      "probe_id": "production_paid_billing_lifecycle",
+      "source_path": "ops/evidence/production/billing-paid-lifecycle-source.json",
+      "source_probe_exists": false,
+      "status": "source_missing",
+      "strict_validation": {
+        "command": "python3 scripts/validate_stage1_production_billing_evidence.py",
+        "exit_code": 1,
+        "status": "blocked",
+        "summary": "stage1 production billing evidence validation failed: lifecycle contains blocked/debug-only gate signal(s): ['lifecycle.blocked_checks is not empty', 'lifecycle.canonical_pass_path is false', 'lifecycle.gate_impact.can_clear_billing_lifecycle_subitem is false', 'lifecycle.gate_impact.can_clear_refund_credit_webhook_subitem is false', 'lifecycle.gate_impact.preserved_release_gate_check_id is not cleared', 'lifecycle.gate_impact.remaining_blockers is not empty']"
+      }
+    },
+    {
+      "diagnostic": {
+        "exists": true,
+        "first_blocker": "security_proof_missing",
+        "path": "ops/evidence/production/source-probe-diagnostics.security.json",
+        "status": "blocked"
+      },
+      "first_blocker": "security_proof_missing",
+      "missing_input": "SANITIZED_PRODUCTION_SECURITY_PROOF_JSON",
+      "operator_action": "run production security probes and provide sanitized proof JSON",
+      "probe_id": "production_security_launch_checks",
+      "source_path": "ops/evidence/production/production-security-launch-source.json",
+      "source_probe_exists": false,
+      "status": "source_missing",
+      "strict_validation": {
+        "command": "python3 scripts/validate_stage1_production_security_launch_evidence.py",
+        "exit_code": 1,
+        "status": "blocked",
+        "summary": "stage1 production security launch evidence validation failed: evidence contains blocked/debug-only gate signal(s): ['evidence.blocked_checks is not empty', 'evidence.canonical_pass_path is false', 'evidence.gate_impact.can_clear_security_launch_check is false', 'evidence.gate_impact.preserved_release_gate_check_id is not cleared', 'evidence.gate_impact.remaining_blockers is not empty']"
+      }
+    },
+    {
+      "diagnostic": {
+        "exists": true,
+        "first_blocker": "production web URL host zenari.ai did not resolve via system resolver: [Errno 8] nodename nor servname provided, or not known",
+        "path": "ops/evidence/production/source-probe-diagnostics.legal-support.json",
+        "status": "blocked"
+      },
+      "first_blocker": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+      "missing_input": "PRODUCTION_WEB_URL",
+      "operator_action": "fix production zenari.ai DNS/HTTPS and rerun legal/support source probe",
+      "probe_id": "production_legal_support_policy",
+      "source_path": "ops/evidence/production/production-legal-support-source.json",
+      "source_probe_exists": false,
+      "status": "source_missing",
+      "strict_validation": {
+        "command": "python3 scripts/validate_stage1_production_legal_support_evidence.py",
+        "exit_code": 1,
+        "status": "blocked",
+        "summary": "stage1 production legal/support evidence validation failed: legal contains blocked/debug-only gate signal(s): ['legal.blocked_checks is not empty', 'legal.canonical_pass_path is false', 'legal.gate_impact.can_clear_aggregate_production_gate is false', 'legal.gate_impact.can_clear_public_legal_subitem is false', 'legal.gate_impact.can_clear_support_billing_policy_subitem is false', 'legal.gate_impact.preserved_release_gate_check_id is not cleared', 'legal.gate_impact.remaining_blockers is not empty']"
+      }
+    },
+    {
+      "diagnostic": {
+        "exists": true,
+        "first_blocker": "governance_proof_missing",
+        "path": "ops/evidence/production/source-probe-diagnostics.governance.json",
+        "status": "blocked"
+      },
+      "first_blocker": "governance_proof_missing",
+      "missing_input": "SANITIZED_PRODUCTION_GOVERNANCE_PROOF_JSON",
+      "operator_action": "provide sanitized production governance runtime/audit proof JSON",
+      "probe_id": "production_governance_release",
+      "source_path": "ops/evidence/production/production-governance-release-source.json",
+      "source_probe_exists": false,
+      "status": "source_missing",
+      "strict_validation": {
+        "command": "python3 scripts/validate_stage1_production_governance_release_evidence.py",
+        "exit_code": 1,
+        "status": "blocked",
+        "summary": "stage1 production governance/release evidence validation failed: activation contains blocked/debug-only gate signal(s): ['activation.blocked_checks is not empty', 'activation.canonical_pass_path is false', 'activation.gate_impact.can_clear_activation_review_audit_component is false', 'activation.gate_impact.can_clear_aggregate_production_gate is false', 'activation.gate_impact.preserved_release_gate_check_id is not cleared', 'activation.gate_impact.remaining_blockers is not empty']"
+      }
+    }
+  ],
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "schema_version": "stage1.production_blocker_audit.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_refs": {
+    "closure_queue": "ops/evidence/release/staging/stage1-evidence-closure-queue.preflight.json",
+    "input_packet": "ops/evidence/non_clearing/production-launch-input-packet.json",
+    "production_dns_readiness": "ops/evidence/non_clearing/production-dns-readiness.json",
+    "production_proof_bundle": "ops/evidence/non_clearing/production-proof-bundle.json"
+  },
+  "status": "blocked"
+}

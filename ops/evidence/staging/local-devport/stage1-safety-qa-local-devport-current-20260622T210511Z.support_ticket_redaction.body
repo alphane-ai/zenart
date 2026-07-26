@@ -1,0 +1,22 @@
+{
+  "id": "support_4ddd95a1a5a229c98ca01a88",
+  "tenant_id": "tenant_local",
+  "user_id": "user_local_user",
+  "project_id": "project_local_ecommerce_growth",
+  "task_id": "task_31078522107f13addb791052",
+  "batch_id": "batch_1c8e1d5d5f34bb0d1f472946",
+  "trace_id": "trace_stage1_safety_qa_local_devport_current_20260622T210511Z",
+  "asset_id": "asset_stage1_safety_qa_local_devport_current_20260622T210511Z",
+  "category": "quality",
+  "status": "open",
+  "body": "Stage 1 safety QA evidence probe; no secret material.",
+  "linked_export_id": "export_3e1cf891fdd1853e63d5475c",
+  "quota_bucket_id": "quota_local_user_monthly",
+  "billing_reference_id": "billing:local-devport:export_3e1cf891fdd1853e63d5475c",
+  "metadata": {
+    "local_devport_debug": true,
+    "raw_support_body_projected_to_admin_evidence": false
+  },
+  "created_at": "2026-06-22T21:05:12.268171Z",
+  "updated_at": "2026-06-22T21:05:12.268171Z"
+}

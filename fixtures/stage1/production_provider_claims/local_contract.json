@@ -1,0 +1,98 @@
+{
+  "schema_version": "stage1.production_provider_claims.contract.v1",
+  "fixture_id": "stage1_production_provider_claims_local_contract",
+  "kind": "production_provider_claims_exact_evidence_contract",
+  "canonical_provider_mode_evidence_path": "ops/evidence/production/provider-mode.json",
+  "canonical_public_claims_evidence_path": "ops/evidence/production/public-paid-real-generation-claims.json",
+  "strict_provider_mode_schema_version": "stage1.production_provider_mode.v1",
+  "strict_public_claims_schema_version": "stage1.production_public_paid_real_generation_claims.v1",
+  "release_gate_status": "contract_ready_exact_production_provider_claims_evidence_open",
+  "required_environment": "production",
+  "required_release_gate_check_id": "production_provider_or_comp_only_mode",
+  "required_release_sha_pattern": "^[0-9a-f]{40}$",
+  "allowed_launch_modes": [
+    "real_provider",
+    "invite_comp_only"
+  ],
+  "required_provider_mode_sections": [
+    "launch_mode",
+    "provider_mode",
+    "provider_contract",
+    "monitoring_cost",
+    "routing_safety",
+    "audit_refs"
+  ],
+  "required_public_claim_sections": [
+    "public_claim_probes",
+    "paid_real_generation_claims",
+    "dev_provider_claim_denial",
+    "audit_refs"
+  ],
+  "required_proofs": [
+    "real provider contract or explicit invite/comp-only mode",
+    "no dev-provider public routing",
+    "no silent fallback",
+    "provider monitoring",
+    "provider cost evidence",
+    "public paid and real-generation claims gated",
+    "dev provider never presented as production generation",
+    "audit refs"
+  ],
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "signed_url_persisted": false,
+    "authorization_header_persisted": false,
+    "cookie_persisted": false
+  },
+  "blocked_diagnostic_policy": {
+    "validator_flag": "--allow-preflight",
+    "status": "blocked",
+    "canonical_pass_path": false,
+    "check_level_only": false,
+    "can_clear_release_gate_check": false,
+    "requires_blocked_checks": true,
+    "requires_preserved_release_gate_check_id": true,
+    "accepted_schema_versions": [
+      "stage1.production_provider_mode.blocked.v1",
+      "stage1.production_public_paid_real_generation_claims.blocked.v1"
+    ],
+    "accepted_kinds": [
+      "production_provider_mode",
+      "production_public_paid_real_generation_claims"
+    ]
+  },
+  "strict_evidence_policy": {
+    "environment": "production",
+    "status": "pass",
+    "release_sha_full_40_hex": true,
+    "release_sha_must_match_between_provider_files": true,
+    "canonical_pass_path_required": true,
+    "provider_mode_subitem_gate_impact_can_clear_required": true,
+    "public_claims_subitem_gate_impact_can_clear_required": true,
+    "aggregate_production_gate_impact_must_not_claim_clearance": true,
+    "provider_secret_ref_required_for_real_provider": true,
+    "staging_verification_required_for_real_provider": true,
+    "monitoring_cost_required": true,
+    "dev_provider_public_routing_forbidden": true,
+    "silent_fallback_forbidden": true,
+    "claim_mode_alignment_required": true,
+    "allow_check_level_only_pass": false,
+    "allow_local_devport_debug": false,
+    "allow_local_devport_evidence": false,
+    "allow_dry_run": false,
+    "allow_blocked_status": false,
+    "allow_no_go_status": false,
+    "allow_preserved_blockers": false,
+    "allow_preserved_do_not_launch_conditions": false,
+    "allow_raw_or_secret_payloads": false
+  },
+  "remaining_evidence": [
+    "strict production provider mode exact pass evidence at ops/evidence/production/provider-mode.json",
+    "strict production public paid/real-generation claims exact pass evidence at ops/evidence/production/public-paid-real-generation-claims.json",
+    "production launch aggregate remains no-go until all production launch components pass"
+  ]
+}

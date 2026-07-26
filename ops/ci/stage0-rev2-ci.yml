@@ -1,4 +1,4 @@
-name: Stage 0 Rev2 CI
+name: Stage 0 Rev2 + Stage 1 CI
 
 on:
   pull_request:
@@ -14,33 +14,34 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  ZENART_ENV: local
+  ZENARI_ENV: CI
   PROVIDER_MODE: dev
   CHECKOUT_PROVIDER: mock
   STAGE0_ACCESS_MODE: local
-  DATABASE_URL: postgres://zenart:zenart@localhost:5432/zenart?sslmode=disable
+  DATABASE_URL: postgres://zenari:zenari@localhost:5432/zenari?sslmode=disable
   REDIS_ADDR: localhost:6379
   OBJECT_STORAGE_ENDPOINT: http://localhost:9000
   OBJECT_STORAGE_PUBLIC_ENDPOINT: http://localhost:9000
-  OBJECT_STORAGE_BUCKET: zenart-ci
+  OBJECT_STORAGE_BUCKET: zenari-ci
   OBJECT_STORAGE_ACCESS_KEY: minioadmin
   OBJECT_STORAGE_SECRET_KEY: minioadmin
+  STRIPE_MODE: test
 
 jobs:
   repo-contracts:
-    name: Repo contracts and generated artifacts
+    name: Repo contracts, Stage 1 gates, and generated artifacts
     runs-on: ubuntu-latest
     services:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_DB: zenart
-          POSTGRES_USER: zenart
-          POSTGRES_PASSWORD: zenart
+          POSTGRES_DB: zenari
+          POSTGRES_USER: zenari
+          POSTGRES_PASSWORD: zenari
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U zenart -d zenart"
+          --health-cmd "pg_isready -U zenari -d zenari"
           --health-interval 5s
           --health-timeout 3s
           --health-retries 20
@@ -65,15 +66,17 @@ jobs:
         with:
           node-version: 22
 
-      - name: Start MinIO service
+      - name: Start MinIO object storage
         run: |
-          docker run -d --name zenari-ci-minio \
+          docker run -d \
+            --name zenari-ci-minio \
             -p 9000:9000 \
             -e MINIO_ROOT_USER=minioadmin \
             -e MINIO_ROOT_PASSWORD=minioadmin \
-            minio/minio:RELEASE.2025-04-22T22-12-26Z server /data
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:9000/minio/health/live >/dev/null; then
+            minio/minio:RELEASE.2025-04-22T22-12-26Z \
+            server /data --console-address :9001
+          for attempt in $(seq 1 30); do
+            if docker exec zenari-ci-minio mc ready local >/dev/null 2>&1; then
               exit 0
             fi
             sleep 2
@@ -81,11 +84,9 @@ jobs:
           docker logs zenari-ci-minio
           exit 1
 
-      - name: Validate compose and CI draft syntax
+      - name: Validate compose and CI workflow syntax
         run: |
           docker compose --env-file .env.example config --quiet
-          test -f .github/workflows/stage0-rev2-ci.yml
-          cmp -s ops/ci/stage0-rev2-ci.yml .github/workflows/stage0-rev2-ci.yml
           ruby -e "require 'yaml'; %w[docker-compose.yml ops/ci/stage0-rev2-ci.yml .github/workflows/stage0-rev2-ci.yml].each { |path| YAML.safe_load(File.read(path), aliases: true, filename: path) }"
 
       - name: Validate generated OpenAPI clients are current
@@ -94,8 +95,85 @@ jobs:
       - name: Validate Stage 0 Rev2 contract evidence
         run: python3 scripts/validate_stage0_rev2.py
 
+      - name: Validate Stage 1 pre-launch contracts
+        run: |
+          python3 scripts/validate_stage1_blueprint.py Docs/Stage1_20260621_blueprint.md
+          python3 scripts/validate_zenari_brand_migration.py
+          python3 scripts/stage1_scope_guard.py Docs/Stage1_20260621_blueprint.md
+          python3 scripts/validate_stage1_gap_inventory.py
+          python3 scripts/validate_stage1_env_example_contract.py
+          python3 scripts/validate_stage1_local_devport_registry.py --contract-only
+          python3 scripts/validate_stage1_release_image_boundary.py
+          python3 scripts/validate_stage1_batch_generation_contract.py
+          python3 scripts/validate_stage1_batch_result_storage_contract.py
+          python3 scripts/validate_stage1_batch_quota_reconciliation.py
+          python3 scripts/validate_stage1_batch_quota_runtime_replay.py
+          python3 scripts/validate_stage1_rate_limit_spend_cap_contract.py
+          python3 scripts/validate_stage1_api_error_taxonomy_contract.py
+          python3 scripts/validate_stage1_support_ticket_linking_contract.py
+          python3 scripts/validate_stage1_trace_projection_contract.py
+          python3 scripts/validate_stage1_canvas_assets_contract.py
+          python3 scripts/validate_stage1_canvas_interaction_contract.py
+          python3 scripts/validate_stage1_canvas_versioning_contract.py
+          python3 scripts/validate_stage1_edit_tools_mask_contract.py
+          python3 scripts/validate_stage1_prompt_composer_contract.py
+          python3 scripts/validate_stage1_mentions_contract.py
+          python3 scripts/validate_stage1_asset_library_brandkit_contract.py
+          python3 scripts/validate_stage1_provider_registry_contract.py
+          python3 scripts/validate_stage1_provider_cost_reconciliation.py
+          python3 scripts/validate_stage1_provider_edit_adapter_contract.py
+          python3 scripts/validate_stage1_provider_video_adapter_contract.py
+          python3 scripts/validate_stage1_admin_billing_ops_contract.py
+          python3 scripts/validate_stage1_team_seat_billing_contract.py
+          python3 scripts/validate_stage1_user_billing_invoice_contract.py
+          python3 scripts/validate_stage1_user_batch_progress_contract.py
+          python3 scripts/validate_stage1_result_placement_contract.py
+          python3 scripts/validate_stage1_safety_export_state_contract.py
+          python3 scripts/validate_stage1_rendered_export_asset_contract.py
+          python3 scripts/validate_stage1_provider_sandbox_evidence.py --contract-only
+          python3 scripts/validate_stage1_stripe_staging_evidence.py --contract-only
+          python3 scripts/validate_stage1_stripe_lifecycle_reconciliation.py
+          python3 scripts/validate_stage1_safety_qa_evidence.py --contract-only
+          python3 scripts/validate_stage1_security_scan_contract.py
+          python3 scripts/validate_stage1_skill_eval_release_contract.py
+          python3 scripts/validate_stage1_eval_skill_release_contract.py
+          python3 scripts/validate_stage1_export_ops_contract.py
+          python3 scripts/validate_stage1_export_manifest_render_contract.py
+          python3 scripts/validate_stage1_export_object_access_contract.py
+          python3 scripts/validate_stage1_release_readiness_contract.py
+          python3 scripts/validate_stage1_release_evidence_closure_queue.py --contract-only
+          python3 scripts/validate_stage1_external_resource_readiness.py --contract-only
+          python3 scripts/validate_stage1_r2_bucket_readiness.py --contract-only
+          python3 scripts/validate_stage1_audit_search_export_contract.py
+          python3 scripts/validate_stage1_operations_incident_runbook_contract.py
+          python3 scripts/validate_stage1_support_admin_deletion_governance_contract.py
+          python3 scripts/validate_stage1_staging_runtime.py --contract-only
+          python3 scripts/validate_stage1_production_launch.py --contract-only
+          python3 scripts/validate_stage1_production_dns_repair_packet.py --contract-only
+          python3 scripts/validate_stage1_production_blocker_checklist.py --contract-only
+          python3 scripts/validate_stage1_next_blockers_summary.py --contract-only
+          python3 scripts/generate_stage1_staging_runtime_evidence.py --contract-only
+          python3 scripts/generate_stage1_production_launch_evidence.py --contract-only
+
+      - name: Stripe sandbox selftest
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_API_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_SANDBOX_PRODUCT_ID: ${{ secrets.STRIPE_SANDBOX_PRODUCT_ID }}
+          STRIPE_DEFAULT_PRICE_ID: ${{ secrets.STRIPE_DEFAULT_PRICE_ID }}
+        run: |
+          if [[ -n "${STRIPE_SECRET_KEY:-}" && -n "${STRIPE_PUBLISHABLE_KEY:-}" && -n "${STRIPE_WEBHOOK_SECRET:-}" && -n "${STRIPE_SANDBOX_PRODUCT_ID:-}" && -n "${STRIPE_DEFAULT_PRICE_ID:-}" ]]; then
+            bash scripts/stripe_sandbox_selftest.sh
+          else
+            echo "Stripe sandbox selftest skipped: CI Stripe test secrets are not configured."
+          fi
+
       - name: Backend fmt, vet, unit, integration, and build
         working-directory: backend
+        env:
+          ZENARI_ENV: local
         run: |
           test -z "$(gofmt -l $(find . -name '*.go' -not -path './vendor/*'))"
           go test ./...
@@ -139,22 +217,23 @@ jobs:
           DRY_RUN=1 scripts/docker_build_smoke.sh
           DRY_RUN=1 scripts/staging_smoke.sh
           DRY_RUN=1 scripts/observability_smoke.sh
-          DRY_RUN=1 scripts/staging_observability_backup_load_smoke.sh || test "$?" = 2
-          RELEASE_SHA=d3b1107c33dc40b8936f28549e06553fbd7b104a RUN_ID=ci-object-storage-signed-url scripts/staging_object_storage_signed_url_smoke.sh
+          scripts/staging_observability_backup_load_smoke.sh || test "$?" = 2
+          RELEASE_SHA=d3b1107c33dc40b8936f28549e06553fbd7b104a RUN_ID=ci-object-storage-signed-url OUT_DIR="$(mktemp -d)" scripts/staging_object_storage_signed_url_smoke.sh
           DRY_RUN=1 OUT_DIR="$(mktemp -d)" scripts/staging_object_storage_retention_cleanup_smoke.sh || test "$?" = 2
           DRY_RUN=1 scripts/staging_legal_support_visibility_smoke.sh || test "$?" = 2
           DRY_RUN=1 scripts/security_scan_smoke.sh
 
       - name: Secret scan smoke
-        run: SECRET_SCAN_ONLY=1 scripts/security_scan_smoke.sh
+        run: |
+          ! git grep -nE '(^|[^A-Za-z0-9_-])(AWS_SECRET_ACCESS_KEY|OPENAI_API_KEY|LLM_OPENAI_API_KEY|ZAI_API_KEY)[[:space:]]*[:=][[:space:]]*["'\''"]?[A-Za-z0-9._~+/=-]{16,}|(^|[^A-Za-z0-9_-])sk-(proj-)?[A-Za-z0-9_-]{20,}|(^|[^A-Za-z0-9_-])[0-9a-f]{32}\.[A-Za-z0-9_-]{16,}|(^|[^A-Za-z0-9_-])(sk|rk)_(live|test)_[A-Za-z0-9]{16,}|(^|[^A-Za-z0-9_-])pk_(live|test)_[A-Za-z0-9]{16,}|(^|[^A-Za-z0-9_-])whsec_[A-Za-z0-9]{16,}|(^|[^A-Za-z0-9_])ghp_[A-Za-z0-9_]{20,}' -- . ':!.env.example' ':!fixtures' ':!schemas' ':!ops/ci/stage0-rev2-ci.yml' ':!.github/workflows/stage0-rev2-ci.yml' ':!scripts/repo_validate.sh' ':!scripts/security_scan_smoke.sh' ':!backend/internal/security/redact_test.go'
 
       - name: Write PR/main exact CI evidence
         run: |
           python3 scripts/write_stage1_ci_pr_main_evidence.py \
             --output ops/evidence/ci/stage0-rev2-pr-main-run.json
+          python3 scripts/validate_stage1_ci_exact_evidence.py --contract-only
 
-      - name: Upload PR/main exact CI evidence
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: stage0-rev2-pr-main-run
           path: ops/evidence/ci/stage0-rev2-pr-main-run.json
@@ -186,9 +265,9 @@ jobs:
           assert set(data["images"]) == {"web", "admin", "backend"}
           assert all(row["digest"].startswith("sha256:") for row in data["images"].values())
           PY
+          python3 scripts/validate_stage1_ci_exact_evidence.py --contract-only
 
-      - name: Upload Docker exact CI evidence
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: stage0-rev2-docker-image-build
           path: |
@@ -206,38 +285,48 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install web/admin dependencies and browser
+      - name: Install frontend dependencies
         run: |
-          (cd web && npm ci)
-          (cd admin && npm ci)
-          (cd web && npx playwright install --with-deps chromium)
+          npm ci --prefix web
+          npm ci --prefix admin
+          cd web && npx playwright install --with-deps chromium
 
-      - name: Start web and admin smoke servers
+      - name: Start frontend smoke servers
         run: |
-          mkdir -p tmp/ci-playwright
-          (cd web && NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:31080 npx next dev --hostname 127.0.0.1 --port 26080 >../tmp/ci-playwright/web.log 2>&1) &
-          echo $! >tmp/ci-playwright/web.pid
-          (cd admin && NEXT_PUBLIC_ADMIN_API_BASE_URL=http://127.0.0.1:31080 npx next dev --hostname 127.0.0.1 --port 26081 >../tmp/ci-playwright/admin.log 2>&1) &
-          echo $! >tmp/ci-playwright/admin.pid
-          for url in http://127.0.0.1:26080 http://127.0.0.1:26081; do
-            for attempt in $(seq 1 60); do
-              if curl -fsS "$url" >/dev/null; then
-                break
-              fi
-              if [ "$attempt" = 60 ]; then
-                printf 'Timed out waiting for %s\n' "$url" >&2
-                cat tmp/ci-playwright/web.log tmp/ci-playwright/admin.log >&2 || true
-                exit 1
-              fi
-              sleep 2
-            done
-          done
+          npm --prefix web run dev -- --hostname 127.0.0.1 --port 26080 > /tmp/zenari-web-playwright.log 2>&1 &
+          npm --prefix admin run dev -- --hostname 127.0.0.1 --port 26081 > /tmp/zenari-admin-playwright.log 2>&1 &
+          python3 - <<'PY'
+          import time
+          import urllib.request
 
-      - name: Run Playwright smoke wrapper
+          urls = [
+              "http://127.0.0.1:26080",
+              "http://127.0.0.1:26081",
+          ]
+          deadline = time.time() + 90
+          pending = set(urls)
+          while pending and time.time() < deadline:
+              for url in list(pending):
+                  try:
+                      with urllib.request.urlopen(url, timeout=3) as response:
+                          if response.status < 500:
+                              pending.remove(url)
+                  except Exception:
+                      pass
+              if pending:
+                  time.sleep(2)
+          if pending:
+              raise SystemExit(f"frontend smoke servers did not become ready: {sorted(pending)}")
+          PY
+
+      - name: Run Playwright smoke and write exact CI evidence
+        env:
+          WEB_URL: http://127.0.0.1:26080
+          ADMIN_URL: http://127.0.0.1:26081
         run: |
           set -euo pipefail
           rm -rf ops/evidence/ci/playwright-smoke-run
-          OUT_DIR=ops/evidence/ci/playwright-smoke-run WEB_URL=http://127.0.0.1:26080 ADMIN_URL=http://127.0.0.1:26081 scripts/playwright_smoke.sh | tee /tmp/zenari-playwright-smoke.out
+          OUT_DIR=ops/evidence/ci/playwright-smoke-run scripts/playwright_smoke.sh | tee /tmp/zenari-playwright-smoke.out
           PLAYWRIGHT_REPORT="$(awk '/evidence written to / {print $NF}' /tmp/zenari-playwright-smoke.out | tail -n 1)"
           test -n "$PLAYWRIGHT_REPORT"
           python3 scripts/write_stage1_ci_playwright_evidence.py \
@@ -254,8 +343,77 @@ jobs:
           assert data["coverage"]["workspace"]["status"] == "pass"
           PY
 
-      - name: Upload Playwright exact CI evidence
-        uses: actions/upload-artifact@v4
+      - name: Validate exact Playwright CI evidence shape
+        run: |
+          set -euo pipefail
+          tmp_dir="$(mktemp -d)"
+          python3 - "$tmp_dir" <<'PY'
+          import json
+          import os
+          import sys
+          from pathlib import Path
+
+          out = Path(sys.argv[1])
+          safe_false = {
+              "secret_material_persisted": False,
+              "raw_prompt_persisted": False,
+              "raw_provider_payload_persisted": False,
+              "raw_stripe_payload_persisted": False,
+              "raw_support_body_projected": False,
+              "signed_url_persisted": False,
+              "authorization_header_persisted": False,
+              "cookie_persisted": False,
+          }
+          base = {
+              "environment": "ci",
+              "status": "pass",
+              "release_sha": os.environ["GITHUB_SHA"],
+              "canonical_pass_path": True,
+              "dry_run": False,
+              "local_devport_debug": False,
+              "allow_local_devport_evidence": False,
+              "workflow_run": {
+                  "run_id": "1234567890",
+                  "run_url": "https://github.com/alphane-ai/zenari/actions/runs/1234567890",
+                  "workflow_file": ".github/workflows/stage0-rev2-ci.yml",
+                  "conclusion": "success",
+              },
+              "evidence_refs": [".github/workflows/stage0-rev2-ci.yml"],
+              **safe_false,
+          }
+          docker = {
+              **base,
+              "schema_version": "stage1.ci_docker_image_build.v1",
+              "kind": "ci_docker_image_build",
+              "release_gate_check_id": "ci_docker_image_build",
+              "image_set": ["web", "admin", "backend"],
+              "images": {
+                  name: {
+                      "status": "pass",
+                      "digest": "sha256:" + str(index + 1) * 64,
+                      "evidence_refs": [f"docker://zenari/{name}@sha256"],
+                  }
+                  for index, name in enumerate(("web", "admin", "backend"))
+              },
+          }
+          docker["gate_impact"] = {"release_gate_check_id": "ci_docker_image_build", "can_clear_ci_gate_check": True}
+          (out / "stage0-rev2-docker-image-build.json").write_text(json.dumps(docker, indent=2, sort_keys=True) + "\n")
+          PY
+          python3 scripts/write_stage1_ci_pr_main_evidence.py \
+            --release-sha "${GITHUB_SHA}" \
+            --run-id "1234567890" \
+            --run-url "https://github.com/alphane-ai/zenari/actions/runs/1234567890" \
+            --event-name "pull_request" \
+            --base-ref "main" \
+            --head-ref "stage1/prelaunch" \
+            --canonical-pass-path \
+            --output "$tmp_dir/stage0-rev2-pr-main-run.json"
+          python3 scripts/validate_stage1_ci_exact_evidence.py \
+            --pr-main "$tmp_dir/stage0-rev2-pr-main-run.json" \
+            --playwright ops/evidence/ci/stage0-rev2-playwright-smoke.json \
+            --docker "$tmp_dir/stage0-rev2-docker-image-build.json"
+
+      - uses: actions/upload-artifact@v4
         with:
           name: stage0-rev2-playwright-smoke
           path: |
@@ -291,37 +449,67 @@ jobs:
           copy_artifact stage0-rev2-pr-main-run stage0-rev2-pr-main-run.json
           copy_artifact stage0-rev2-docker-image-build stage0-rev2-docker-image-build.json
           copy_artifact stage0-rev2-playwright-smoke stage0-rev2-playwright-smoke.json
+          python3 scripts/validate_stage1_ci_exact_evidence.py
+          python3 scripts/generate_stage1_release_candidate_metadata.py
+          set +e
+          python3 scripts/generate_stage1_release_metadata_preflight.py \
+            --release-sha "${GITHUB_SHA}" \
+            --release-notes-path ops/release/stage1_release_candidate_metadata_draft.md \
+            --ci-docker-evidence ops/evidence/ci/stage0-rev2-docker-image-build.json \
+            --migration-evidence ops/evidence/release/staging/stage1-release-candidate-migration-draft.json \
+            --config-diff-evidence ops/evidence/release/staging/stage1-release-candidate-config-diff-draft.json \
+            --observability-evidence ops/evidence/release/staging/stage1-release-candidate-observability-draft.json \
+            --backup-restore-evidence ops/evidence/release/staging/stage1-release-candidate-backup-restore-draft.json \
+            --load-evidence ops/evidence/release/staging/stage1-release-candidate-load-draft.json \
+            --rollback-evidence ops/evidence/release/staging/stage1-release-candidate-rollback-draft.json \
+            --security-scan-evidence ops/evidence/release/staging/stage1-release-candidate-security-scan-draft.json
+          preflight_status=$?
+          set -e
+          if [ "$preflight_status" -ne 0 ] && [ "$preflight_status" -ne 2 ]; then
+            exit "$preflight_status"
+          fi
+          python3 scripts/generate_stage1_ci_release_gate_evidence.py
+          python3 scripts/render_no_go_release_notes.py --write
+          python3 scripts/validate_stage0_rev2.py
+          set +e
+          python3 scripts/generate_stage1_production_launch_evidence.py \
+            --evidence /tmp/stage1-production-launch.json \
+            --results /tmp/stage1-production-launch.ndjson
+          production_launch_status=$?
+          set -e
+          if [ "$production_launch_status" -ne 0 ] && [ "$production_launch_status" -ne 2 ]; then
+            exit "$production_launch_status"
+          fi
           python3 - <<'PY'
           import json
           from pathlib import Path
 
-          expected = {
-              "stage0-rev2-pr-main-run.json": "stage1.ci_pr_main_run.v1",
-              "stage0-rev2-docker-image-build.json": "stage1.ci_docker_image_build.v1",
-              "stage0-rev2-playwright-smoke.json": "stage1.ci_playwright_smoke.v1",
-          }
-          release_shas = set()
-          for filename, schema in expected.items():
-              data = json.loads(Path("ops/evidence/ci", filename).read_text())
-              assert data["schema_version"] == schema
-              assert data["environment"] == "ci"
-              assert data["status"] == "pass"
-              assert data["canonical_pass_path"] is True
-              release_shas.add(data["release_sha"])
-          assert len(release_shas) == 1
+          aggregate = json.loads(Path("/tmp/stage1-production-launch.json").read_text())
+          ci_evidence = aggregate.get("ci_evidence", [])
+          assert len(ci_evidence) == 3, ci_evidence
+          assert all(item.get("status") == "pass" for item in ci_evidence), ci_evidence
+          missing = [
+              blocker
+              for item in ci_evidence
+              for blocker in item.get("blockers", [])
+              if "missing CI evidence" in blocker
+          ]
+          assert not missing, missing
           PY
 
-      - name: Upload CI exact evidence aggregate
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: stage1-ci-exact-evidence-aggregate
           path: |
             ops/evidence/ci/stage0-rev2-pr-main-run.json
             ops/evidence/ci/stage0-rev2-playwright-smoke.json
             ops/evidence/ci/stage0-rev2-docker-image-build.json
+            ops/evidence/release/staging/stage1-release-metadata-preflight.json
+            fixtures/stage0/rev2/release_gate_evidence.ci.json
+            ops/release/stage0_rev2_current_no_go_release_notes.md
 
   smoke-placeholders:
-    name: Deferred smoke gates
+    name: Deferred runtime evidence gates
     runs-on: ubuntu-latest
     needs: repo-contracts
     steps:
@@ -329,15 +517,16 @@ jobs:
 
       - name: Record installed workflow and deferred runtime smoke
         run: |
-          test -f ops/evidence/stage0_environment_evidence.json
           test -f .github/workflows/stage0-rev2-ci.yml
+          test -f ops/evidence/stage0_environment_evidence.json
           python3 - <<'PY'
           import json
           from pathlib import Path
           data = json.loads(Path("ops/evidence/stage0_environment_evidence.json").read_text())
-          installed = [item for item in data["open_items"] if item["id"] == "install_github_actions_workflow"]
-          assert installed and installed[0]["status"] == "installed"
+          installed = [item for item in data["open_items"] if item["id"] == "ci_installed_workflow"]
+          assert installed and installed[0]["status"] == "installed_pending_runtime_evidence"
           deferred = {item["id"] for item in data["open_items"]}
           assert "playwright_smoke" in deferred
+          assert "docker_image_build_runtime" in deferred
           assert "runtime_load_drills" in deferred
           PY

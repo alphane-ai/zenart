@@ -1,0 +1,177 @@
+{
+  "allow_local_devport_evidence": false,
+  "authorization_header_persisted": false,
+  "cookie_persisted": false,
+  "dry_run": false,
+  "environment": "production",
+  "generated_at": "2026-06-28T22:02:44+00:00",
+  "kind": "production_billing_source",
+  "lifecycle": {
+    "audit_refs": {
+      "evidence_refs": [
+        "replace_me:production/billing-lifecycle-audit"
+      ],
+      "required_runtime_proof": "billing-lifecycle-audit",
+      "required_tokens": [
+        "audit"
+      ],
+      "status": "template_only"
+    },
+    "invoice_receipt_visibility": {
+      "evidence_refs": [
+        "replace_me:production/invoice-receipt-visibility"
+      ],
+      "required_runtime_proof": "invoice-receipt-visibility",
+      "required_tokens": [
+        "invoice",
+        "receipt"
+      ],
+      "status": "template_only"
+    },
+    "paid_checkout": {
+      "evidence_refs": [
+        "replace_me:production/paid-checkout"
+      ],
+      "required_runtime_proof": "paid-checkout",
+      "required_tokens": [
+        "checkout",
+        "livemode"
+      ],
+      "status": "template_only"
+    },
+    "stripe_live_test_separation": {
+      "evidence_refs": [
+        "replace_me:production/stripe-live-test-separation"
+      ],
+      "required_runtime_proof": "stripe-live-test-separation",
+      "required_tokens": [
+        "live",
+        "test isolated"
+      ],
+      "status": "template_only"
+    },
+    "subscription_active": {
+      "evidence_refs": [
+        "replace_me:production/subscription-active"
+      ],
+      "required_runtime_proof": "subscription-active",
+      "required_tokens": [
+        "active"
+      ],
+      "status": "template_only"
+    },
+    "subscription_cancel": {
+      "evidence_refs": [
+        "replace_me:production/subscription-cancel"
+      ],
+      "required_runtime_proof": "subscription-cancel",
+      "required_tokens": [
+        "cancel"
+      ],
+      "status": "template_only"
+    },
+    "subscription_past_due": {
+      "evidence_refs": [
+        "replace_me:production/subscription-past-due"
+      ],
+      "required_runtime_proof": "subscription-past-due",
+      "required_tokens": [
+        "past_due"
+      ],
+      "status": "template_only"
+    },
+    "team_seat_quantity_sync": {
+      "evidence_refs": [
+        "replace_me:production/team-seat-quantity-sync"
+      ],
+      "required_runtime_proof": "team-seat-quantity-sync",
+      "required_tokens": [
+        "seat",
+        "sync"
+      ],
+      "status": "template_only"
+    }
+  },
+  "livemode": true,
+  "local_devport_debug": false,
+  "operator_note": "Replace every replace_me:* evidence ref with sanitized production runtime/audit evidence, set status fields to pass only after the runtime probe has actually run, and write the final source JSON to the required ops/evidence/production/*-source.json path.",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "refund_credit_webhook": {
+    "audit_refs": {
+      "evidence_refs": [
+        "replace_me:production/billing-refund-webhook-audit"
+      ],
+      "required_runtime_proof": "billing-refund-webhook-audit",
+      "required_tokens": [
+        "audit"
+      ],
+      "status": "template_only"
+    },
+    "failed_export_refund": {
+      "evidence_refs": [
+        "replace_me:production/failed-export-refund"
+      ],
+      "required_runtime_proof": "failed-export-refund",
+      "required_tokens": [
+        "failed export",
+        "refund"
+      ],
+      "status": "template_only"
+    },
+    "quota_projection": {
+      "evidence_refs": [
+        "replace_me:production/quota-projection"
+      ],
+      "required_runtime_proof": "quota-projection",
+      "required_tokens": [
+        "quota",
+        "projection"
+      ],
+      "status": "template_only"
+    },
+    "quota_reset": {
+      "evidence_refs": [
+        "replace_me:production/quota-reset"
+      ],
+      "required_runtime_proof": "quota-reset",
+      "required_tokens": [
+        "quota",
+        "reset"
+      ],
+      "status": "template_only"
+    },
+    "refund_or_credit": {
+      "evidence_refs": [
+        "replace_me:production/refund-or-credit"
+      ],
+      "required_runtime_proof": "refund-or-credit",
+      "required_tokens": [
+        "refund",
+        "credit"
+      ],
+      "status": "template_only"
+    },
+    "webhook_idempotency": {
+      "evidence_refs": [
+        "replace_me:production/webhook-idempotency"
+      ],
+      "required_runtime_proof": "webhook-idempotency",
+      "required_tokens": [
+        "webhook",
+        "idempotency"
+      ],
+      "status": "template_only"
+    }
+  },
+  "release_gate_check_id": "production_paid_billing_lifecycle",
+  "release_sha": "0123456789abcdef0123456789abcdef01234567",
+  "schema_version": "stage1.production_billing_source.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "status": "template_only",
+  "stripe_mode": "live",
+  "template_only": true
+}

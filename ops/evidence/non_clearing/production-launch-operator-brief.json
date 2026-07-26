@@ -1,0 +1,256 @@
+{
+  "authorization_header_persisted": false,
+  "blocker_matrix": [
+    {
+      "blocker_id": "production_dns_https",
+      "blocking_input_count": 2,
+      "completion_percent": 50.0,
+      "coverage_group": "production_dns",
+      "diagnostic": {
+        "canonical_source_written": false,
+        "exists": true,
+        "first_blocker": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "path": "ops/evidence/non_clearing/production-dns-readiness.json",
+        "schema_version": "stage1.production_dns_readiness.v1",
+        "status": "blocked"
+      },
+      "first_blocker": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+      "first_missing_required_inputs": [
+        "CLOUDFLARE_ZONE_ID or CF_ZONE_ID",
+        "CLOUDFLARE_API_TOKEN or CF_API_TOKEN"
+      ],
+      "gate_ids": [
+        "stage1_production_launch_preflight",
+        "production_legal_support_policy"
+      ],
+      "invalid_required_inputs": [],
+      "operator_next_actions": [
+        "Do not use Cloudflare R2 S3 access keys for DNS; they only prove object-storage access.",
+        "Set CLOUDFLARE_ZONE_ID or CF_ZONE_ID for zenari.ai.",
+        "Set CLOUDFLARE_API_TOKEN or CF_API_TOKEN with Zone DNS Edit permission.",
+        "Set PRODUCTION_DNS_TARGET to the production web ingress IPv4 address or hostname.",
+        "If zenari.ai and www.zenari.ai are already applied manually in Cloudflare UI, rerun this plan and confirm status observed_applied.",
+        "Run with --verify-cloudflare to confirm the token can read the zone and DNS records before any DNS write."
+      ],
+      "required_configured": 2,
+      "required_invalid": 0,
+      "required_missing": 2,
+      "required_total": 4,
+      "source_refs": {
+        "production_dns_cutover_plan": "ops/evidence/non_clearing/production-dns-cutover-plan.json",
+        "production_dns_readiness": "ops/evidence/non_clearing/production-dns-readiness.json",
+        "production_proof_bundle": "ops/evidence/non_clearing/production-proof-bundle.json"
+      },
+      "status": "blocked",
+      "title": "Production DNS and HTTPS"
+    },
+    {
+      "blocker_id": "production_paid_billing_lifecycle",
+      "blocking_input_count": 20,
+      "completion_percent": 0.0,
+      "coverage_group": "billing",
+      "diagnostic": {
+        "canonical_source_written": false,
+        "exists": true,
+        "first_blocker": "STRIPE_MODE_must_be_live",
+        "path": "ops/evidence/non_clearing/production-live-billing-proof.blocked.json",
+        "schema_version": "stage1.production_live_billing_proof.blocked.v1",
+        "status": "blocked"
+      },
+      "first_blocker": "STRIPE_MODE_must_be_live",
+      "first_missing_required_inputs": [
+        "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID",
+        "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID",
+        "STAGE1_PROD_BILLING_PRICE_ID",
+        "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID",
+        "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID",
+        "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_SEAT_QUANTITY",
+        "STAGE1_PROD_BILLING_SYNCED_QUANTITY",
+        "STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID",
+        "STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID"
+      ],
+      "gate_ids": [
+        "production_paid_billing_lifecycle"
+      ],
+      "invalid_required_inputs": [
+        "STRIPE_MODE=live",
+        "STRIPE_SECRET_KEY or STRIPE_API_KEY with live key shape",
+        "STRIPE_PUBLISHABLE_KEY or NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY with live key shape"
+      ],
+      "operator_next_actions": [
+        "Set production Stripe mode and live key shape only in the production execution environment.",
+        "Collect sanitized live checkout, subscription, invoice, refund, quota reset, and webhook proof refs.",
+        "Rerun the production proof bundle, then write canonical billing source only after strict validation passes."
+      ],
+      "required_configured": 0,
+      "required_invalid": 3,
+      "required_missing": 17,
+      "required_total": 20,
+      "source_refs": {
+        "billing_diagnostic": "ops/evidence/non_clearing/production-live-billing-proof.blocked.json",
+        "production_proof_bundle": "ops/evidence/non_clearing/production-proof-bundle.json"
+      },
+      "status": "blocked",
+      "title": "Production paid billing lifecycle"
+    },
+    {
+      "blocker_id": "production_security_launch_checks",
+      "blocking_input_count": 10,
+      "completion_percent": 0.0,
+      "coverage_group": "security",
+      "diagnostic": {
+        "canonical_source_written": false,
+        "exists": true,
+        "first_blocker": "secure_session_cookie_ref_missing",
+        "path": "ops/evidence/non_clearing/production-security-proof.blocked.json",
+        "schema_version": "stage1.production_security_proof.blocked.v1",
+        "status": "blocked"
+      },
+      "first_blocker": "secure_session_cookie_ref_missing",
+      "first_missing_required_inputs": [
+        "STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF",
+        "STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF",
+        "STAGE1_PROD_SECURITY_SECRET_REDACTION_REF",
+        "STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF",
+        "STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF",
+        "STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF",
+        "STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF",
+        "STAGE1_PROD_SECURITY_CSP_HEADERS_REF",
+        "STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF",
+        "STAGE1_PROD_SECURITY_AUDIT_REF"
+      ],
+      "gate_ids": [
+        "production_security_launch_checks"
+      ],
+      "invalid_required_inputs": [],
+      "operator_next_actions": [
+        "Run production security probes against HTTPS production surfaces.",
+        "Record sanitized refs for session cookie, CSRF, redaction, provider key containment, CSP, RBAC, and audit checks.",
+        "Rerun the production proof bundle, then write canonical security source only after strict validation passes."
+      ],
+      "required_configured": 0,
+      "required_invalid": 0,
+      "required_missing": 10,
+      "required_total": 10,
+      "source_refs": {
+        "production_proof_bundle": "ops/evidence/non_clearing/production-proof-bundle.json",
+        "security_diagnostic": "ops/evidence/non_clearing/production-security-proof.blocked.json"
+      },
+      "status": "blocked",
+      "title": "Production security launch checks"
+    },
+    {
+      "blocker_id": "production_governance_release",
+      "blocking_input_count": 26,
+      "completion_percent": 0.0,
+      "coverage_group": "governance",
+      "diagnostic": {
+        "canonical_source_written": false,
+        "exists": true,
+        "first_blocker": "activation_runtime_request_ids_missing",
+        "path": "ops/evidence/non_clearing/production-governance-proof.blocked.json",
+        "schema_version": "stage1.production_governance_proof.blocked.v1",
+        "status": "blocked"
+      },
+      "first_blocker": "activation_runtime_request_ids_missing",
+      "first_missing_required_inputs": [
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF"
+      ],
+      "gate_ids": [
+        "production_governance_release"
+      ],
+      "invalid_required_inputs": [],
+      "operator_next_actions": [
+        "Collect sanitized production activation, abuse-control, and skill-release runtime request refs.",
+        "Attach audit, reviewer, RBAC, immutability, canary, rollback, and release-note refs.",
+        "Rerun the production proof bundle, then write canonical governance source only after strict validation passes."
+      ],
+      "required_configured": 0,
+      "required_invalid": 0,
+      "required_missing": 26,
+      "required_total": 26,
+      "source_refs": {
+        "governance_diagnostic": "ops/evidence/non_clearing/production-governance-proof.blocked.json",
+        "production_proof_bundle": "ops/evidence/non_clearing/production-proof-bundle.json"
+      },
+      "status": "blocked",
+      "title": "Production governance release"
+    }
+  ],
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "cookie_persisted": false,
+  "environment": "production",
+  "gate_impact": {
+    "can_clear_stage1_production_launch_gate": false,
+    "can_close_do_not_launch": false,
+    "non_clearing_evidence_only": true,
+    "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete"
+  },
+  "generated_at": "2026-06-28T21:51:13+00:00",
+  "kind": "stage1_production_launch_operator_brief",
+  "non_clearing_operator_brief": true,
+  "open_gates": [
+    "ci_pr_main_run",
+    "ci_playwright_smoke",
+    "ci_docker_image_build",
+    "stage1_production_launch_preflight",
+    "production_paid_billing_lifecycle",
+    "production_security_launch_checks",
+    "production_legal_support_policy",
+    "production_governance_release"
+  ],
+  "operator_next_actions": [
+    "Keep production launch no_go until strict production evidence clears all four blocker classes.",
+    "Do not use staging, sandbox, or local-only evidence to clear production launch gates.",
+    "Fix production DNS/HTTPS before rerunning legal/support production source probes.",
+    "Provide sanitized live production billing, security, and governance proofs before writing canonical production sources."
+  ],
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "schema_version": "stage1.production_launch_operator_brief.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_refs": {
+    "production_blocker_audit": "ops/evidence/non_clearing/production-blocker-audit.json",
+    "production_dns_cutover_plan": "ops/evidence/non_clearing/production-dns-cutover-plan.json",
+    "production_dns_readiness": "ops/evidence/non_clearing/production-dns-readiness.json",
+    "production_governance_diagnostic": "ops/evidence/non_clearing/production-governance-proof.blocked.json",
+    "production_live_billing_diagnostic": "ops/evidence/non_clearing/production-live-billing-proof.blocked.json",
+    "production_proof_bundle": "ops/evidence/non_clearing/production-proof-bundle.json",
+    "production_security_diagnostic": "ops/evidence/non_clearing/production-security-proof.blocked.json"
+  },
+  "status": "blocked",
+  "summary": {
+    "blocking_input_count": 58,
+    "final_blocker_count": 4,
+    "open_gate_count": 8,
+    "production_inputs_completion_percent": 3.3,
+    "production_inputs_configured": 2,
+    "production_inputs_invalid": 3,
+    "production_inputs_missing": 55,
+    "production_inputs_total": 60,
+    "stage1_completion_percent": 42.9,
+    "stage1_gates_completed": 6,
+    "stage1_gates_total": 14
+  },
+  "value_redaction": "variable_names_only"
+}

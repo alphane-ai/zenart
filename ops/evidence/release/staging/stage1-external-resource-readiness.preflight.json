@@ -1,0 +1,703 @@
+{
+  "authorization_header_persisted": false,
+  "blockers": [
+    "production_launch_inputs: missing - No additional sandbox/LLM/Stripe-test input is needed; provide or run only the missing live production source probes listed in source_probe_requirements."
+  ],
+  "can_clear_stage1_production_launch_gate": false,
+  "can_clear_stage1_staging_runtime_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "cookie_persisted": false,
+  "environment": "release",
+  "generated_at": "2026-06-28T21:51:12+00:00",
+  "kind": "stage1_external_resource_readiness_preflight",
+  "non_clearing_refresh_summary": {
+    "blocked_evidence_details": [
+      {
+        "detail": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "source": "ops/evidence/non_clearing/production-dns-readiness.json",
+        "step_id": "production_dns_readiness"
+      },
+      {
+        "detail": "CLOUDFLARE_ZONE_ID_or_CF_ZONE_ID",
+        "source": "ops/evidence/non_clearing/production-dns-cutover-plan.json",
+        "step_id": "production_dns_cutover_plan"
+      },
+      {
+        "detail": "billing_proof: stage1 Stripe live billing proof blocked: 20 blocker(s); first: STRIPE_MODE_must_be_live",
+        "source": "ops/evidence/non_clearing/production-proof-bundle.json",
+        "step_id": "production_proof_bundle"
+      }
+    ],
+    "path": "ops/evidence/non_clearing/production-non-clearing-refresh.json",
+    "production_input_progress": {
+      "completion_percent": 3.3,
+      "configured": 2,
+      "total": 60
+    },
+    "stage1_progress": {
+      "completed": 6,
+      "completion_percent": 42.9,
+      "total": 14
+    },
+    "status": "blocked",
+    "step_summary": {
+      "blocked": 3,
+      "failed": 0,
+      "passed": 35,
+      "total": 38,
+      "unexpected_exit_count": 0
+    }
+  },
+  "operator_handoff": {
+    "blocked_resource_ids": [],
+    "commands_after_inputs": [
+      "python3 scripts/generate_stage1_external_resource_readiness.py",
+      "OBJECT_RETENTION_MODE=preflight_stage1 scripts/staging_object_storage_retention_cleanup_smoke.sh",
+      "WRITE_CANONICAL_STAGE1_OBJECT_RETENTION_EVIDENCE=1 scripts/staging_object_storage_retention_cleanup_smoke.sh",
+      "python3 scripts/generate_stage1_staging_quota_replay_evidence.py",
+      "LOAD_MODE=all WRITE_CANONICAL_STAGE1_LOAD_EVIDENCE=1 scripts/load_smoke.sh",
+      "python3 scripts/fetch_stage1_ci_artifacts.py --run-url <github-actions-run-url>",
+      "python3 scripts/generate_stage1_staging_runtime_evidence.py",
+      "python3 scripts/validate_stage1_staging_runtime.py",
+      "python3 scripts/stage1_production_source_probe.py --billing --release-sha $(git rev-parse HEAD) --billing-proof <sanitized-live-billing-proof.json> --write-canonical-source",
+      "python3 scripts/stage1_production_source_probe.py --security --release-sha $(git rev-parse HEAD) --security-proof <sanitized-production-security-proof.json> --write-canonical-source",
+      "python3 scripts/stage1_production_source_probe.py --legal-support --release-sha $(git rev-parse HEAD) --production-web-url https://zenari.ai --write-canonical-source",
+      "python3 scripts/stage1_production_source_probe.py --governance --release-sha $(git rev-parse HEAD) --governance-proof <sanitized-production-governance-proof.json> --write-canonical-source",
+      "python3 scripts/generate_stage1_production_billing_evidence.py --source ops/evidence/production/billing-paid-lifecycle-source.json",
+      "python3 scripts/generate_stage1_production_security_launch_evidence.py --source ops/evidence/production/production-security-launch-source.json",
+      "python3 scripts/generate_stage1_production_legal_support_evidence.py --source ops/evidence/production/production-legal-support-source.json",
+      "python3 scripts/generate_stage1_production_governance_release_evidence.py --source ops/evidence/production/production-governance-release-source.json",
+      "python3 scripts/generate_stage1_production_launch_evidence.py",
+      "python3 scripts/validate_stage1_production_launch.py"
+    ],
+    "current_loop_breaker": "R2, Stripe sandbox, z.ai glm-5.2, staging evidence inputs/artifacts, and CI exact artifacts are ready; production source probes only remain. Azure origin reachability may still be independently blocked, but the production loop is source probes: live Stripe billing, production security, production legal/support HTTPS, and production governance release.",
+    "input_packet_ref": "ops/evidence/non_clearing/production-launch-input-packet.json",
+    "missing_input_checklist_ref": "ops/evidence/non_clearing/production-missing-input-checklist.json",
+    "missing_resource_ids": [
+      "production_launch_inputs"
+    ],
+    "missing_variables": [
+      "SANITIZED_LIVE_BILLING_PROOF_JSON for ops/evidence/production/billing-paid-lifecycle-source.json",
+      "SANITIZED_PRODUCTION_SECURITY_PROOF_JSON for ops/evidence/production/production-security-launch-source.json",
+      "PRODUCTION_WEB_URL resolving to public HTTPS legal/support pages for ops/evidence/production/production-legal-support-source.json",
+      "SANITIZED_PRODUCTION_GOVERNANCE_PROOF_JSON for ops/evidence/production/production-governance-release-source.json",
+      "PRODUCTION_LAUNCH_INPUT_PACKET at ops/evidence/non_clearing/production-launch-input-packet.json",
+      "PRODUCTION_LAUNCH_OPERATOR_BRIEF at ops/evidence/non_clearing/production-launch-operator-brief.json",
+      "PRODUCTION_MISSING_INPUT_CHECKLIST at ops/evidence/non_clearing/production-missing-input-checklist.json",
+      "PRODUCTION_SOURCE_PROBE_RUNBOOK at ops/evidence/non_clearing/production-source-probe-runbook.json"
+    ],
+    "non_clearing_preflight": true,
+    "non_clearing_refresh_summary": {
+      "blocked_evidence_details": [
+        {
+          "detail": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+          "source": "ops/evidence/non_clearing/production-dns-readiness.json",
+          "step_id": "production_dns_readiness"
+        },
+        {
+          "detail": "CLOUDFLARE_ZONE_ID_or_CF_ZONE_ID",
+          "source": "ops/evidence/non_clearing/production-dns-cutover-plan.json",
+          "step_id": "production_dns_cutover_plan"
+        },
+        {
+          "detail": "billing_proof: stage1 Stripe live billing proof blocked: 20 blocker(s); first: STRIPE_MODE_must_be_live",
+          "source": "ops/evidence/non_clearing/production-proof-bundle.json",
+          "step_id": "production_proof_bundle"
+        }
+      ],
+      "path": "ops/evidence/non_clearing/production-non-clearing-refresh.json",
+      "production_input_progress": {
+        "completion_percent": 3.3,
+        "configured": 2,
+        "total": 60
+      },
+      "stage1_progress": {
+        "completed": 6,
+        "completion_percent": 42.9,
+        "total": 14
+      },
+      "status": "blocked",
+      "step_summary": {
+        "blocked": 3,
+        "failed": 0,
+        "passed": 35,
+        "total": 38,
+        "unexpected_exit_count": 0
+      }
+    },
+    "operator_brief_ref": "ops/evidence/non_clearing/production-launch-operator-brief.json",
+    "production_source_probe_requirements": [
+      {
+        "current_blocker": "source_probe_missing: ops/evidence/production/billing-paid-lifecycle-source.json; latest_diagnostic=billing_proof_missing",
+        "diagnostic": {
+          "blocker_count": 1,
+          "blockers": [
+            "billing_proof_missing"
+          ],
+          "canonical_source_written": false,
+          "first_blocker": "billing_proof_missing",
+          "kind": "production_billing_source_probe",
+          "path": "ops/evidence/production/source-probe-diagnostics.billing.json",
+          "status": "blocked"
+        },
+        "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.billing.json",
+        "generator": "python3 scripts/generate_stage1_production_billing_evidence.py --source ops/evidence/production/billing-paid-lifecycle-source.json",
+        "path": "ops/evidence/production/billing-paid-lifecycle-source.json",
+        "probe_id": "production_paid_billing_lifecycle",
+        "reported_by_production_aggregate": false,
+        "schema_version": "stage1.production_billing_source.v1",
+        "source_probe_exists": false,
+        "status": "missing",
+        "strict_validator": "python3 scripts/validate_stage1_production_billing_evidence.py",
+        "supporting_diagnostics": []
+      },
+      {
+        "current_blocker": "source_probe_missing: ops/evidence/production/production-security-launch-source.json; latest_diagnostic=security_proof_missing",
+        "diagnostic": {
+          "blocker_count": 1,
+          "blockers": [
+            "security_proof_missing"
+          ],
+          "canonical_source_written": false,
+          "first_blocker": "security_proof_missing",
+          "kind": "production_security_launch_source_probe",
+          "path": "ops/evidence/production/source-probe-diagnostics.security.json",
+          "status": "blocked"
+        },
+        "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.security.json",
+        "generator": "python3 scripts/generate_stage1_production_security_launch_evidence.py --source ops/evidence/production/production-security-launch-source.json",
+        "path": "ops/evidence/production/production-security-launch-source.json",
+        "probe_id": "production_security_launch_checks",
+        "reported_by_production_aggregate": false,
+        "schema_version": "stage1.production_security_launch_source.v1",
+        "source_probe_exists": false,
+        "status": "missing",
+        "strict_validator": "python3 scripts/validate_stage1_production_security_launch_evidence.py",
+        "supporting_diagnostics": []
+      },
+      {
+        "current_blocker": "source_probe_missing: ops/evidence/production/production-legal-support-source.json; production_dns=system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "diagnostic": {
+          "blocker_count": 1,
+          "blockers": [
+            "production web URL host zenari.ai did not resolve via system resolver: [Errno 8] nodename nor servname provided, or not known"
+          ],
+          "canonical_source_written": false,
+          "first_blocker": "production web URL host zenari.ai did not resolve via system resolver: [Errno 8] nodename nor servname provided, or not known",
+          "kind": "production_legal_support_source_probe",
+          "path": "ops/evidence/production/source-probe-diagnostics.legal-support.json",
+          "status": "blocked"
+        },
+        "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.legal-support.json",
+        "generator": "python3 scripts/generate_stage1_production_legal_support_evidence.py --source ops/evidence/production/production-legal-support-source.json",
+        "path": "ops/evidence/production/production-legal-support-source.json",
+        "probe_id": "production_legal_support_policy",
+        "reported_by_production_aggregate": false,
+        "schema_version": "stage1.production_legal_support_source.v1",
+        "source_probe_exists": false,
+        "status": "missing",
+        "strict_validator": "python3 scripts/validate_stage1_production_legal_support_evidence.py",
+        "supporting_diagnostics": [
+          {
+            "dns_split_brain_observed": false,
+            "first_blocker": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+            "path": "ops/evidence/non_clearing/production-dns-readiness.json",
+            "status": "blocked"
+          }
+        ]
+      },
+      {
+        "current_blocker": "source_probe_missing: ops/evidence/production/production-governance-release-source.json; latest_diagnostic=governance_proof_missing",
+        "diagnostic": {
+          "blocker_count": 1,
+          "blockers": [
+            "governance_proof_missing"
+          ],
+          "canonical_source_written": false,
+          "first_blocker": "governance_proof_missing",
+          "kind": "production_governance_release_source_probe",
+          "path": "ops/evidence/production/source-probe-diagnostics.governance.json",
+          "status": "blocked"
+        },
+        "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.governance.json",
+        "generator": "python3 scripts/generate_stage1_production_governance_release_evidence.py --source ops/evidence/production/production-governance-release-source.json",
+        "path": "ops/evidence/production/production-governance-release-source.json",
+        "probe_id": "production_governance_release",
+        "reported_by_production_aggregate": false,
+        "schema_version": "stage1.production_governance_release_source.v1",
+        "source_probe_exists": false,
+        "status": "missing",
+        "strict_validator": "python3 scripts/validate_stage1_production_governance_release_evidence.py",
+        "supporting_diagnostics": []
+      }
+    ],
+    "ready_resource_ids": [
+      "llm_zai_openai_compatible",
+      "r2_zenari_bucket",
+      "staging_public_urls",
+      "staging_admin_access",
+      "staging_quota_replay_db",
+      "ci_exact_artifacts"
+    ],
+    "resource_classes": [
+      "production source probe JSON files for billing, security, legal/support, and governance",
+      "Stripe live-mode billing lifecycle evidence with livemode=true",
+      "production DNS and HTTPS legal/support policy URLs",
+      "sanitized production security launch proof",
+      "sanitized production governance release proof"
+    ],
+    "resource_status": {
+      "ci_exact_artifacts": "ready",
+      "production_launch_inputs": "missing",
+      "staging_admin_access": "ready",
+      "staging_public_urls": "ready",
+      "staging_quota_replay_db": "ready"
+    },
+    "source_probe_runbook_ref": "ops/evidence/non_clearing/production-source-probe-runbook.json",
+    "status": "blocked"
+  },
+  "production_source_probe_requirements": [
+    {
+      "current_blocker": "source_probe_missing: ops/evidence/production/billing-paid-lifecycle-source.json; latest_diagnostic=billing_proof_missing",
+      "diagnostic": {
+        "blocker_count": 1,
+        "blockers": [
+          "billing_proof_missing"
+        ],
+        "canonical_source_written": false,
+        "first_blocker": "billing_proof_missing",
+        "kind": "production_billing_source_probe",
+        "path": "ops/evidence/production/source-probe-diagnostics.billing.json",
+        "status": "blocked"
+      },
+      "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.billing.json",
+      "generator": "python3 scripts/generate_stage1_production_billing_evidence.py --source ops/evidence/production/billing-paid-lifecycle-source.json",
+      "path": "ops/evidence/production/billing-paid-lifecycle-source.json",
+      "probe_id": "production_paid_billing_lifecycle",
+      "reported_by_production_aggregate": false,
+      "schema_version": "stage1.production_billing_source.v1",
+      "source_probe_exists": false,
+      "status": "missing",
+      "strict_validator": "python3 scripts/validate_stage1_production_billing_evidence.py",
+      "supporting_diagnostics": []
+    },
+    {
+      "current_blocker": "source_probe_missing: ops/evidence/production/production-security-launch-source.json; latest_diagnostic=security_proof_missing",
+      "diagnostic": {
+        "blocker_count": 1,
+        "blockers": [
+          "security_proof_missing"
+        ],
+        "canonical_source_written": false,
+        "first_blocker": "security_proof_missing",
+        "kind": "production_security_launch_source_probe",
+        "path": "ops/evidence/production/source-probe-diagnostics.security.json",
+        "status": "blocked"
+      },
+      "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.security.json",
+      "generator": "python3 scripts/generate_stage1_production_security_launch_evidence.py --source ops/evidence/production/production-security-launch-source.json",
+      "path": "ops/evidence/production/production-security-launch-source.json",
+      "probe_id": "production_security_launch_checks",
+      "reported_by_production_aggregate": false,
+      "schema_version": "stage1.production_security_launch_source.v1",
+      "source_probe_exists": false,
+      "status": "missing",
+      "strict_validator": "python3 scripts/validate_stage1_production_security_launch_evidence.py",
+      "supporting_diagnostics": []
+    },
+    {
+      "current_blocker": "source_probe_missing: ops/evidence/production/production-legal-support-source.json; production_dns=system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+      "diagnostic": {
+        "blocker_count": 1,
+        "blockers": [
+          "production web URL host zenari.ai did not resolve via system resolver: [Errno 8] nodename nor servname provided, or not known"
+        ],
+        "canonical_source_written": false,
+        "first_blocker": "production web URL host zenari.ai did not resolve via system resolver: [Errno 8] nodename nor servname provided, or not known",
+        "kind": "production_legal_support_source_probe",
+        "path": "ops/evidence/production/source-probe-diagnostics.legal-support.json",
+        "status": "blocked"
+      },
+      "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.legal-support.json",
+      "generator": "python3 scripts/generate_stage1_production_legal_support_evidence.py --source ops/evidence/production/production-legal-support-source.json",
+      "path": "ops/evidence/production/production-legal-support-source.json",
+      "probe_id": "production_legal_support_policy",
+      "reported_by_production_aggregate": false,
+      "schema_version": "stage1.production_legal_support_source.v1",
+      "source_probe_exists": false,
+      "status": "missing",
+      "strict_validator": "python3 scripts/validate_stage1_production_legal_support_evidence.py",
+      "supporting_diagnostics": [
+        {
+          "dns_split_brain_observed": false,
+          "first_blocker": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+          "path": "ops/evidence/non_clearing/production-dns-readiness.json",
+          "status": "blocked"
+        }
+      ]
+    },
+    {
+      "current_blocker": "source_probe_missing: ops/evidence/production/production-governance-release-source.json; latest_diagnostic=governance_proof_missing",
+      "diagnostic": {
+        "blocker_count": 1,
+        "blockers": [
+          "governance_proof_missing"
+        ],
+        "canonical_source_written": false,
+        "first_blocker": "governance_proof_missing",
+        "kind": "production_governance_release_source_probe",
+        "path": "ops/evidence/production/source-probe-diagnostics.governance.json",
+        "status": "blocked"
+      },
+      "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.governance.json",
+      "generator": "python3 scripts/generate_stage1_production_governance_release_evidence.py --source ops/evidence/production/production-governance-release-source.json",
+      "path": "ops/evidence/production/production-governance-release-source.json",
+      "probe_id": "production_governance_release",
+      "reported_by_production_aggregate": false,
+      "schema_version": "stage1.production_governance_release_source.v1",
+      "source_probe_exists": false,
+      "status": "missing",
+      "strict_validator": "python3 scripts/validate_stage1_production_governance_release_evidence.py",
+      "supporting_diagnostics": []
+    }
+  ],
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "resource_groups": [
+    {
+      "current_blocker": "none",
+      "evidence_refs": [
+        "ops/evidence/staging/openai-compatible-provider-selftest.json",
+        "ops/evidence/staging/stage1-provider-sandbox.json",
+        "ops/evidence/staging/stage1-provider-sandbox.ndjson"
+      ],
+      "gate_dependency": "stage1_provider_sandbox",
+      "lane": "provider",
+      "next_action": "Keep live provider keys only in ignored .env/environment, rerun provider sandbox smoke against real staging, then aggregate staging runtime.",
+      "operator_ask": "No operator input needed while the existing z.ai key remains valid.",
+      "provided_signal": "4/4 LLM environment names present; model_glm_5_2=True; provider_openai_compatible=True; direct_live_selftest=True; values redacted",
+      "required_resource": "z.ai OpenAI-compatible coding endpoint key configured for glm-5.2 live provider calls",
+      "resource_id": "llm_zai_openai_compatible",
+      "status": "ready",
+      "validation_signal": "direct OpenAI-compatible glm-5.2 live selftest exact pass; staging provider_sandbox follow-up remains required",
+      "validator": "bash scripts/openai_compatible_provider_selftest.sh --output ops/evidence/staging/openai-compatible-provider-selftest.json"
+    },
+    {
+      "current_blocker": "none",
+      "evidence_refs": [
+        "ops/evidence/release/staging/stage1-r2-bucket-readiness.preflight.json",
+        "ops/evidence/staging/object-storage-retention-cleanup.json"
+      ],
+      "gate_dependency": "object_storage_retention_cleanup",
+      "lane": "staging",
+      "next_action": "Run strict staging object retention probes with deployed admin access and write canonical object-storage-retention-cleanup evidence.",
+      "operator_ask": "No R2 bucket credential input needed; provide staging public URLs and admin access so canonical object retention probes can run.",
+      "provided_signal": "6/6 object storage environment names present; bucket_name_zenari=True; values redacted",
+      "required_resource": "Cloudflare R2 bucket named zenari with S3-compatible read/write/list access for staging object retention smoke",
+      "resource_id": "r2_zenari_bucket",
+      "status": "ready",
+      "validation_signal": "R2 bucket readiness exact preflight pass: S3 head/put/get/list/delete succeeded",
+      "validator": "python3 scripts/validate_stage1_r2_bucket_readiness.py --allow-preflight"
+    },
+    {
+      "current_blocker": "none",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-runtime.json",
+        "ops/evidence/staging/stage1-runtime.ndjson"
+      ],
+      "gate_dependency": "stage1_staging_runtime_preflight",
+      "lane": "staging",
+      "next_action": "Set STAGING_API_URL, STAGING_WEB_URL, and STAGING_ADMIN_URL to deployed non-local HTTPS origins, then rerun staging smoke scripts.",
+      "operator_ask": "Send the real staging API/Web/Admin HTTPS URLs when deployed.",
+      "provided_signal": "3/3 staging URL environment names contain non-local HTTPS values; values redacted",
+      "required_resource": "Production-like non-local HTTPS staging API, Web, and Admin URLs",
+      "resource_id": "staging_public_urls",
+      "status": "ready",
+      "validation_signal": "legal/support staging visibility exact evidence pass",
+      "validator": "python3 scripts/validate_stage1_staging_runtime.py"
+    },
+    {
+      "current_blocker": "none",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-provider-sandbox.json",
+        "ops/evidence/staging/stage1-safety-qa-eval.json"
+      ],
+      "gate_dependency": "stage1_provider_sandbox + object_storage_retention_cleanup + safety_qa_eval",
+      "lane": "staging",
+      "next_action": "Load admin token/login context into ignored environment, rerun provider, safety, object retention, and release bundle staging probes.",
+      "operator_ask": "Provide staging admin access method, admin user id, tenant id, and CSRF origin/header requirement after real staging URLs are available.",
+      "provided_signal": "4/4 staging admin access inputs present; bearer/session/local bootstrap accepted; values redacted",
+      "required_resource": "Staging admin bearer/session/local-session bootstrap access, admin user id, tenant id, and CSRF origin for release evidence probes",
+      "resource_id": "staging_admin_access",
+      "status": "ready",
+      "validation_signal": "auth/RBAC and provider sandbox admin probes exact evidence pass",
+      "validator": "python3 scripts/validate_stage1_staging_runtime.py"
+    },
+    {
+      "current_blocker": "none",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-quota-replay.json",
+        "ops/evidence/staging/stage1-quota-replay.ndjson"
+      ],
+      "gate_dependency": "staging_quota_replay",
+      "lane": "staging",
+      "next_action": "No quota replay input action needed; preserve canonical stage1-quota-replay evidence and keep staging runtime aggregate current.",
+      "operator_ask": "No quota replay DB input needed while canonical staging quota replay evidence remains strict-pass.",
+      "provided_signal": "canonical quota replay exact evidence present; input values no longer required for readiness; values redacted",
+      "required_resource": "Read-only deployed staging Postgres URL plus tenant and batch ids for quota replay against real provider usage logs",
+      "resource_id": "staging_quota_replay_db",
+      "status": "ready",
+      "validation_signal": "staging_quota_replay component exact evidence pass",
+      "validator": "python3 scripts/validate_stage1_staging_quota_replay_evidence.py"
+    },
+    {
+      "current_blocker": "none",
+      "evidence_refs": [
+        "ops/evidence/ci/stage0-rev2-pr-main-run.json",
+        "ops/evidence/ci/stage0-rev2-playwright-smoke.json",
+        "ops/evidence/ci/stage0-rev2-docker-image-build.json"
+      ],
+      "gate_dependency": "ci_pr_main_run + ci_playwright_smoke + ci_docker_image_build",
+      "lane": "ci",
+      "next_action": "No CI artifact action needed while the Stage 0 Rev2 CI release gate fixture remains go and canonical CI artifacts pass.",
+      "operator_ask": "No CI artifact input needed while fixtures/stage0/rev2/release_gate_evidence.ci.json remains gate_decision.status=go.",
+      "provided_signal": "3/3 canonical CI evidence files present; ci_release_gate_fixture_go=True; artifact values redacted by validators",
+      "required_resource": "Exact GitHub Actions PR/main, Playwright smoke, and Docker image build evidence artifacts",
+      "resource_id": "ci_exact_artifacts",
+      "status": "ready",
+      "validation_signal": "CI release gate fixture exact pass with canonical CI artifacts",
+      "validator": "python3 scripts/validate_stage1_ci_exact_evidence.py"
+    },
+    {
+      "current_blocker": "production_launch_inputs: missing_source_probes - ops/evidence/production/billing-paid-lifecycle-source.json, ops/evidence/production/production-security-launch-source.json, ops/evidence/production/production-legal-support-source.json, ops/evidence/production/production-governance-release-source.json; values redacted",
+      "evidence_refs": [
+        "ops/evidence/production/stage1-production-launch.json",
+        "ops/evidence/production/stage1-production-launch.ndjson"
+      ],
+      "gate_dependency": "stage1_production_launch_preflight",
+      "lane": "production",
+      "next_action": "Create the missing safe production source probe JSON files, then rerun production child evidence generators for billing, security, legal/support, and governance.",
+      "operator_ask": "No additional sandbox/LLM/Stripe-test input is needed; provide or run only the missing live production source probes listed in source_probe_requirements.",
+      "provided_signal": "0/4 required production source probes present; no secret values projected",
+      "required_resource": "Production provider/claims, paid billing lifecycle, backup/rollback, security, legal/support, and governance release evidence inputs",
+      "resource_id": "production_launch_inputs",
+      "source_probe_requirements": [
+        {
+          "current_blocker": "source_probe_missing: ops/evidence/production/billing-paid-lifecycle-source.json; latest_diagnostic=billing_proof_missing",
+          "diagnostic": {
+            "blocker_count": 1,
+            "blockers": [
+              "billing_proof_missing"
+            ],
+            "canonical_source_written": false,
+            "first_blocker": "billing_proof_missing",
+            "kind": "production_billing_source_probe",
+            "path": "ops/evidence/production/source-probe-diagnostics.billing.json",
+            "status": "blocked"
+          },
+          "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.billing.json",
+          "generator": "python3 scripts/generate_stage1_production_billing_evidence.py --source ops/evidence/production/billing-paid-lifecycle-source.json",
+          "path": "ops/evidence/production/billing-paid-lifecycle-source.json",
+          "probe_id": "production_paid_billing_lifecycle",
+          "reported_by_production_aggregate": false,
+          "schema_version": "stage1.production_billing_source.v1",
+          "source_probe_exists": false,
+          "status": "missing",
+          "strict_validator": "python3 scripts/validate_stage1_production_billing_evidence.py",
+          "supporting_diagnostics": []
+        },
+        {
+          "current_blocker": "source_probe_missing: ops/evidence/production/production-security-launch-source.json; latest_diagnostic=security_proof_missing",
+          "diagnostic": {
+            "blocker_count": 1,
+            "blockers": [
+              "security_proof_missing"
+            ],
+            "canonical_source_written": false,
+            "first_blocker": "security_proof_missing",
+            "kind": "production_security_launch_source_probe",
+            "path": "ops/evidence/production/source-probe-diagnostics.security.json",
+            "status": "blocked"
+          },
+          "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.security.json",
+          "generator": "python3 scripts/generate_stage1_production_security_launch_evidence.py --source ops/evidence/production/production-security-launch-source.json",
+          "path": "ops/evidence/production/production-security-launch-source.json",
+          "probe_id": "production_security_launch_checks",
+          "reported_by_production_aggregate": false,
+          "schema_version": "stage1.production_security_launch_source.v1",
+          "source_probe_exists": false,
+          "status": "missing",
+          "strict_validator": "python3 scripts/validate_stage1_production_security_launch_evidence.py",
+          "supporting_diagnostics": []
+        },
+        {
+          "current_blocker": "source_probe_missing: ops/evidence/production/production-legal-support-source.json; production_dns=system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+          "diagnostic": {
+            "blocker_count": 1,
+            "blockers": [
+              "production web URL host zenari.ai did not resolve via system resolver: [Errno 8] nodename nor servname provided, or not known"
+            ],
+            "canonical_source_written": false,
+            "first_blocker": "production web URL host zenari.ai did not resolve via system resolver: [Errno 8] nodename nor servname provided, or not known",
+            "kind": "production_legal_support_source_probe",
+            "path": "ops/evidence/production/source-probe-diagnostics.legal-support.json",
+            "status": "blocked"
+          },
+          "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.legal-support.json",
+          "generator": "python3 scripts/generate_stage1_production_legal_support_evidence.py --source ops/evidence/production/production-legal-support-source.json",
+          "path": "ops/evidence/production/production-legal-support-source.json",
+          "probe_id": "production_legal_support_policy",
+          "reported_by_production_aggregate": false,
+          "schema_version": "stage1.production_legal_support_source.v1",
+          "source_probe_exists": false,
+          "status": "missing",
+          "strict_validator": "python3 scripts/validate_stage1_production_legal_support_evidence.py",
+          "supporting_diagnostics": [
+            {
+              "dns_split_brain_observed": false,
+              "first_blocker": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+              "path": "ops/evidence/non_clearing/production-dns-readiness.json",
+              "status": "blocked"
+            }
+          ]
+        },
+        {
+          "current_blocker": "source_probe_missing: ops/evidence/production/production-governance-release-source.json; latest_diagnostic=governance_proof_missing",
+          "diagnostic": {
+            "blocker_count": 1,
+            "blockers": [
+              "governance_proof_missing"
+            ],
+            "canonical_source_written": false,
+            "first_blocker": "governance_proof_missing",
+            "kind": "production_governance_release_source_probe",
+            "path": "ops/evidence/production/source-probe-diagnostics.governance.json",
+            "status": "blocked"
+          },
+          "diagnostic_path": "ops/evidence/production/source-probe-diagnostics.governance.json",
+          "generator": "python3 scripts/generate_stage1_production_governance_release_evidence.py --source ops/evidence/production/production-governance-release-source.json",
+          "path": "ops/evidence/production/production-governance-release-source.json",
+          "probe_id": "production_governance_release",
+          "reported_by_production_aggregate": false,
+          "schema_version": "stage1.production_governance_release_source.v1",
+          "source_probe_exists": false,
+          "status": "missing",
+          "strict_validator": "python3 scripts/validate_stage1_production_governance_release_evidence.py",
+          "supporting_diagnostics": []
+        }
+      ],
+      "status": "missing",
+      "validation_signal": "production launch aggregate remains blocked",
+      "validator": "python3 scripts/validate_stage1_production_launch.py"
+    }
+  ],
+  "resource_summary": {
+    "blocked": 0,
+    "by_lane": {
+      "ci": 1,
+      "production": 1,
+      "provider": 1,
+      "staging": 4
+    },
+    "missing": 1,
+    "provided_unverified": 0,
+    "ready": 6,
+    "ready_percent": 85.7,
+    "total": 7
+  },
+  "safe_projection_policy": {
+    "authorization_header_persisted": false,
+    "cookie_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_stripe_payload_persisted": false,
+    "raw_support_body_projected": false,
+    "secret_material_persisted": false,
+    "signed_url_persisted": false
+  },
+  "schema_version": "stage1.external_resource_readiness.preflight.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_aggregates": {
+    "ci_exact_preflight": {
+      "blocker_count": 0,
+      "do_not_launch_conditions": [],
+      "environment": "ci",
+      "generated_at": "2026-06-28T17:45:41+00:00",
+      "kind": "ci_exact_evidence_preflight",
+      "path": "ops/evidence/ci/stage1-ci-exact.preflight.json",
+      "release_gate_decision": "no_go",
+      "schema_version": "stage1.ci_exact.preflight.v1",
+      "status": "blocked"
+    },
+    "ci_release_gate_fixture": {
+      "active_do_not_launch_conditions": [],
+      "blocked_by_checks": [],
+      "gate_decision_status": "go",
+      "path": "fixtures/stage0/rev2/release_gate_evidence.ci.json",
+      "required_checks": [
+        "ci_docker_image_build",
+        "ci_gate_runtime_execution",
+        "ci_playwright_smoke"
+      ],
+      "status": "go"
+    },
+    "llm_openai_compatible_selftest": {
+      "blocker_count": 0,
+      "do_not_launch_conditions": [],
+      "environment": "unknown",
+      "generated_at": "2026-06-28T19:41:44.447933+00:00",
+      "kind": "openai_compatible_provider_selftest",
+      "path": "ops/evidence/staging/openai-compatible-provider-selftest.json",
+      "release_gate_decision": "no_go",
+      "schema_version": "stage1.openai_compatible_provider_selftest.v1",
+      "status": "passed"
+    },
+    "production_launch": {
+      "blocker_count": 87,
+      "do_not_launch_conditions": [
+        "stage1_production_launch_evidence_incomplete"
+      ],
+      "environment": "production",
+      "generated_at": "2026-06-28T13:36:35+00:00",
+      "kind": "stage1_production_launch",
+      "path": "ops/evidence/production/stage1-production-launch.json",
+      "release_gate_decision": "no_go",
+      "schema_version": "stage1.production_launch.v1",
+      "status": "blocked"
+    },
+    "r2_bucket_readiness": {
+      "blocker_count": 0,
+      "canonical_path": "ops/evidence/release/staging/stage1-r2-bucket-readiness.preflight.json",
+      "do_not_launch_conditions": [],
+      "environment": "release",
+      "generated_at": "2026-06-28T14:16:10+00:00",
+      "kind": "stage1_r2_bucket_readiness_preflight",
+      "path": "ops/evidence/release/staging/stage1-r2-bucket-readiness.preflight.json",
+      "release_gate_decision": "no_go",
+      "schema_version": "stage1.r2_bucket_readiness.preflight.v1",
+      "status": "ready"
+    },
+    "staging_runtime": {
+      "blocker_count": 0,
+      "do_not_launch_conditions": [],
+      "environment": "staging",
+      "generated_at": "2026-06-28T13:36:53+00:00",
+      "kind": "stage1_staging_runtime",
+      "path": "ops/evidence/staging/stage1-runtime.json",
+      "release_gate_decision": "go",
+      "schema_version": "stage1.staging_runtime.v1",
+      "status": "pass"
+    }
+  },
+  "status": "blocked",
+  "strict_launch_evidence_required": [
+    "python3 scripts/validate_stage1_staging_runtime.py",
+    "python3 scripts/validate_stage1_production_launch.py",
+    "python3 scripts/validate_stage1_ci_exact_evidence.py"
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "schema_version": "stage1.canvas_interaction.contract.v1",
+  "kind": "frontend_canvas_interaction_local_contract",
+  "blueprint_source": "Docs/Stage1_20260621_blueprint.md",
+  "blueprint_items": ["FE-3", "FE-5", "FE-6", "FE-7"],
+  "source_files": [
+    "web/lib/contracts.ts",
+    "web/lib/dev-state.ts",
+    "web/lib/api-client.ts",
+    "web/components/workspace-app.tsx",
+    "web/components/workspace-app.smoke.test.tsx",
+    "web/lib/api-client.test.ts",
+    "web/app/globals.css"
+  ],
+  "state_contract": {
+    "canvas_node_fields": ["width", "height", "zIndex", "locked", "hidden", "frameId"],
+    "canvas_tool_type": "CanvasTool",
+    "interaction_state": "CanvasInteractionState",
+    "workspace_field": "WorkspaceState.canvas.interaction",
+    "default_state": "defaultCanvasInteraction",
+    "version_snapshot_builder": "createCanvasVersionSnapshot"
+  },
+  "local_client_contract": {
+    "class": "DevZenariClient",
+    "migration_helpers": ["migrateCanvasNode", "migrateCanvasInteraction", "clampCanvasZoom"],
+    "methods": [
+      "selectCanvasNode",
+      "moveCanvasNode",
+      "setCanvasZoom",
+      "fitCanvasToView",
+      "setCanvasTool",
+      "toggleCanvasNodeHidden",
+      "toggleCanvasNodeLocked",
+      "duplicateSelectedCanvasNodes",
+      "deleteSelectedCanvasNodes"
+    ],
+    "candidate_selection_selects_canvas_node": true,
+    "iteration_creates_selectable_canvas_node": true,
+    "local_storage_migration_required": true
+  },
+  "ui_contract": {
+    "component": "CanvasPanel",
+    "ui_marker": "stage1.canvas-interaction-user-contract",
+    "toolbar_marker": "stage1.canvas-toolbar",
+    "layers_marker": "stage1.canvas-layers-panel",
+    "tools": ["select", "hand", "frame", "text", "shape", "upload"],
+    "keyboard_shortcuts": ["delete", "duplicate", "undo", "redo", "zoom_in", "zoom_out", "space_hand", "shift_multi_select"],
+    "required_data_attributes": [
+      "data-canvas-interaction-contract",
+      "data-canvas-interaction-status",
+      "data-canvas-tool",
+      "data-canvas-zoom",
+      "data-canvas-selected-node-count",
+      "data-canvas-selected-node-ids",
+      "data-canvas-visible-node-count",
+      "data-canvas-hidden-node-count",
+      "data-canvas-locked-node-count",
+      "data-canvas-last-action",
+      "data-canvas-toolbar-tools",
+      "data-canvas-keyboard-shortcuts",
+      "data-canvas-layers-panel",
+      "data-canvas-node",
+      "data-canvas-node-selected",
+      "data-canvas-node-locked",
+      "data-canvas-node-hidden",
+      "data-canvas-node-z-index",
+      "data-canvas-layer-row",
+      "data-canvas-layer-hidden",
+      "data-canvas-layer-locked"
+    ],
+    "controls": [
+      "Canvas tool hand",
+      "Zoom in canvas",
+      "Fit",
+      "Move Studio System",
+      "Lock Studio System",
+      "Unlock Studio System",
+      "Hide Studio System",
+      "Duplicate selected canvas nodes",
+      "Delete selected canvas nodes"
+    ]
+  },
+  "focused_tests": [
+    "tracks Stage 1 canvas toolbar, layers, zoom, drag, and keyboard interactions locally",
+    "exposes Stage 1 canvas toolbar, layers, zoom, drag, and keyboard interaction contract"
+  ],
+  "non_launch_status": {
+    "local_frontend_interaction": "pass",
+    "backend_canvas_versioning": "open",
+    "edit_tool_runtime": "open",
+    "staging_playwright_evidence": "open",
+    "real_canvas_editor_library": "open",
+    "can_clear_stage1_staging_runtime_gate": false,
+    "can_clear_stage1_production_security_gate": false
+  }
+}

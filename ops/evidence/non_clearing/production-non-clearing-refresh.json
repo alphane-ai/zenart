@@ -1,0 +1,428 @@
+{
+  "authorization_header_persisted": false,
+  "blocked_checks": [
+    "production_dns_readiness: system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+    "production_dns_cutover_plan: CLOUDFLARE_ZONE_ID_or_CF_ZONE_ID",
+    "production_proof_bundle: billing_proof: stage1 Stripe live billing proof blocked: 20 blocker(s); first: STRIPE_MODE_must_be_live"
+  ],
+  "blocked_evidence_details": [
+    {
+      "detail": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+      "source": "ops/evidence/non_clearing/production-dns-readiness.json",
+      "step_id": "production_dns_readiness"
+    },
+    {
+      "detail": "CLOUDFLARE_ZONE_ID_or_CF_ZONE_ID",
+      "source": "ops/evidence/non_clearing/production-dns-cutover-plan.json",
+      "step_id": "production_dns_cutover_plan"
+    },
+    {
+      "detail": "billing_proof: stage1 Stripe live billing proof blocked: 20 blocker(s); first: STRIPE_MODE_must_be_live",
+      "source": "ops/evidence/non_clearing/production-proof-bundle.json",
+      "step_id": "production_proof_bundle"
+    }
+  ],
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_sources_requested": false,
+  "cookie_persisted": false,
+  "dns_apply_requested": false,
+  "env_file": ".env",
+  "environment": "production",
+  "gate_impact": {
+    "canonical_source_write_command": "python3 scripts/run_stage1_production_proof_bundle.py --write-canonical-sources",
+    "non_clearing_evidence_only": true,
+    "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete",
+    "strict_launch_validator": "python3 scripts/validate_stage1_production_launch.py"
+  },
+  "generated_at": "2026-06-28T21:51:39+00:00",
+  "kind": "stage1_production_non_clearing_refresh",
+  "non_clearing_refresh": true,
+  "output_refs": {
+    "external_resource_readiness": "ops/evidence/release/staging/stage1-external-resource-readiness.preflight.json",
+    "production_action_matrix": "ops/evidence/non_clearing/production-action-matrix.json",
+    "production_launch_operator_brief": "ops/evidence/non_clearing/production-launch-operator-brief.json",
+    "production_missing_input_checklist": "ops/evidence/non_clearing/production-missing-input-checklist.json",
+    "production_source_probe_runbook": "ops/evidence/non_clearing/production-source-probe-runbook.json",
+    "release_evidence_closure_queue": "ops/evidence/release/staging/stage1-evidence-closure-queue.preflight.json",
+    "stage1_next_blockers_summary": "ops/evidence/non_clearing/stage1-next-blockers-summary.json",
+    "summary": "ops/evidence/non_clearing/production-non-clearing-refresh.json"
+  },
+  "production_web_url": "https://zenari.ai",
+  "progress": {
+    "external_resources": {
+      "ready": 6,
+      "ready_percent": 85.7,
+      "total": 7
+    },
+    "production_action_lanes": [
+      {
+        "blocking_input_count": 2,
+        "completion_percent": 50.0,
+        "first_blocker": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "lane_id": "production_dns_https"
+      },
+      {
+        "blocking_input_count": 20,
+        "completion_percent": 0.0,
+        "first_blocker": "billing_proof_missing",
+        "lane_id": "production_live_billing"
+      },
+      {
+        "blocking_input_count": 10,
+        "completion_percent": 0.0,
+        "first_blocker": "security_proof_missing",
+        "lane_id": "production_security_runtime"
+      },
+      {
+        "blocking_input_count": 26,
+        "completion_percent": 0.0,
+        "first_blocker": "governance_proof_missing",
+        "lane_id": "production_governance_release"
+      }
+    ],
+    "production_inputs": {
+      "blocking_input_count": 58,
+      "completion_percent": 3.3,
+      "configured": 2,
+      "invalid": 3,
+      "missing": 55,
+      "total": 60
+    },
+    "production_source_probes": {
+      "blocked": 4,
+      "blocking_input_count": 58,
+      "ready": 0,
+      "total": 4
+    },
+    "stage1": {
+      "completed": 6,
+      "completion_percent": 42.9,
+      "release_gate_decision": "no_go",
+      "total": 14
+    }
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "schema_version": "stage1.production_non_clearing_refresh.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "staging_web_url": "https://staging.zenari.ai",
+  "status": "blocked",
+  "step_summary": {
+    "blocked": 3,
+    "failed": 0,
+    "passed": 35,
+    "total": 38,
+    "unexpected_exit_count": 0
+  },
+  "steps": [
+    {
+      "command": "python3 scripts/stage1_billing_live_proof_template.py --output ops/evidence/non_clearing/templates/billing-live-proof.template.json --self-test",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 billing live proof template to ops/evidence/non_clearing/templates/billing-live-proof.template.json",
+      "status": "pass",
+      "step_id": "billing_live_proof_template"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_source_probe_templates.py --output-dir ops/evidence/non_clearing/templates/production-source-probes --self-test",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote 6 Stage 1 production source probe templates to ops/evidence/non_clearing/templates/production-source-probes",
+      "status": "pass",
+      "step_id": "production_source_probe_templates"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_source_probe_templates.py --template-dir ops/evidence/non_clearing/templates/production-source-probes",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production source probe template validation passed",
+      "status": "pass",
+      "step_id": "validate_production_source_probe_templates"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_input_template.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production input template to ops/evidence/non_clearing/production-input-template.env and ops/evidence/non_clearing/production-input-template.json",
+      "status": "pass",
+      "step_id": "production_input_template"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_input_template.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production input template validation passed",
+      "status": "pass",
+      "step_id": "validate_production_input_template"
+    },
+    {
+      "command": "python3 scripts/stage1_production_dns_readiness.py --production-web-url https://zenari.ai --staging-web-url https://staging.zenari.ai --timeout 10.0",
+      "exit_code": 2,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production DNS readiness to ops/evidence/non_clearing/production-dns-readiness.json",
+      "status": "blocked",
+      "step_id": "production_dns_readiness"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_dns_readiness.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production DNS readiness validation passed",
+      "status": "pass",
+      "step_id": "validate_production_dns_readiness"
+    },
+    {
+      "command": "python3 scripts/stage1_production_dns_cutover_plan.py --env .env --verify-cloudflare",
+      "exit_code": 2,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production DNS cutover plan to ops/evidence/non_clearing/production-dns-cutover-plan.json",
+      "status": "blocked",
+      "step_id": "production_dns_cutover_plan"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_dns_cutover_plan.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production DNS cutover plan validation passed",
+      "status": "pass",
+      "step_id": "validate_production_dns_cutover_plan"
+    },
+    {
+      "command": "python3 scripts/run_stage1_production_proof_bundle.py --env .env --production-web-url https://zenari.ai --summary ops/evidence/non_clearing/production-proof-bundle.json --pipeline-summary ops/evidence/non_clearing/production-launch-source-pipeline.json --billing-diagnostic ops/evidence/non_clearing/production-live-billing-proof.blocked.json --security-diagnostic ops/evidence/non_clearing/production-security-proof.blocked.json --governance-diagnostic ops/evidence/non_clearing/production-governance-proof.blocked.json --legal-diagnostic ops/evidence/production/source-probe-diagnostics.legal-support.json",
+      "exit_code": 2,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production proof bundle summary to ops/evidence/non_clearing/production-proof-bundle.json",
+      "status": "blocked",
+      "step_id": "production_proof_bundle"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_proof_bundle.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production proof bundle validation passed",
+      "status": "pass",
+      "step_id": "validate_production_proof_bundle"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_launch_source_pipeline.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production launch source pipeline validation passed",
+      "status": "pass",
+      "step_id": "validate_production_launch_source_pipeline"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_billing_operator_packet.py --env-file .env",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production billing operator packet to ops/evidence/non_clearing/production-billing-operator-packet.json",
+      "status": "pass",
+      "step_id": "production_billing_operator_packet"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_billing_operator_packet.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production billing operator packet validation passed",
+      "status": "pass",
+      "step_id": "validate_production_billing_operator_packet"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_security_operator_packet.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production security operator packet to ops/evidence/non_clearing/production-security-operator-packet.json",
+      "status": "pass",
+      "step_id": "production_security_operator_packet"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_security_operator_packet.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production security operator packet validation passed",
+      "status": "pass",
+      "step_id": "validate_production_security_operator_packet"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_legal_support_operator_packet.py --production-web-url https://zenari.ai",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production legal/support operator packet to ops/evidence/non_clearing/production-legal-support-operator-packet.json",
+      "status": "pass",
+      "step_id": "production_legal_support_operator_packet"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_legal_support_operator_packet.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production legal/support operator packet validation passed",
+      "status": "pass",
+      "step_id": "validate_production_legal_support_operator_packet"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_governance_operator_packet.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production governance operator packet to ops/evidence/non_clearing/production-governance-operator-packet.json",
+      "status": "pass",
+      "step_id": "production_governance_operator_packet"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_governance_operator_packet.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production governance operator packet validation passed",
+      "status": "pass",
+      "step_id": "validate_production_governance_operator_packet"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_external_resource_readiness.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 external resource readiness preflight to ops/evidence/release/staging/stage1-external-resource-readiness.preflight.json",
+      "status": "pass",
+      "step_id": "external_resource_readiness"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_external_resource_readiness.py --allow-preflight",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 external resource readiness validation passed",
+      "status": "pass",
+      "step_id": "validate_external_resource_readiness"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_launch_input_packet.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production launch input packet to ops/evidence/non_clearing/production-launch-input-packet.json",
+      "status": "pass",
+      "step_id": "production_launch_input_packet"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_launch_input_packet.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production launch input packet validation passed",
+      "status": "pass",
+      "step_id": "validate_production_launch_input_packet"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_blocker_audit.py --env-file .env",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production blocker audit to /Users/mac/Github/zenart/ops/evidence/non_clearing/production-blocker-audit.json",
+      "status": "pass",
+      "step_id": "production_blocker_audit"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_blocker_audit.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production blocker audit validation passed",
+      "status": "pass",
+      "step_id": "validate_production_blocker_audit"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_launch_operator_brief.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production launch operator brief to /Users/mac/Github/zenart/ops/evidence/non_clearing/production-launch-operator-brief.json",
+      "status": "pass",
+      "step_id": "production_launch_operator_brief"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_launch_operator_brief.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production launch operator brief validation passed",
+      "status": "pass",
+      "step_id": "validate_production_launch_operator_brief"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_missing_input_checklist.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production missing input checklist to /Users/mac/Github/zenart/ops/evidence/non_clearing/production-missing-input-checklist.json",
+      "status": "pass",
+      "step_id": "production_missing_input_checklist"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_missing_input_checklist.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production missing input checklist validation passed",
+      "status": "pass",
+      "step_id": "validate_production_missing_input_checklist"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_source_probe_runbook.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production source probe runbook to /Users/mac/Github/zenart/ops/evidence/non_clearing/production-source-probe-runbook.json",
+      "status": "pass",
+      "step_id": "production_source_probe_runbook"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_source_probe_runbook.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production source probe runbook validation passed",
+      "status": "pass",
+      "step_id": "validate_production_source_probe_runbook"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_dns_repair_packet.py --operator-markdown ops/evidence/non_clearing/production-dns-operator-checklist.md",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production DNS repair packet to ops/evidence/non_clearing/production-dns-repair-packet.json",
+      "status": "pass",
+      "step_id": "production_dns_repair_packet"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_dns_repair_packet.py --operator-markdown ops/evidence/non_clearing/production-dns-operator-checklist.md",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production DNS repair packet validation passed",
+      "status": "pass",
+      "step_id": "validate_production_dns_repair_packet"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_blocker_checklist.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production blocker checklist to ops/evidence/non_clearing/production-blocker-checklist.md",
+      "status": "pass",
+      "step_id": "production_blocker_checklist"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_blocker_checklist.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production blocker checklist validation passed",
+      "status": "pass",
+      "step_id": "validate_production_blocker_checklist"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_action_matrix.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "wrote Stage 1 production action matrix to ops/evidence/non_clearing/production-action-matrix.json and ops/evidence/non_clearing/production-action-matrix.md",
+      "status": "pass",
+      "step_id": "production_action_matrix"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_action_matrix.py",
+      "exit_code": 0,
+      "expected_exit": true,
+      "output_summary": "stage1 production action matrix validation passed",
+      "status": "pass",
+      "step_id": "validate_production_action_matrix"
+    }
+  ]
+}

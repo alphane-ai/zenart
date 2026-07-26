@@ -1,0 +1,155 @@
+{
+  "schema_version": "stage1.safety_qa_eval.contract.v1",
+  "fixture_id": "stage1_safety_qa_eval_local_contract",
+  "kind": "safety_qa_eval_contract",
+  "canonical_evidence_path": "ops/evidence/staging/stage1-safety-qa-eval.json",
+  "canonical_results_path": "ops/evidence/staging/stage1-safety-qa-eval.ndjson",
+  "local_devport_evidence_path": "ops/evidence/staging/local-devport/stage1-safety-qa-eval.local-devport.json",
+  "local_devport_results_path": "ops/evidence/staging/local-devport/stage1-safety-qa-eval.local-devport.ndjson",
+  "local_devport_can_clear_staging_gate": false,
+  "strict_schema_version": "stage1.safety_qa_eval.v1",
+  "release_gate_status": "contract_ready_staging_safety_qa_eval_evidence_open",
+  "required_surfaces": [
+    "batch_generation",
+    "edit_tool",
+    "asset_import",
+    "export",
+    "support_ticket",
+    "admin_review"
+  ],
+  "required_enforcement_points": [
+    "brief",
+    "provider_request",
+    "provider_response",
+    "qa",
+    "export"
+  ],
+  "required_stage0_validators": [
+    "scripts/validate_safety_enforcement_contract.py",
+    "scripts/validate_qa_result_contract.py",
+    "scripts/validate_export_eligibility_decision_contract.py",
+    "scripts/validate_export_override_contract.py"
+  ],
+  "required_stage1_anchors": [
+    "fixtures/stage1/batch_generation/partial_failure.json",
+    "scripts/stage1_safety_qa_eval_smoke.sh",
+    "scripts/validate_stage1_safety_qa_evidence.py",
+    "backend/internal/task/batch_executor.go",
+    "backend/internal/task/batch_repository.go",
+    "backend/internal/task/batch_executor_test.go",
+    "backend/internal/task/batch_generation_test.go",
+    "backend/internal/worker/batch_runner_test.go",
+    "backend/internal/server/server.go",
+    "openapi/zenart.v1.yaml"
+  ],
+  "required_checks": [
+    {
+      "check_id": "batch_blocked_child_refund",
+      "surface": "batch_generation",
+      "required_evidence": [
+        "blocked child status",
+        "quota refund",
+        "review reason"
+      ]
+    },
+    {
+      "check_id": "batch_safety_review_reason",
+      "surface": "batch_generation",
+      "required_evidence": [
+        "safety_review_required",
+        "visible trace projection",
+        "no raw safety payload"
+      ]
+    },
+    {
+      "check_id": "edit_tool_policy_projection",
+      "surface": "edit_tool",
+      "required_evidence": [
+        "mask/edit request policy decision",
+        "admin review hold supported",
+        "raw edit payload not persisted"
+      ]
+    },
+    {
+      "check_id": "asset_import_policy_projection",
+      "surface": "asset_import",
+      "required_evidence": [
+        "malware or unsafe marker block",
+        "tenant-scoped object ref",
+        "no signed URL persistence"
+      ]
+    },
+    {
+      "check_id": "export_fail_closed",
+      "surface": "export",
+      "required_evidence": [
+        "QA failed blocks download",
+        "safety blocked blocks download",
+        "missing provenance blocks download"
+      ]
+    },
+    {
+      "check_id": "admin_review_override",
+      "surface": "admin_review",
+      "required_evidence": [
+        "reviewer role",
+        "rationale",
+        "audit link",
+        "critical safety cannot be overridden"
+      ]
+    },
+    {
+      "check_id": "support_ticket_redaction",
+      "surface": "support_ticket",
+      "required_evidence": [
+        "linked export context",
+        "linked task or trace context",
+        "raw body and secrets not projected"
+      ]
+    },
+    {
+      "check_id": "evidence_no_secret_material",
+      "surface": "all",
+      "required_evidence": [
+        "no provider secret",
+        "no Stripe secret",
+        "no raw prompt",
+        "no raw provider payload",
+        "no raw safety payload"
+      ]
+    }
+  ],
+  "required_result_rows": [
+    "batch_blocked_child_refund",
+    "batch_safety_review_reason",
+    "edit_tool_policy_projection",
+    "asset_import_policy_projection",
+    "export_fail_closed",
+    "admin_review_override",
+    "support_ticket_redaction",
+    "evidence_no_secret_material"
+  ],
+  "stage0_contract_reuse": {
+    "safety_enforcement": "fixtures/stage0/rev2/eval/safety_enforcement_contract.json",
+    "qa_results": "fixtures/stage0/rev2/eval/qa_results.json",
+    "export_eligibility": "fixtures/stage0/rev2/eval/export_eligibility_decision_contract.json",
+    "export_override": "fixtures/stage0/rev2/eval/export_override_contract.json"
+  },
+  "safe_projection_policy": {
+    "secret_material_persisted": false,
+    "raw_prompt_persisted": false,
+    "raw_provider_payload_persisted": false,
+    "raw_safety_payload_persisted": false,
+    "support_ticket_raw_body_projected_to_admin_evidence": false,
+    "blocked_export_download_enabled": false
+  },
+  "remaining_staging_evidence": [
+    "real staging batch child blocked by safety with quota refund",
+    "real staging edit-tool policy decision and admin-review hold",
+    "real staging asset import unsafe-marker or malware block",
+    "real staging export fail-closed proof with download disabled",
+    "real staging admin review override audit proof",
+    "real staging support ticket redaction proof",
+    "real staging safety/QA/eval aggregate evidence at the canonical paths"
+  ]
+}

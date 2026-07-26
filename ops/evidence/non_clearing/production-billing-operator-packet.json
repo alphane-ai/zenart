@@ -1,0 +1,394 @@
+{
+  "authorization_header_persisted": false,
+  "blocked_until": [
+    "Stripe sandbox/test configuration is replaced with production live-mode billing proof inputs",
+    "STRIPE_MODE is live in the production runtime, not test",
+    "STRIPE_SECRET_KEY or STRIPE_API_KEY is a live Stripe key in the production runtime",
+    "all required live Stripe artifact IDs are supplied to stage1_stripe_live_billing_proof.py",
+    "webhook replay/idempotency evidence shows zero replay and duplicate mutations",
+    "stage1_production_source_probe.py --billing writes ops/evidence/production/billing-paid-lifecycle-source.json",
+    "generate_stage1_production_billing_evidence.py writes strict lifecycle and refund/webhook evidence",
+    "validate_stage1_production_billing_evidence.py passes without --allow-preflight"
+  ],
+  "can_clear_production_paid_billing_lifecycle": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "cookie_persisted": false,
+  "environment": "production",
+  "evidence_outputs": {
+    "lifecycle": "ops/evidence/production/billing-lifecycle.json",
+    "live_proof_candidate": "ops/evidence/non_clearing/production-live-billing-proof.candidate.json",
+    "live_proof_diagnostic": "ops/evidence/non_clearing/production-live-billing-proof.blocked.json",
+    "refund_credit_webhook": "ops/evidence/production/billing-refund-credit-webhook.json",
+    "source": "ops/evidence/production/billing-paid-lifecycle-source.json",
+    "source_diagnostic": "ops/evidence/production/source-probe-diagnostics.billing.json"
+  },
+  "execution_order": [
+    "python3 scripts/stage1_stripe_live_billing_proof.py --release-sha $(git rev-parse HEAD) --output ops/evidence/non_clearing/production-live-billing-proof.candidate.json --checkout-session-id <cs_live_...> --checkout-customer-id <cus_...> --price-id <price_...> --active-subscription-id <sub_...> --active-customer-id <cus_...> --past-due-subscription-id <sub_...> --past-due-invoice-id <in_...> --cancel-subscription-id <sub_...> --seat-quantity <positive-int> --synced-quantity <same-positive-int> --subscription-item-id <si_...> --visible-invoice-id <in_...> --refund-charge-id <ch_...> --refund-id <re_...> --quota-reset-invoice-id <in_...> --webhook-event-ids <evt_...,evt_...> --failed-export-refund-id <re_...> --live-test-separation-ref <audit-or-runtime-ref> --paid-checkout-ref <audit-or-runtime-ref> --subscription-active-ref <audit-or-runtime-ref> --subscription-past-due-ref <audit-or-runtime-ref> --subscription-cancel-ref <audit-or-runtime-ref> --team-seat-ref <audit-or-runtime-ref> --invoice-visibility-ref <audit-or-runtime-ref> --lifecycle-audit-ref <audit-or-runtime-ref> --refund-credit-ref <audit-or-runtime-ref> --quota-reset-ref <audit-or-runtime-ref> --webhook-idempotency-ref <audit-or-runtime-ref> --failed-export-refund-ref <audit-or-runtime-ref> --quota-projection-ref <audit-or-runtime-ref> --refund-webhook-audit-ref <audit-or-runtime-ref>",
+    "python3 scripts/validate_stage1_stripe_live_billing_proof.py --proof ops/evidence/non_clearing/production-live-billing-proof.candidate.json",
+    "python3 scripts/stage1_production_source_probe.py --billing --release-sha $(git rev-parse HEAD) --billing-proof ops/evidence/non_clearing/production-live-billing-proof.candidate.json --diagnostic ops/evidence/production/source-probe-diagnostics.billing.json --write-canonical-source",
+    "python3 scripts/generate_stage1_production_billing_evidence.py --source ops/evidence/production/billing-paid-lifecycle-source.json",
+    "python3 scripts/validate_stage1_production_billing_evidence.py",
+    "python3 scripts/generate_stage1_production_launch_evidence.py",
+    "python3 scripts/validate_stage1_production_launch.py"
+  ],
+  "gate_impact": {
+    "can_clear_aggregate_production_gate": false,
+    "can_clear_billing_lifecycle_subitem": false,
+    "can_clear_refund_credit_webhook_subitem": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete",
+    "preserved_release_gate_check_id": "production_paid_billing_lifecycle"
+  },
+  "generated_at": "2026-06-28T21:51:12+00:00",
+  "kind": "stage1_production_billing_operator_packet",
+  "live_mode_prerequisites": {
+    "comp_only_substitute_allowed": false,
+    "current_local_env_live_ready": false,
+    "publishable_key_must_be_live_when_set": true,
+    "sandbox_can_clear_production_live_billing": false,
+    "sandbox_or_test_artifacts_allowed": false,
+    "secret_key_must_be_live": true,
+    "stripe_mode_must_be_live": true,
+    "stripe_sandbox_or_test_config_detected": true
+  },
+  "live_proof": {
+    "blocked_diagnostic": {
+      "canonical_source_written": false,
+      "exists": true,
+      "first_blocker": "STRIPE_MODE_must_be_live",
+      "path": "ops/evidence/non_clearing/production-live-billing-proof.blocked.json",
+      "status": "blocked"
+    },
+    "candidate_path": "ops/evidence/non_clearing/production-live-billing-proof.candidate.json",
+    "proof_generator_command": "python3 scripts/stage1_stripe_live_billing_proof.py --release-sha $(git rev-parse HEAD) --output ops/evidence/non_clearing/production-live-billing-proof.candidate.json --checkout-session-id <cs_live_...> --checkout-customer-id <cus_...> --price-id <price_...> --active-subscription-id <sub_...> --active-customer-id <cus_...> --past-due-subscription-id <sub_...> --past-due-invoice-id <in_...> --cancel-subscription-id <sub_...> --seat-quantity <positive-int> --synced-quantity <same-positive-int> --subscription-item-id <si_...> --visible-invoice-id <in_...> --refund-charge-id <ch_...> --refund-id <re_...> --quota-reset-invoice-id <in_...> --webhook-event-ids <evt_...,evt_...> --failed-export-refund-id <re_...> --live-test-separation-ref <audit-or-runtime-ref> --paid-checkout-ref <audit-or-runtime-ref> --subscription-active-ref <audit-or-runtime-ref> --subscription-past-due-ref <audit-or-runtime-ref> --subscription-cancel-ref <audit-or-runtime-ref> --team-seat-ref <audit-or-runtime-ref> --invoice-visibility-ref <audit-or-runtime-ref> --lifecycle-audit-ref <audit-or-runtime-ref> --refund-credit-ref <audit-or-runtime-ref> --quota-reset-ref <audit-or-runtime-ref> --webhook-idempotency-ref <audit-or-runtime-ref> --failed-export-refund-ref <audit-or-runtime-ref> --quota-projection-ref <audit-or-runtime-ref> --refund-webhook-audit-ref <audit-or-runtime-ref>",
+    "proof_validator_command": "python3 scripts/validate_stage1_stripe_live_billing_proof.py --proof ops/evidence/non_clearing/production-live-billing-proof.candidate.json"
+  },
+  "local_env_classification": {
+    "env_file": ".env",
+    "env_file_present": true,
+    "live_secret_configured": false,
+    "publishable_key_class": "test_publishable",
+    "secret_key_class": "test_secret",
+    "stripe_mode": "test",
+    "webhook_secret_class": "webhook_secret_set"
+  },
+  "non_clearing_operator_packet": true,
+  "operator_command_packet": [
+    {
+      "command": "python3 scripts/run_stage1_production_proof_bundle.py --env <private-production-env> || test $? -eq 2",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "non-clearing proof candidates and blocked diagnostics only",
+      "step_id": "run_private_env_proof_bundle"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_stripe_live_billing_proof.py --proof ops/evidence/non_clearing/production-live-billing-proof.candidate.json --diagnostic ops/evidence/non_clearing/production-live-billing-proof.blocked.json",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "local validation only",
+      "step_id": "validate_live_billing_candidate_or_diagnostic"
+    },
+    {
+      "command": "python3 scripts/stage1_production_source_probe.py --billing --release-sha $(git rev-parse HEAD) --billing-proof ops/evidence/non_clearing/production-live-billing-proof.candidate.json --diagnostic ops/evidence/production/source-probe-diagnostics.billing.json --write-canonical-source",
+      "may_write_canonical_source": true,
+      "requires_review": true,
+      "side_effect": "writes billing canonical source only after live billing proof passes",
+      "step_id": "run_billing_source_probe_after_candidate_passes"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_billing_evidence.py --source ops/evidence/production/billing-paid-lifecycle-source.json",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "writes strict production billing evidence from canonical source",
+      "step_id": "generate_strict_billing_evidence"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_billing_evidence.py",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "strict production billing validation",
+      "step_id": "validate_strict_billing_evidence"
+    },
+    {
+      "command": "python3 scripts/refresh_stage1_production_non_clearing_evidence.py || test $? -eq 2",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "non-clearing summary refresh",
+      "step_id": "refresh_non_clearing_summary"
+    }
+  ],
+  "private_env_template": {
+    "allowed_variable_names": [
+      "STRIPE_MODE",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_API_KEY",
+      "STRIPE_PUBLISHABLE_KEY",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID",
+      "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID",
+      "STAGE1_PROD_BILLING_PRICE_ID",
+      "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID",
+      "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID",
+      "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_STATUS",
+      "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID",
+      "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID",
+      "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID",
+      "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_STATUS",
+      "STAGE1_PROD_BILLING_SEAT_QUANTITY",
+      "STAGE1_PROD_BILLING_SYNCED_QUANTITY",
+      "STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID",
+      "STAGE1_PROD_BILLING_PRORATION_BEHAVIOR",
+      "STAGE1_PROD_BILLING_SYNC_IDEMPOTENCY_KEY",
+      "STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID",
+      "STAGE1_PROD_BILLING_REFUND_STATUS",
+      "STAGE1_PROD_BILLING_ADMIN_OPERATION",
+      "STAGE1_PROD_BILLING_REFUND_CHARGE_ID",
+      "STAGE1_PROD_BILLING_REFUND_ID",
+      "STAGE1_PROD_BILLING_QUOTA_RESET_INVOICE_ID",
+      "STAGE1_PROD_BILLING_WEBHOOK_EVENT_IDS",
+      "STAGE1_PROD_BILLING_FIRST_DELIVERY_MUTATIONS",
+      "STAGE1_PROD_BILLING_REPLAY_DELIVERY_MUTATIONS",
+      "STAGE1_PROD_BILLING_DUPLICATE_MUTATION_COUNT",
+      "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_ID",
+      "STAGE1_PROD_BILLING_LIVE_TEST_SEPARATION_REF",
+      "STAGE1_PROD_BILLING_PAID_CHECKOUT_REF",
+      "STAGE1_PROD_BILLING_SUBSCRIPTION_ACTIVE_REF",
+      "STAGE1_PROD_BILLING_SUBSCRIPTION_PAST_DUE_REF",
+      "STAGE1_PROD_BILLING_SUBSCRIPTION_CANCEL_REF",
+      "STAGE1_PROD_BILLING_TEAM_SEAT_REF",
+      "STAGE1_PROD_BILLING_INVOICE_VISIBILITY_REF",
+      "STAGE1_PROD_BILLING_LIFECYCLE_AUDIT_REF",
+      "STAGE1_PROD_BILLING_REFUND_CREDIT_REF",
+      "STAGE1_PROD_BILLING_QUOTA_RESET_REF",
+      "STAGE1_PROD_BILLING_WEBHOOK_IDEMPOTENCY_REF",
+      "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_REF",
+      "STAGE1_PROD_BILLING_QUOTA_PROJECTION_REF",
+      "STAGE1_PROD_BILLING_REFUND_WEBHOOK_AUDIT_REF"
+    ],
+    "blank_values_only": true,
+    "gitignore_required": true,
+    "path_placeholder": "<private-production-env>",
+    "template_lines": [
+      "STRIPE_MODE=",
+      "STRIPE_SECRET_KEY=",
+      "STRIPE_API_KEY=",
+      "STRIPE_PUBLISHABLE_KEY=",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=",
+      "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID=",
+      "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID=",
+      "STAGE1_PROD_BILLING_PRICE_ID=",
+      "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID=",
+      "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID=",
+      "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_STATUS=",
+      "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID=",
+      "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID=",
+      "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID=",
+      "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_STATUS=",
+      "STAGE1_PROD_BILLING_SEAT_QUANTITY=",
+      "STAGE1_PROD_BILLING_SYNCED_QUANTITY=",
+      "STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID=",
+      "STAGE1_PROD_BILLING_PRORATION_BEHAVIOR=",
+      "STAGE1_PROD_BILLING_SYNC_IDEMPOTENCY_KEY=",
+      "STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID=",
+      "STAGE1_PROD_BILLING_REFUND_STATUS=",
+      "STAGE1_PROD_BILLING_ADMIN_OPERATION=",
+      "STAGE1_PROD_BILLING_REFUND_CHARGE_ID=",
+      "STAGE1_PROD_BILLING_REFUND_ID=",
+      "STAGE1_PROD_BILLING_QUOTA_RESET_INVOICE_ID=",
+      "STAGE1_PROD_BILLING_WEBHOOK_EVENT_IDS=",
+      "STAGE1_PROD_BILLING_FIRST_DELIVERY_MUTATIONS=",
+      "STAGE1_PROD_BILLING_REPLAY_DELIVERY_MUTATIONS=",
+      "STAGE1_PROD_BILLING_DUPLICATE_MUTATION_COUNT=",
+      "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_ID=",
+      "STAGE1_PROD_BILLING_LIVE_TEST_SEPARATION_REF=",
+      "STAGE1_PROD_BILLING_PAID_CHECKOUT_REF=",
+      "STAGE1_PROD_BILLING_SUBSCRIPTION_ACTIVE_REF=",
+      "STAGE1_PROD_BILLING_SUBSCRIPTION_PAST_DUE_REF=",
+      "STAGE1_PROD_BILLING_SUBSCRIPTION_CANCEL_REF=",
+      "STAGE1_PROD_BILLING_TEAM_SEAT_REF=",
+      "STAGE1_PROD_BILLING_INVOICE_VISIBILITY_REF=",
+      "STAGE1_PROD_BILLING_LIFECYCLE_AUDIT_REF=",
+      "STAGE1_PROD_BILLING_REFUND_CREDIT_REF=",
+      "STAGE1_PROD_BILLING_QUOTA_RESET_REF=",
+      "STAGE1_PROD_BILLING_WEBHOOK_IDEMPOTENCY_REF=",
+      "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_REF=",
+      "STAGE1_PROD_BILLING_QUOTA_PROJECTION_REF=",
+      "STAGE1_PROD_BILLING_REFUND_WEBHOOK_AUDIT_REF="
+    ]
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_paid_billing_lifecycle",
+  "release_gate_decision": "no_go",
+  "release_sha": "ddb10bc71ceafd1e0af3992abeb73f4c0df217ec",
+  "required_audit_refs": [
+    "--live-test-separation-ref",
+    "--paid-checkout-ref",
+    "--subscription-active-ref",
+    "--subscription-past-due-ref",
+    "--subscription-cancel-ref",
+    "--team-seat-ref",
+    "--invoice-visibility-ref",
+    "--lifecycle-audit-ref",
+    "--refund-credit-ref",
+    "--quota-reset-ref",
+    "--webhook-idempotency-ref",
+    "--failed-export-refund-ref",
+    "--quota-projection-ref",
+    "--refund-webhook-audit-ref"
+  ],
+  "required_live_artifacts": [
+    {
+      "flag": "--checkout-session-id",
+      "name": "checkout_session_id",
+      "prefix": "cs_live_",
+      "section": "paid_checkout"
+    },
+    {
+      "flag": "--checkout-customer-id",
+      "name": "checkout_customer_id",
+      "prefix": "cus_",
+      "section": "paid_checkout"
+    },
+    {
+      "flag": "--price-id",
+      "name": "price_id",
+      "prefix": "price_",
+      "section": "paid_checkout"
+    },
+    {
+      "flag": "--active-subscription-id",
+      "name": "active_subscription_id",
+      "prefix": "sub_",
+      "section": "subscription_active"
+    },
+    {
+      "flag": "--active-customer-id",
+      "name": "active_customer_id",
+      "prefix": "cus_",
+      "section": "subscription_active"
+    },
+    {
+      "flag": "--past-due-subscription-id",
+      "name": "past_due_subscription_id",
+      "prefix": "sub_",
+      "section": "subscription_past_due"
+    },
+    {
+      "flag": "--past-due-invoice-id",
+      "name": "past_due_invoice_id",
+      "prefix": "in_",
+      "section": "subscription_past_due"
+    },
+    {
+      "flag": "--cancel-subscription-id",
+      "name": "cancel_subscription_id",
+      "prefix": "sub_",
+      "section": "subscription_cancel"
+    },
+    {
+      "flag": "--subscription-item-id",
+      "name": "subscription_item_id",
+      "prefix": "si_",
+      "section": "team_seat_quantity_sync"
+    },
+    {
+      "flag": "--visible-invoice-id",
+      "name": "visible_invoice_id",
+      "prefix": "in_",
+      "section": "invoice_receipt_visibility"
+    },
+    {
+      "flag": "--refund-charge-id",
+      "name": "refund_charge_id",
+      "prefix": "ch_",
+      "section": "refund_or_credit"
+    },
+    {
+      "flag": "--refund-id",
+      "name": "refund_id",
+      "prefix": "re_",
+      "section": "refund_or_credit"
+    },
+    {
+      "flag": "--quota-reset-invoice-id",
+      "name": "quota_reset_invoice_id",
+      "prefix": "in_",
+      "section": "quota_reset"
+    },
+    {
+      "flag": "--failed-export-refund-id",
+      "name": "failed_export_refund_id",
+      "prefix": "re_",
+      "section": "failed_export_refund"
+    }
+  ],
+  "required_numeric_controls": [
+    {
+      "flag": "--seat-quantity",
+      "name": "seat_quantity",
+      "rule": "positive integer"
+    },
+    {
+      "flag": "--synced-quantity",
+      "name": "synced_quantity",
+      "rule": "positive integer matching seat_quantity"
+    },
+    {
+      "flag": "--first-delivery-mutations",
+      "name": "first_delivery_mutations",
+      "rule": "positive integer"
+    },
+    {
+      "flag": "--replay-delivery-mutations",
+      "name": "replay_delivery_mutations",
+      "rule": "0"
+    },
+    {
+      "flag": "--duplicate-mutation-count",
+      "name": "duplicate_mutation_count",
+      "rule": "0"
+    }
+  ],
+  "required_webhook_controls": {
+    "duplicate_mutation_count": 0,
+    "first_delivery_mutations": "positive integer",
+    "idempotency_verified": true,
+    "replay_delivery_mutations": 0,
+    "webhook_event_ids": "comma-separated evt_ IDs, including checkout.session.completed, invoice.paid, invoice.payment_failed evidence refs"
+  },
+  "sandbox_scope": {
+    "live_billing_requires": [
+      "STRIPE_MODE=live",
+      "STRIPE_SECRET_KEY or STRIPE_API_KEY with sk_live_ or rk_live_ shape",
+      "sanitized live checkout/subscription/invoice/refund/webhook artifact IDs",
+      "production audit/runtime refs for every billing lifecycle section"
+    ],
+    "operator_note": "Stripe sandbox/test keys and sandbox checkout/webhook evidence are useful for local validation only; they cannot clear the production_paid_billing_lifecycle gate.",
+    "publishable_key_class": "test_publishable",
+    "sandbox_can_clear_production_live_billing": false,
+    "secret_key_class": "test_secret",
+    "stripe_mode": "test",
+    "stripe_sandbox_or_test_config_detected": true
+  },
+  "schema_version": "stage1.production_billing_operator_packet.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_probe": {
+    "canonical_source_exists": false,
+    "canonical_source_path": "ops/evidence/production/billing-paid-lifecycle-source.json",
+    "source_diagnostic": {
+      "canonical_source_written": false,
+      "exists": true,
+      "first_blocker": "billing_proof_missing",
+      "path": "ops/evidence/production/source-probe-diagnostics.billing.json",
+      "status": "blocked"
+    },
+    "source_probe_command": "python3 scripts/stage1_production_source_probe.py --billing --release-sha $(git rev-parse HEAD) --billing-proof ops/evidence/non_clearing/production-live-billing-proof.candidate.json --diagnostic ops/evidence/production/source-probe-diagnostics.billing.json --write-canonical-source"
+  },
+  "status": "blocked"
+}

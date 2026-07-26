@@ -59,7 +59,7 @@ describe("client telemetry contracts", () => {
   it("reports sanitized frontend errors and emits an analytics marker", () => {
     const state = createInitialWorkspace();
     const report = reportFrontendError(
-      new Error("failed token=abc123 for dev@zenart.local"),
+      new Error("failed token=abc123 for dev@zenari.ai"),
       "action-error",
       state,
       "export"

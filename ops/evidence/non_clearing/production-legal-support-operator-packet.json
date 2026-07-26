@@ -1,0 +1,383 @@
+{
+  "authorization_header_persisted": false,
+  "blocked_until": [
+    "ops/evidence/non_clearing/production-dns-readiness.json reports production system resolver pass",
+    "ops/evidence/non_clearing/production-dns-cutover-plan.json is ready_to_apply, applied, or observed_applied",
+    "ops/evidence/non_clearing/production-dns-readiness.json reports public A or AAAA readiness for zenari.ai",
+    "all required https_probe.production_paths are pass with HTTP status below 400",
+    "scripts/stage1_production_source_probe.py --legal-support writes ops/evidence/production/production-legal-support-source.json",
+    "scripts/generate_stage1_production_legal_support_evidence.py writes strict production legal/support evidence",
+    "python3 scripts/validate_stage1_production_legal_support_evidence.py passes without --allow-preflight"
+  ],
+  "can_clear_production_legal_support_policy": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "cookie_persisted": false,
+  "dns_cutover_plan": {
+    "exists": true,
+    "first_blocker": "CLOUDFLARE_ZONE_ID_or_CF_ZONE_ID",
+    "path": "ops/evidence/non_clearing/production-dns-cutover-plan.json",
+    "required_command": "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
+    "status": "blocked"
+  },
+  "dns_readiness": {
+    "first_blocker": "system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+    "https_pass_count": 0,
+    "https_total": 8,
+    "path": "ops/evidence/non_clearing/production-dns-readiness.json",
+    "production_paths": [
+      {
+        "error_summary": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "path": "/",
+        "status": "blocked"
+      },
+      {
+        "error_summary": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "path": "/legal/terms",
+        "status": "blocked"
+      },
+      {
+        "error_summary": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "path": "/legal/privacy",
+        "status": "blocked"
+      },
+      {
+        "error_summary": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "path": "/legal/acceptable-use",
+        "status": "blocked"
+      },
+      {
+        "error_summary": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "path": "/legal/ip-complaints",
+        "status": "blocked"
+      },
+      {
+        "error_summary": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "path": "/legal/billing-policy",
+        "status": "blocked"
+      },
+      {
+        "error_summary": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "path": "/support",
+        "status": "blocked"
+      },
+      {
+        "error_summary": "skipped HTTPS probe because system resolver failed for zenari.ai: [Errno 8] nodename nor servname provided, or not known",
+        "http_status": null,
+        "path": "/report-problem",
+        "status": "blocked"
+      }
+    ],
+    "production_web_url": "https://zenari.ai",
+    "public_dns_a_status": "missing",
+    "public_dns_aaaa_status": "missing",
+    "staging_control_status": "pass",
+    "status": "blocked",
+    "system_resolver_status": "blocked"
+  },
+  "environment": "production",
+  "evidence_outputs": {
+    "dns_cutover_plan": "ops/evidence/non_clearing/production-dns-cutover-plan.json",
+    "dns_readiness": "ops/evidence/non_clearing/production-dns-readiness.json",
+    "legal": "ops/evidence/production/public-legal-policy.json",
+    "source": "ops/evidence/production/production-legal-support-source.json",
+    "source_diagnostic": "ops/evidence/production/source-probe-diagnostics.legal-support.json",
+    "support_billing": "ops/evidence/production/public-support-billing-policy.json"
+  },
+  "execution_order": [
+    "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
+    "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --verify-cloudflare --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
+    "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --apply --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
+    "python3 scripts/stage1_production_dns_readiness.py --output ops/evidence/non_clearing/production-dns-readiness.json || test \"$?\" = 2",
+    "python3 scripts/validate_stage1_production_dns_readiness.py --evidence ops/evidence/non_clearing/production-dns-readiness.json",
+    "python3 scripts/stage1_production_source_probe.py --legal-support --release-sha $(git rev-parse HEAD) --production-web-url https://zenari.ai --diagnostic ops/evidence/production/source-probe-diagnostics.legal-support.json --write-canonical-source",
+    "python3 scripts/generate_stage1_production_legal_support_evidence.py --source ops/evidence/production/production-legal-support-source.json",
+    "python3 scripts/validate_stage1_production_legal_support_evidence.py",
+    "python3 scripts/generate_stage1_production_launch_evidence.py",
+    "python3 scripts/validate_stage1_production_launch.py"
+  ],
+  "gate_impact": {
+    "can_clear_aggregate_production_gate": false,
+    "can_clear_public_legal_subitem": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "can_clear_support_billing_policy_subitem": false,
+    "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete",
+    "preserved_release_gate_check_id": "production_legal_support_policy"
+  },
+  "generated_at": "2026-06-28T21:51:12+00:00",
+  "kind": "stage1_production_legal_support_operator_packet",
+  "non_clearing_operator_packet": true,
+  "operator_command_packet": [
+    {
+      "command": "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
+      "may_apply_production_dns": false,
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "non-clearing DNS cutover plan only; does not apply provider changes",
+      "step_id": "plan_dns_cutover_with_private_env"
+    },
+    {
+      "command": "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --verify-cloudflare --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
+      "may_apply_production_dns": false,
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "read-only Cloudflare zone and DNS permission preflight",
+      "step_id": "verify_cloudflare_scope_before_apply"
+    },
+    {
+      "command": "python3 scripts/stage1_production_dns_cutover_plan.py --env <private-production-env> --apply --output ops/evidence/non_clearing/production-dns-cutover-plan.json",
+      "may_apply_production_dns": true,
+      "may_write_canonical_source": false,
+      "requires_review": true,
+      "side_effect": "applies reviewed production DNS cutover through the private production env",
+      "step_id": "apply_dns_cutover_after_review"
+    },
+    {
+      "command": "python3 scripts/stage1_production_dns_readiness.py --output ops/evidence/non_clearing/production-dns-readiness.json || test $? -eq 2",
+      "may_apply_production_dns": false,
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "non-clearing DNS and HTTPS readiness refresh",
+      "step_id": "refresh_dns_readiness"
+    },
+    {
+      "command": "python3 scripts/stage1_production_source_probe.py --legal-support --release-sha $(git rev-parse HEAD) --production-web-url https://zenari.ai --diagnostic ops/evidence/production/source-probe-diagnostics.legal-support.json --write-canonical-source",
+      "may_apply_production_dns": false,
+      "may_write_canonical_source": true,
+      "requires_review": true,
+      "side_effect": "writes legal/support canonical source only after production DNS and HTTPS public pages pass",
+      "step_id": "run_legal_support_source_probe_after_https_passes"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_legal_support_evidence.py --source ops/evidence/production/production-legal-support-source.json",
+      "may_apply_production_dns": false,
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "writes strict production legal/support evidence from canonical source",
+      "step_id": "generate_strict_legal_support_evidence"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_legal_support_evidence.py",
+      "may_apply_production_dns": false,
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "strict production legal/support validation",
+      "step_id": "validate_strict_legal_support_evidence"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_launch_evidence.py",
+      "may_apply_production_dns": false,
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "refreshes aggregate production launch evidence from canonical production sources",
+      "step_id": "refresh_production_launch_evidence"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_launch.py",
+      "may_apply_production_dns": false,
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "strict aggregate production launch validation",
+      "step_id": "validate_production_launch_evidence"
+    }
+  ],
+  "operator_next_actions": [
+    "Generate the DNS cutover plan with scripts/stage1_production_dns_cutover_plan.py --env <private-production-env>.",
+    "Publish zenari.ai production DNS to the real production web ingress.",
+    "Serve HTTPS 200 for every required public legal/support path on https://zenari.ai.",
+    "Keep legal/support pages public; do not require admin session, cookies, bearer tokens, or localhost-only access.",
+    "Rerun the legal/support source probe only after DNS and HTTPS are publicly reachable.",
+    "Generate split legal/support evidence and run strict validation after the canonical source is written."
+  ],
+  "production_web_url": "https://zenari.ai",
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_legal_support_policy",
+  "release_gate_decision": "no_go",
+  "release_sha": "ddb10bc71ceafd1e0af3992abeb73f4c0df217ec",
+  "required_dns_and_https": {
+    "allowed_public_url": "https://zenari.ai",
+    "apex_host": "zenari.ai",
+    "disallowed_gate_inputs": [
+      "localhost",
+      "127.0.0.1",
+      "IP-only URL",
+      "staging.zenari.ai"
+    ],
+    "required_http_status": 200,
+    "required_public_dns": "public A/AAAA or provider-supported flattened CNAME for zenari.ai",
+    "required_tls": "valid publicly trusted HTTPS certificate for zenari.ai"
+  },
+  "required_public_paths": [
+    {
+      "admin_session_required": false,
+      "expected_http_status": 200,
+      "external_user_visible": true,
+      "group": "legal",
+      "method": "GET",
+      "page_id": "terms",
+      "path": "/legal/terms",
+      "required_tokens": [
+        "Terms",
+        "support contact",
+        "AI content"
+      ],
+      "visibility": "public"
+    },
+    {
+      "admin_session_required": false,
+      "expected_http_status": 200,
+      "external_user_visible": true,
+      "group": "legal",
+      "method": "GET",
+      "page_id": "privacy",
+      "path": "/legal/privacy",
+      "required_tokens": [
+        "Privacy",
+        "data deletion",
+        "support contact"
+      ],
+      "visibility": "public"
+    },
+    {
+      "admin_session_required": false,
+      "expected_http_status": 200,
+      "external_user_visible": true,
+      "group": "legal",
+      "method": "GET",
+      "page_id": "acceptable_use",
+      "path": "/legal/acceptable-use",
+      "required_tokens": [
+        "Acceptable Use",
+        "abuse",
+        "support contact"
+      ],
+      "visibility": "public"
+    },
+    {
+      "admin_session_required": false,
+      "expected_http_status": 200,
+      "external_user_visible": true,
+      "group": "legal",
+      "method": "GET",
+      "page_id": "ai_content_disclaimer",
+      "path": "/support",
+      "required_tokens": [
+        "AI content",
+        "responsibility",
+        "review"
+      ],
+      "visibility": "public"
+    },
+    {
+      "admin_session_required": false,
+      "expected_http_status": 200,
+      "external_user_visible": true,
+      "group": "legal",
+      "method": "GET",
+      "page_id": "ip_complaint",
+      "path": "/legal/ip-complaints",
+      "required_tokens": [
+        "IP complaint",
+        "copyright",
+        "trademark",
+        "takedown"
+      ],
+      "visibility": "public"
+    },
+    {
+      "admin_session_required": false,
+      "expected_http_status": 200,
+      "external_user_visible": true,
+      "group": "support_billing",
+      "method": "GET",
+      "page_id": "support_contact",
+      "path": "/support",
+      "required_tokens": [
+        "support contact",
+        "report problem",
+        "privacy redaction",
+        "escalation"
+      ],
+      "visibility": "public"
+    },
+    {
+      "admin_session_required": false,
+      "expected_http_status": 200,
+      "external_user_visible": true,
+      "group": "support_billing",
+      "method": "GET",
+      "page_id": "report_problem",
+      "path": "/report-problem",
+      "required_tokens": [
+        "project",
+        "task",
+        "trace",
+        "export",
+        "quota"
+      ],
+      "visibility": "public"
+    },
+    {
+      "admin_session_required": false,
+      "expected_http_status": 200,
+      "external_user_visible": true,
+      "group": "support_billing",
+      "method": "GET",
+      "page_id": "billing_policy",
+      "path": "/legal/billing-policy",
+      "required_tokens": [
+        "billing",
+        "cancellation",
+        "refund",
+        "credit",
+        "quota reset",
+        "past_due"
+      ],
+      "visibility": "public"
+    },
+    {
+      "admin_session_required": false,
+      "expected_http_status": 200,
+      "external_user_visible": true,
+      "group": "support_billing",
+      "method": "GET",
+      "page_id": "support_sla",
+      "path": "/support",
+      "required_tokens": [
+        "support SLA",
+        "severity",
+        "response time",
+        "escalation"
+      ],
+      "visibility": "public"
+    }
+  ],
+  "schema_version": "stage1.production_legal_support_operator_packet.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_probe": {
+    "canonical_source_exists": false,
+    "canonical_source_path": "ops/evidence/production/production-legal-support-source.json",
+    "required_probe": "production HTTPS GET public-page token probe",
+    "source_diagnostic": {
+      "canonical_source_written": false,
+      "exists": true,
+      "first_blocker": "production web URL host zenari.ai did not resolve via system resolver: [Errno 8] nodename nor servname provided, or not known",
+      "path": "ops/evidence/production/source-probe-diagnostics.legal-support.json",
+      "status": "blocked"
+    },
+    "source_probe_command": "python3 scripts/stage1_production_source_probe.py --legal-support --release-sha $(git rev-parse HEAD) --production-web-url https://zenari.ai --diagnostic ops/evidence/production/source-probe-diagnostics.legal-support.json --write-canonical-source"
+  },
+  "status": "blocked"
+}

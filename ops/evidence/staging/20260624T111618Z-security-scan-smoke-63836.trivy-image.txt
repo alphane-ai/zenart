@@ -1,0 +1,1258 @@
+2026-06-24T19:16:26+08:00	INFO	[vuln] Vulnerability scanning is enabled
+2026-06-24T19:16:26+08:00	INFO	Detected OS	family="debian" version="12.14"
+2026-06-24T19:16:26+08:00	INFO	[debian] Detecting vulnerabilities...	os_version="12" pkg_num=4
+2026-06-24T19:16:26+08:00	INFO	Number of language-specific files	num=4
+2026-06-24T19:16:26+08:00	INFO	[gobinary] Detecting vulnerabilities...
+2026-06-24T19:16:26+08:00	WARN	Using severities from other vendors for some vulnerabilities. Read https://trivy.dev/docs/v0.71/guide/scanner/vulnerability#severity-selection for details.
+
+Report Summary
+
+┌──────────────────────────────────────────────────────────┬──────────┬─────────────────┐
+│                          Target                          │   Type   │ Vulnerabilities │
+├──────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ zenari-stage0-backend:local-security-scan (debian 12.14) │  debian  │        0        │
+├──────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/crawler                                              │ gobinary │       27        │
+├──────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/migrate                                              │ gobinary │       27        │
+├──────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/server                                               │ gobinary │       27        │
+├──────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/worker                                               │ gobinary │       27        │
+└──────────────────────────────────────────────────────────┴──────────┴─────────────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
+
+app/crawler (gobinary)
+======================
+Total: 27 (HIGH: 25, CRITICAL: 2)
+
+┌─────────────────────────┬────────────────┬──────────┬────────┬───────────────────┬──────────────────────────────┬──────────────────────────────────────────────────────────────┐
+│         Library         │ Vulnerability  │ Severity │ Status │ Installed Version │        Fixed Version         │                            Title                             │
+├─────────────────────────┼────────────────┼──────────┼────────┼───────────────────┼──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ github.com/jackc/pgx/v5 │ CVE-2026-33816 │ CRITICAL │ fixed  │ v5.7.2            │ 5.9.0                        │ github.com/jackc/pgx/v5: github.com/jackc/pgx: Memory-safety │
+│                         │                │          │        │                   │                              │ vulnerability                                                │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-33816                   │
+├─────────────────────────┼────────────────┼──────────┤        ├───────────────────┼──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ golang.org/x/crypto     │ CVE-2025-22869 │ HIGH     │        │ v0.31.0           │ 0.35.0                       │ golang.org/x/crypto/ssh: Denial of Service in the Key        │
+│                         │                │          │        │                   │                              │ Exchange of golang.org/x/crypto/ssh                          │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-22869                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2025-47913 │          │        │                   │ 0.43.0                       │ golang.org/x/crypto/ssh/agent:                               │
+│                         │                │          │        │                   │                              │ golang.org/x/crypto/ssh/agent: SSH client panic due to       │
+│                         │                │          │        │                   │                              │ unexpected SSH_AGENT_SUCCESS                                 │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-47913                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39827 │          │        │                   │ 0.52.0                       │ An authenticated SSH client that repeatedly opened channels  │
+│                         │                │          │        │                   │                              │ which were ...                                               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39827                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39828 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh:            │
+│                         │                │          │        │                   │                              │ Unauthorized command execution via discarded SSH permissions │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39828                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39829 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh: Denial of  │
+│                         │                │          │        │                   │                              │ Service via crafted public key with excessive parameters...  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39829                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39830 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh: Denial of  │
+│                         │                │          │        │                   │                              │ Service via resource leak from unsolicited SSH responses...  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39830                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39835 │          │        │                   │                              │ SSH servers which use CertChecker as a public key callback   │
+│                         │                │          │        │                   │                              │ without set...                                               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39835                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-42508 │          │        │                   │                              │ golang.org/x/crypto/ssh/knownhosts: golang:                  │
+│                         │                │          │        │                   │                              │ golang.org/x/crypto/ssh/knownhosts: Revocation bypass via    │
+│                         │                │          │        │                   │                              │ unchecked SignatureKey                                       │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-42508                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-46595 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh:            │
+│                         │                │          │        │                   │                              │ Authorization bypass due to skipped source-address           │
+│                         │                │          │        │                   │                              │ validation                                                   │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-46595                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-46597 │          │        │                   │                              │ An incorrectly placed cast from bytes to int allowed for     │
+│                         │                │          │        │                   │                              │ server-side p...                                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-46597                   │
+├─────────────────────────┼────────────────┼──────────┤        ├───────────────────┼──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ stdlib                  │ CVE-2025-68121 │ CRITICAL │        │ v1.22.12          │ 1.24.13, 1.25.7, 1.26.0-rc.3 │ crypto/tls: crypto/tls: Incorrect certificate validation     │
+│                         │                │          │        │                   │                              │ during TLS session resumption                                │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-68121                   │
+│                         ├────────────────┼──────────┤        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2025-61726 │ HIGH     │        │                   │ 1.24.12, 1.25.6              │ golang: net/url: Memory exhaustion in query parameter        │
+│                         │                │          │        │                   │                              │ parsing in net/url                                           │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-61726                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2025-61729 │          │        │                   │ 1.24.11, 1.25.5              │ crypto/x509: golang: Denial of Service due to excessive      │
+│                         │                │          │        │                   │                              │ resource consumption via crafted...                          │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-61729                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-25679 │          │        │                   │ 1.25.8, 1.26.1               │ net/url: Incorrect parsing of IPv6 host literals in net/url  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-25679                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-27145 │          │        │                   │ 1.25.11, 1.26.4              │ *x509.Certificate).VerifyHostname previously called          │
+│                         │                │          │        │                   │                              │ matchHostnames in ...                                        │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-27145                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-32280 │          │        │                   │ 1.25.9, 1.26.2               │ crypto/x509: crypto/tls: golang: Go: Denial of Service       │
+│                         │                │          │        │                   │                              │ vulnerability in certificate chain building...               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-32280                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-32281 │          │        │                   │                              │ crypto/x509: golang: Go crypto/x509: Denial of Service via   │
+│                         │                │          │        │                   │                              │ inefficient certificate chain validation...                  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-32281                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-32283 │          │        │                   │                              │ crypto/tls: golang: Go crypto/tls: Denial of Service via     │
+│                         │                │          │        │                   │                              │ multiple TLS 1.3 key...                                      │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-32283                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-33811 │          │        │                   │ 1.25.10, 1.26.3              │ net: golang: Go net package: Denial of Service via long      │
+│                         │                │          │        │                   │                              │ CNAME response...                                            │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-33811                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-33814 │          │        │                   │                              │ net/http/internal/http2: golang: golang.org/x/net: Go        │
+│                         │                │          │        │                   │                              │ HTTP/2: Denial of Service via malformed                      │
+│                         │                │          │        │                   │                              │ SETTINGS_MAX_FRAME_SIZE frame...                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-33814                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39820 │          │        │                   │                              │ Well-crafted inputs reaching ParseAddress, ParseAddressList, │
+│                         │                │          │        │                   │                              │ and Parse ...                                                │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39820                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39823 │          │        │                   │                              │ CVE-2026-27142 fixed a vulnerability in which URLs were not  │
+│                         │                │          │        │                   │                              │ correctly ......                                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39823                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39825 │          │        │                   │                              │ ReverseProxy can forward queries containing parameters not   │
+│                         │                │          │        │                   │                              │ visible to ...                                               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39825                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39836 │          │        │                   │                              │ ELSA-2026-22112: go-toolset:ol8 security update (IMPORTANT)  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39836                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-42499 │          │        │                   │                              │ Pathological inputs could cause DoS through consumePhrase    │
+│                         │                │          │        │                   │                              │ when parsing ...                                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-42499                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-42504 │          │        │                   │ 1.25.11, 1.26.4              │ Decoding a maliciously-crafted MIME header containing many   │
+│                         │                │          │        │                   │                              │ invalid enc ...                                              │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-42504                   │
+└─────────────────────────┴────────────────┴──────────┴────────┴───────────────────┴──────────────────────────────┴──────────────────────────────────────────────────────────────┘
+
+app/migrate (gobinary)
+======================
+Total: 27 (HIGH: 25, CRITICAL: 2)
+
+┌─────────────────────────┬────────────────┬──────────┬────────┬───────────────────┬──────────────────────────────┬──────────────────────────────────────────────────────────────┐
+│         Library         │ Vulnerability  │ Severity │ Status │ Installed Version │        Fixed Version         │                            Title                             │
+├─────────────────────────┼────────────────┼──────────┼────────┼───────────────────┼──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ github.com/jackc/pgx/v5 │ CVE-2026-33816 │ CRITICAL │ fixed  │ v5.7.2            │ 5.9.0                        │ github.com/jackc/pgx/v5: github.com/jackc/pgx: Memory-safety │
+│                         │                │          │        │                   │                              │ vulnerability                                                │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-33816                   │
+├─────────────────────────┼────────────────┼──────────┤        ├───────────────────┼──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ golang.org/x/crypto     │ CVE-2025-22869 │ HIGH     │        │ v0.31.0           │ 0.35.0                       │ golang.org/x/crypto/ssh: Denial of Service in the Key        │
+│                         │                │          │        │                   │                              │ Exchange of golang.org/x/crypto/ssh                          │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-22869                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2025-47913 │          │        │                   │ 0.43.0                       │ golang.org/x/crypto/ssh/agent:                               │
+│                         │                │          │        │                   │                              │ golang.org/x/crypto/ssh/agent: SSH client panic due to       │
+│                         │                │          │        │                   │                              │ unexpected SSH_AGENT_SUCCESS                                 │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-47913                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39827 │          │        │                   │ 0.52.0                       │ An authenticated SSH client that repeatedly opened channels  │
+│                         │                │          │        │                   │                              │ which were ...                                               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39827                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39828 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh:            │
+│                         │                │          │        │                   │                              │ Unauthorized command execution via discarded SSH permissions │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39828                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39829 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh: Denial of  │
+│                         │                │          │        │                   │                              │ Service via crafted public key with excessive parameters...  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39829                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39830 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh: Denial of  │
+│                         │                │          │        │                   │                              │ Service via resource leak from unsolicited SSH responses...  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39830                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39835 │          │        │                   │                              │ SSH servers which use CertChecker as a public key callback   │
+│                         │                │          │        │                   │                              │ without set...                                               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39835                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-42508 │          │        │                   │                              │ golang.org/x/crypto/ssh/knownhosts: golang:                  │
+│                         │                │          │        │                   │                              │ golang.org/x/crypto/ssh/knownhosts: Revocation bypass via    │
+│                         │                │          │        │                   │                              │ unchecked SignatureKey                                       │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-42508                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-46595 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh:            │
+│                         │                │          │        │                   │                              │ Authorization bypass due to skipped source-address           │
+│                         │                │          │        │                   │                              │ validation                                                   │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-46595                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-46597 │          │        │                   │                              │ An incorrectly placed cast from bytes to int allowed for     │
+│                         │                │          │        │                   │                              │ server-side p...                                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-46597                   │
+├─────────────────────────┼────────────────┼──────────┤        ├───────────────────┼──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ stdlib                  │ CVE-2025-68121 │ CRITICAL │        │ v1.22.12          │ 1.24.13, 1.25.7, 1.26.0-rc.3 │ crypto/tls: crypto/tls: Incorrect certificate validation     │
+│                         │                │          │        │                   │                              │ during TLS session resumption                                │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-68121                   │
+│                         ├────────────────┼──────────┤        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2025-61726 │ HIGH     │        │                   │ 1.24.12, 1.25.6              │ golang: net/url: Memory exhaustion in query parameter        │
+│                         │                │          │        │                   │                              │ parsing in net/url                                           │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-61726                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2025-61729 │          │        │                   │ 1.24.11, 1.25.5              │ crypto/x509: golang: Denial of Service due to excessive      │
+│                         │                │          │        │                   │                              │ resource consumption via crafted...                          │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-61729                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-25679 │          │        │                   │ 1.25.8, 1.26.1               │ net/url: Incorrect parsing of IPv6 host literals in net/url  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-25679                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-27145 │          │        │                   │ 1.25.11, 1.26.4              │ *x509.Certificate).VerifyHostname previously called          │
+│                         │                │          │        │                   │                              │ matchHostnames in ...                                        │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-27145                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-32280 │          │        │                   │ 1.25.9, 1.26.2               │ crypto/x509: crypto/tls: golang: Go: Denial of Service       │
+│                         │                │          │        │                   │                              │ vulnerability in certificate chain building...               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-32280                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-32281 │          │        │                   │                              │ crypto/x509: golang: Go crypto/x509: Denial of Service via   │
+│                         │                │          │        │                   │                              │ inefficient certificate chain validation...                  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-32281                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-32283 │          │        │                   │                              │ crypto/tls: golang: Go crypto/tls: Denial of Service via     │
+│                         │                │          │        │                   │                              │ multiple TLS 1.3 key...                                      │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-32283                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-33811 │          │        │                   │ 1.25.10, 1.26.3              │ net: golang: Go net package: Denial of Service via long      │
+│                         │                │          │        │                   │                              │ CNAME response...                                            │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-33811                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-33814 │          │        │                   │                              │ net/http/internal/http2: golang: golang.org/x/net: Go        │
+│                         │                │          │        │                   │                              │ HTTP/2: Denial of Service via malformed                      │
+│                         │                │          │        │                   │                              │ SETTINGS_MAX_FRAME_SIZE frame...                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-33814                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39820 │          │        │                   │                              │ Well-crafted inputs reaching ParseAddress, ParseAddressList, │
+│                         │                │          │        │                   │                              │ and Parse ...                                                │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39820                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39823 │          │        │                   │                              │ CVE-2026-27142 fixed a vulnerability in which URLs were not  │
+│                         │                │          │        │                   │                              │ correctly ......                                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39823                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39825 │          │        │                   │                              │ ReverseProxy can forward queries containing parameters not   │
+│                         │                │          │        │                   │                              │ visible to ...                                               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39825                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39836 │          │        │                   │                              │ ELSA-2026-22112: go-toolset:ol8 security update (IMPORTANT)  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39836                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-42499 │          │        │                   │                              │ Pathological inputs could cause DoS through consumePhrase    │
+│                         │                │          │        │                   │                              │ when parsing ...                                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-42499                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-42504 │          │        │                   │ 1.25.11, 1.26.4              │ Decoding a maliciously-crafted MIME header containing many   │
+│                         │                │          │        │                   │                              │ invalid enc ...                                              │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-42504                   │
+└─────────────────────────┴────────────────┴──────────┴────────┴───────────────────┴──────────────────────────────┴──────────────────────────────────────────────────────────────┘
+
+app/server (gobinary)
+=====================
+Total: 27 (HIGH: 25, CRITICAL: 2)
+
+┌─────────────────────────┬────────────────┬──────────┬────────┬───────────────────┬──────────────────────────────┬──────────────────────────────────────────────────────────────┐
+│         Library         │ Vulnerability  │ Severity │ Status │ Installed Version │        Fixed Version         │                            Title                             │
+├─────────────────────────┼────────────────┼──────────┼────────┼───────────────────┼──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ github.com/jackc/pgx/v5 │ CVE-2026-33816 │ CRITICAL │ fixed  │ v5.7.2            │ 5.9.0                        │ github.com/jackc/pgx/v5: github.com/jackc/pgx: Memory-safety │
+│                         │                │          │        │                   │                              │ vulnerability                                                │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-33816                   │
+├─────────────────────────┼────────────────┼──────────┤        ├───────────────────┼──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ golang.org/x/crypto     │ CVE-2025-22869 │ HIGH     │        │ v0.31.0           │ 0.35.0                       │ golang.org/x/crypto/ssh: Denial of Service in the Key        │
+│                         │                │          │        │                   │                              │ Exchange of golang.org/x/crypto/ssh                          │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-22869                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2025-47913 │          │        │                   │ 0.43.0                       │ golang.org/x/crypto/ssh/agent:                               │
+│                         │                │          │        │                   │                              │ golang.org/x/crypto/ssh/agent: SSH client panic due to       │
+│                         │                │          │        │                   │                              │ unexpected SSH_AGENT_SUCCESS                                 │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-47913                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39827 │          │        │                   │ 0.52.0                       │ An authenticated SSH client that repeatedly opened channels  │
+│                         │                │          │        │                   │                              │ which were ...                                               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39827                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39828 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh:            │
+│                         │                │          │        │                   │                              │ Unauthorized command execution via discarded SSH permissions │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39828                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39829 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh: Denial of  │
+│                         │                │          │        │                   │                              │ Service via crafted public key with excessive parameters...  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39829                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39830 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh: Denial of  │
+│                         │                │          │        │                   │                              │ Service via resource leak from unsolicited SSH responses...  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39830                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39835 │          │        │                   │                              │ SSH servers which use CertChecker as a public key callback   │
+│                         │                │          │        │                   │                              │ without set...                                               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39835                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-42508 │          │        │                   │                              │ golang.org/x/crypto/ssh/knownhosts: golang:                  │
+│                         │                │          │        │                   │                              │ golang.org/x/crypto/ssh/knownhosts: Revocation bypass via    │
+│                         │                │          │        │                   │                              │ unchecked SignatureKey                                       │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-42508                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-46595 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh:            │
+│                         │                │          │        │                   │                              │ Authorization bypass due to skipped source-address           │
+│                         │                │          │        │                   │                              │ validation                                                   │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-46595                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-46597 │          │        │                   │                              │ An incorrectly placed cast from bytes to int allowed for     │
+│                         │                │          │        │                   │                              │ server-side p...                                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-46597                   │
+├─────────────────────────┼────────────────┼──────────┤        ├───────────────────┼──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ stdlib                  │ CVE-2025-68121 │ CRITICAL │        │ v1.22.12          │ 1.24.13, 1.25.7, 1.26.0-rc.3 │ crypto/tls: crypto/tls: Incorrect certificate validation     │
+│                         │                │          │        │                   │                              │ during TLS session resumption                                │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-68121                   │
+│                         ├────────────────┼──────────┤        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2025-61726 │ HIGH     │        │                   │ 1.24.12, 1.25.6              │ golang: net/url: Memory exhaustion in query parameter        │
+│                         │                │          │        │                   │                              │ parsing in net/url                                           │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-61726                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2025-61729 │          │        │                   │ 1.24.11, 1.25.5              │ crypto/x509: golang: Denial of Service due to excessive      │
+│                         │                │          │        │                   │                              │ resource consumption via crafted...                          │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-61729                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-25679 │          │        │                   │ 1.25.8, 1.26.1               │ net/url: Incorrect parsing of IPv6 host literals in net/url  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-25679                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-27145 │          │        │                   │ 1.25.11, 1.26.4              │ *x509.Certificate).VerifyHostname previously called          │
+│                         │                │          │        │                   │                              │ matchHostnames in ...                                        │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-27145                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-32280 │          │        │                   │ 1.25.9, 1.26.2               │ crypto/x509: crypto/tls: golang: Go: Denial of Service       │
+│                         │                │          │        │                   │                              │ vulnerability in certificate chain building...               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-32280                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-32281 │          │        │                   │                              │ crypto/x509: golang: Go crypto/x509: Denial of Service via   │
+│                         │                │          │        │                   │                              │ inefficient certificate chain validation...                  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-32281                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-32283 │          │        │                   │                              │ crypto/tls: golang: Go crypto/tls: Denial of Service via     │
+│                         │                │          │        │                   │                              │ multiple TLS 1.3 key...                                      │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-32283                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-33811 │          │        │                   │ 1.25.10, 1.26.3              │ net: golang: Go net package: Denial of Service via long      │
+│                         │                │          │        │                   │                              │ CNAME response...                                            │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-33811                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-33814 │          │        │                   │                              │ net/http/internal/http2: golang: golang.org/x/net: Go        │
+│                         │                │          │        │                   │                              │ HTTP/2: Denial of Service via malformed                      │
+│                         │                │          │        │                   │                              │ SETTINGS_MAX_FRAME_SIZE frame...                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-33814                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39820 │          │        │                   │                              │ Well-crafted inputs reaching ParseAddress, ParseAddressList, │
+│                         │                │          │        │                   │                              │ and Parse ...                                                │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39820                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39823 │          │        │                   │                              │ CVE-2026-27142 fixed a vulnerability in which URLs were not  │
+│                         │                │          │        │                   │                              │ correctly ......                                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39823                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39825 │          │        │                   │                              │ ReverseProxy can forward queries containing parameters not   │
+│                         │                │          │        │                   │                              │ visible to ...                                               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39825                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39836 │          │        │                   │                              │ ELSA-2026-22112: go-toolset:ol8 security update (IMPORTANT)  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39836                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-42499 │          │        │                   │                              │ Pathological inputs could cause DoS through consumePhrase    │
+│                         │                │          │        │                   │                              │ when parsing ...                                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-42499                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-42504 │          │        │                   │ 1.25.11, 1.26.4              │ Decoding a maliciously-crafted MIME header containing many   │
+│                         │                │          │        │                   │                              │ invalid enc ...                                              │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-42504                   │
+└─────────────────────────┴────────────────┴──────────┴────────┴───────────────────┴──────────────────────────────┴──────────────────────────────────────────────────────────────┘
+
+app/worker (gobinary)
+=====================
+Total: 27 (HIGH: 25, CRITICAL: 2)
+
+┌─────────────────────────┬────────────────┬──────────┬────────┬───────────────────┬──────────────────────────────┬──────────────────────────────────────────────────────────────┐
+│         Library         │ Vulnerability  │ Severity │ Status │ Installed Version │        Fixed Version         │                            Title                             │
+├─────────────────────────┼────────────────┼──────────┼────────┼───────────────────┼──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ github.com/jackc/pgx/v5 │ CVE-2026-33816 │ CRITICAL │ fixed  │ v5.7.2            │ 5.9.0                        │ github.com/jackc/pgx/v5: github.com/jackc/pgx: Memory-safety │
+│                         │                │          │        │                   │                              │ vulnerability                                                │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-33816                   │
+├─────────────────────────┼────────────────┼──────────┤        ├───────────────────┼──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ golang.org/x/crypto     │ CVE-2025-22869 │ HIGH     │        │ v0.31.0           │ 0.35.0                       │ golang.org/x/crypto/ssh: Denial of Service in the Key        │
+│                         │                │          │        │                   │                              │ Exchange of golang.org/x/crypto/ssh                          │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-22869                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2025-47913 │          │        │                   │ 0.43.0                       │ golang.org/x/crypto/ssh/agent:                               │
+│                         │                │          │        │                   │                              │ golang.org/x/crypto/ssh/agent: SSH client panic due to       │
+│                         │                │          │        │                   │                              │ unexpected SSH_AGENT_SUCCESS                                 │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-47913                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39827 │          │        │                   │ 0.52.0                       │ An authenticated SSH client that repeatedly opened channels  │
+│                         │                │          │        │                   │                              │ which were ...                                               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39827                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39828 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh:            │
+│                         │                │          │        │                   │                              │ Unauthorized command execution via discarded SSH permissions │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39828                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39829 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh: Denial of  │
+│                         │                │          │        │                   │                              │ Service via crafted public key with excessive parameters...  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39829                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39830 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh: Denial of  │
+│                         │                │          │        │                   │                              │ Service via resource leak from unsolicited SSH responses...  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39830                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39835 │          │        │                   │                              │ SSH servers which use CertChecker as a public key callback   │
+│                         │                │          │        │                   │                              │ without set...                                               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39835                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-42508 │          │        │                   │                              │ golang.org/x/crypto/ssh/knownhosts: golang:                  │
+│                         │                │          │        │                   │                              │ golang.org/x/crypto/ssh/knownhosts: Revocation bypass via    │
+│                         │                │          │        │                   │                              │ unchecked SignatureKey                                       │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-42508                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-46595 │          │        │                   │                              │ golang.org/x/crypto/ssh: golang.org/x/crypto/ssh:            │
+│                         │                │          │        │                   │                              │ Authorization bypass due to skipped source-address           │
+│                         │                │          │        │                   │                              │ validation                                                   │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-46595                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-46597 │          │        │                   │                              │ An incorrectly placed cast from bytes to int allowed for     │
+│                         │                │          │        │                   │                              │ server-side p...                                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-46597                   │
+├─────────────────────────┼────────────────┼──────────┤        ├───────────────────┼──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│ stdlib                  │ CVE-2025-68121 │ CRITICAL │        │ v1.22.12          │ 1.24.13, 1.25.7, 1.26.0-rc.3 │ crypto/tls: crypto/tls: Incorrect certificate validation     │
+│                         │                │          │        │                   │                              │ during TLS session resumption                                │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-68121                   │
+│                         ├────────────────┼──────────┤        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2025-61726 │ HIGH     │        │                   │ 1.24.12, 1.25.6              │ golang: net/url: Memory exhaustion in query parameter        │
+│                         │                │          │        │                   │                              │ parsing in net/url                                           │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-61726                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2025-61729 │          │        │                   │ 1.24.11, 1.25.5              │ crypto/x509: golang: Denial of Service due to excessive      │
+│                         │                │          │        │                   │                              │ resource consumption via crafted...                          │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2025-61729                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-25679 │          │        │                   │ 1.25.8, 1.26.1               │ net/url: Incorrect parsing of IPv6 host literals in net/url  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-25679                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-27145 │          │        │                   │ 1.25.11, 1.26.4              │ *x509.Certificate).VerifyHostname previously called          │
+│                         │                │          │        │                   │                              │ matchHostnames in ...                                        │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-27145                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-32280 │          │        │                   │ 1.25.9, 1.26.2               │ crypto/x509: crypto/tls: golang: Go: Denial of Service       │
+│                         │                │          │        │                   │                              │ vulnerability in certificate chain building...               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-32280                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-32281 │          │        │                   │                              │ crypto/x509: golang: Go crypto/x509: Denial of Service via   │
+│                         │                │          │        │                   │                              │ inefficient certificate chain validation...                  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-32281                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-32283 │          │        │                   │                              │ crypto/tls: golang: Go crypto/tls: Denial of Service via     │
+│                         │                │          │        │                   │                              │ multiple TLS 1.3 key...                                      │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-32283                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-33811 │          │        │                   │ 1.25.10, 1.26.3              │ net: golang: Go net package: Denial of Service via long      │
+│                         │                │          │        │                   │                              │ CNAME response...                                            │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-33811                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-33814 │          │        │                   │                              │ net/http/internal/http2: golang: golang.org/x/net: Go        │
+│                         │                │          │        │                   │                              │ HTTP/2: Denial of Service via malformed                      │
+│                         │                │          │        │                   │                              │ SETTINGS_MAX_FRAME_SIZE frame...                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-33814                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39820 │          │        │                   │                              │ Well-crafted inputs reaching ParseAddress, ParseAddressList, │
+│                         │                │          │        │                   │                              │ and Parse ...                                                │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39820                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39823 │          │        │                   │                              │ CVE-2026-27142 fixed a vulnerability in which URLs were not  │
+│                         │                │          │        │                   │                              │ correctly ......                                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39823                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39825 │          │        │                   │                              │ ReverseProxy can forward queries containing parameters not   │
+│                         │                │          │        │                   │                              │ visible to ...                                               │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39825                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-39836 │          │        │                   │                              │ ELSA-2026-22112: go-toolset:ol8 security update (IMPORTANT)  │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-39836                   │
+│                         ├────────────────┤          │        │                   │                              ├──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-42499 │          │        │                   │                              │ Pathological inputs could cause DoS through consumePhrase    │
+│                         │                │          │        │                   │                              │ when parsing ...                                             │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-42499                   │
+│                         ├────────────────┤          │        │                   ├──────────────────────────────┼──────────────────────────────────────────────────────────────┤
+│                         │ CVE-2026-42504 │          │        │                   │ 1.25.11, 1.26.4              │ Decoding a maliciously-crafted MIME header containing many   │
+│                         │                │          │        │                   │                              │ invalid enc ...                                              │
+│                         │                │          │        │                   │                              │ https://avd.aquasec.com/nvd/cve-2026-42504                   │
+└─────────────────────────┴────────────────┴──────────┴────────┴───────────────────┴──────────────────────────────┴──────────────────────────────────────────────────────────────┘
+2026-06-24T19:16:26+08:00	INFO	[vuln] Vulnerability scanning is enabled
+2026-06-24T19:16:29+08:00	INFO	Detected OS	family="alpine" version="3.24.0"
+2026-06-24T19:16:29+08:00	WARN	This OS version is not on the EOL list	family="alpine" version="3.24"
+2026-06-24T19:16:29+08:00	INFO	[alpine] Detecting vulnerabilities...	os_version="3.24" repository="3.24" pkg_num=18
+2026-06-24T19:16:29+08:00	INFO	Number of language-specific files	num=1
+2026-06-24T19:16:29+08:00	INFO	[node-pkg] Detecting vulnerabilities...
+2026-06-24T19:16:29+08:00	INFO	Table result includes only package filenames. Use '--format json' option to get the full path to the package file.
+
+Report Summary
+
+┌──────────────────────────────────────────────────────────────────────────────────┬──────────┬─────────────────┐
+│                                      Target                                      │   Type   │ Vulnerabilities │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ zenari-stage0-web:local-security-scan (alpine 3.24.0)                            │  alpine  │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/colour/package.json                                        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-darwin-arm64/package.json                            │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-libvips-darwin-arm64/package.json                    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-libvips-linux-arm64/package.json                     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-libvips-linuxmusl-arm64/package.json                 │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-linux-arm64/package.json                             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-linuxmusl-arm64/package.json                         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@next/env/package.json                                          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@swc/helpers/package.json                                       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/client-only/package.json                                        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/detect-libc/package.json                                        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/@edge-runtime/cookies/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/@edge-runtime/ponyfill/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/@edge-runtime/primitives/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/react-is/package.json                        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/regenerator-runtime/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/package.json                                               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/react-dom/package.json                                          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/react/package.json                                              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/sharp/node_modules/semver/package.json                          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/sharp/package.json                                              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/styled-jsx/package.json                                         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/package.json                                                                 │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ opt/yarn-v1.22.22/package.json                                                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/corepack/package.json                                 │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@gar/promise-retry/package.json      │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@isaacs/fs-minipass/package.json     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@isaacs/string-locale-compare/packa- │ node-pkg │        0        │
+│ ge.json                                                                          │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/agent/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/config/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/fs/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/git/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/installed-package-contents/- │ node-pkg │        0        │
+│ package.json                                                                     │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/map-workspaces/package.json  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/metavuln-calculator/package- │ node-pkg │        0        │
+│ .json                                                                            │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/name-from-folder/package.js- │ node-pkg │        0        │
+│ on                                                                               │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/node-gyp/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/package-json/package.json    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/promise-spawn/package.json   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/query/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/redact/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/run-script/package.json      │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@sigstore/bundle/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@sigstore/core/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@sigstore/protobuf-specs/package.js- │ node-pkg │        0        │
+│ on                                                                               │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@sigstore/sign/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@sigstore/tuf/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@sigstore/verify/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@tufjs/canonical-json/package.json   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@tufjs/models/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/abbrev/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/agent-base/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/aproba/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/archy/package.json                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/balanced-match/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/bin-links/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/binary-extensions/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/brace-expansion/package.json         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/cacache/package.json                 │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/chalk/package.json                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/chownr/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/ci-info/package.json                 │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/cidr-regex/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/cmd-shim/package.json                │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/common-ancestor-path/package.json    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/cssesc/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/debug/package.json                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/diff/package.json                    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/env-paths/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/exponential-backoff/package.json     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/fastest-levenshtein/package.json     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/fs-minipass/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/glob/package.json                    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/graceful-fs/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/hosted-git-info/package.json         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/http-cache-semantics/package.json    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/http-proxy-agent/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/https-proxy-agent/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/iconv-lite/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/ignore-walk/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/ini/package.json                     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/init-package-json/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/ip-address/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/is-cidr/package.json                 │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/isexe/package.json                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/json-parse-even-better-errors/packa- │ node-pkg │        0        │
+│ ge.json                                                                          │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/json-stringify-nice/package.json     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/jsonparse/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/just-diff-apply/package.json         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/just-diff/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmaccess/package.json            │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmdiff/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmexec/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmfund/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmorg/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmpack/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmpublish/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmsearch/package.json            │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmteam/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmversion/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/lru-cache/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/make-fetch-happen/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minimatch/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass-collect/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass-fetch/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass-flush/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass-pipeline/node_modules/mini- │ node-pkg │        0        │
+│ pass/package.json                                                                │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass-pipeline/node_modules/yall- │ node-pkg │        0        │
+│ ist/package.json                                                                 │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass-pipeline/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass-sized/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass/package.json                │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minizlib/package.json                │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/ms/package.json                      │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/mute-stream/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/negotiator/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/node-gyp/package.json                │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/nopt/package.json                    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-audit-report/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-bundled/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-install-checks/package.json      │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-normalize-package-bin/package.j- │ node-pkg │        0        │
+│ son                                                                              │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-package-arg/package.json         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-packlist/package.json            │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-pick-manifest/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-profile/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-registry-fetch/package.json      │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-user-validate/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/p-map/package.json                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/pacote/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/parse-conflict-json/package.json     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/path-scurry/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/postcss-selector-parser/package.json │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/proc-log/package.json                │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/proggy/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/promise-all-reject-late/package.json │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/promise-call-limit/package.json      │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/promzard/package.json                │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/qrcode-terminal/package.json         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/read-cmd-shim/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/read/package.json                    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/safer-buffer/package.json            │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/semver/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/signal-exit/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/sigstore/package.json                │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/smart-buffer/package.json            │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/socks-proxy-agent/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/socks/package.json                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/spdx-exceptions/package.json         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/spdx-expression-parse/package.json   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/spdx-license-ids/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/ssri/package.json                    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/supports-color/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/tar/package.json                     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/text-table/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/tiny-relative-date/package.json      │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/tinyglobby/node_modules/fdir/packag- │ node-pkg │        0        │
+│ e.json                                                                           │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/tinyglobby/node_modules/picomatch/p- │ node-pkg │        0        │
+│ ackage.json                                                                      │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/tinyglobby/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/treeverse/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/tuf-js/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/undici/package.json                  │ node-pkg │        1        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/util-deprecate/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/validate-npm-package-name/package.j- │ node-pkg │        0        │
+│ son                                                                              │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/walk-up-path/package.json            │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/which/package.json                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/write-file-atomic/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/yallist/package.json                 │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/package.json                                      │ node-pkg │        0        │
+└──────────────────────────────────────────────────────────────────────────────────┴──────────┴─────────────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
+
+Node.js (node-pkg)
+==================
+Total: 1 (HIGH: 1, CRITICAL: 0)
+
+┌───────────────────────┬────────────────┬──────────┬────────┬───────────────────┬───────────────────────┬───────────────────────────────────────────────────────────┐
+│        Library        │ Vulnerability  │ Severity │ Status │ Installed Version │     Fixed Version     │                           Title                           │
+├───────────────────────┼────────────────┼──────────┼────────┼───────────────────┼───────────────────────┼───────────────────────────────────────────────────────────┤
+│ undici (package.json) │ CVE-2026-12151 │ HIGH     │ fixed  │ 6.26.0            │ 6.27.0, 7.28.0, 8.5.0 │ undici: undici: Denial of Service due to unbounded memory │
+│                       │                │          │        │                   │                       │ growth via WebSocket...                                   │
+│                       │                │          │        │                   │                       │ https://avd.aquasec.com/nvd/cve-2026-12151                │
+└───────────────────────┴────────────────┴──────────┴────────┴───────────────────┴───────────────────────┴───────────────────────────────────────────────────────────┘
+2026-06-24T19:16:29+08:00	INFO	[vuln] Vulnerability scanning is enabled
+2026-06-24T19:16:30+08:00	INFO	Detected OS	family="alpine" version="3.24.0"
+2026-06-24T19:16:30+08:00	WARN	This OS version is not on the EOL list	family="alpine" version="3.24"
+2026-06-24T19:16:30+08:00	INFO	[alpine] Detecting vulnerabilities...	os_version="3.24" repository="3.24" pkg_num=18
+2026-06-24T19:16:30+08:00	INFO	Number of language-specific files	num=1
+2026-06-24T19:16:30+08:00	INFO	[node-pkg] Detecting vulnerabilities...
+2026-06-24T19:16:30+08:00	INFO	Table result includes only package filenames. Use '--format json' option to get the full path to the package file.
+
+Report Summary
+
+┌──────────────────────────────────────────────────────────────────────────────────┬──────────┬─────────────────┐
+│                                      Target                                      │   Type   │ Vulnerabilities │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ zenari-stage0-admin:local-security-scan (alpine 3.24.0)                          │  alpine  │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/colour/package.json                                        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-libvips-linux-arm64/package.json                     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-libvips-linuxmusl-arm64/package.json                 │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-linux-arm64/package.json                             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@img/sharp-linuxmusl-arm64/package.json                         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@next/env/package.json                                          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/@swc/helpers/package.json                                       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/client-only/package.json                                        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/detect-libc/package.json                                        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/@edge-runtime/cookies/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/@edge-runtime/ponyfill/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/@edge-runtime/primitives/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/react-is/package.json                        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/dist/compiled/regenerator-runtime/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/next/package.json                                               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/react-dom/package.json                                          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/react/package.json                                              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/scheduler/package.json                                          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/semver/package.json                                             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/sharp/package.json                                              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/node_modules/styled-jsx/package.json                                         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ app/package.json                                                                 │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ opt/yarn-v1.22.22/package.json                                                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/corepack/package.json                                 │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@gar/promise-retry/package.json      │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@isaacs/fs-minipass/package.json     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@isaacs/string-locale-compare/packa- │ node-pkg │        0        │
+│ ge.json                                                                          │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/agent/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/config/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/fs/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/git/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/installed-package-contents/- │ node-pkg │        0        │
+│ package.json                                                                     │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/map-workspaces/package.json  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/metavuln-calculator/package- │ node-pkg │        0        │
+│ .json                                                                            │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/name-from-folder/package.js- │ node-pkg │        0        │
+│ on                                                                               │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/node-gyp/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/package-json/package.json    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/promise-spawn/package.json   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/query/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/redact/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@npmcli/run-script/package.json      │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@sigstore/bundle/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@sigstore/core/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@sigstore/protobuf-specs/package.js- │ node-pkg │        0        │
+│ on                                                                               │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@sigstore/sign/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@sigstore/tuf/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@sigstore/verify/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@tufjs/canonical-json/package.json   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/@tufjs/models/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/abbrev/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/agent-base/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/aproba/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/archy/package.json                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/balanced-match/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/bin-links/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/binary-extensions/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/brace-expansion/package.json         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/cacache/package.json                 │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/chalk/package.json                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/chownr/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/ci-info/package.json                 │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/cidr-regex/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/cmd-shim/package.json                │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/common-ancestor-path/package.json    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/cssesc/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/debug/package.json                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/diff/package.json                    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/env-paths/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/exponential-backoff/package.json     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/fastest-levenshtein/package.json     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/fs-minipass/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/glob/package.json                    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/graceful-fs/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/hosted-git-info/package.json         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/http-cache-semantics/package.json    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/http-proxy-agent/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/https-proxy-agent/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/iconv-lite/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/ignore-walk/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/ini/package.json                     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/init-package-json/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/ip-address/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/is-cidr/package.json                 │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/isexe/package.json                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/json-parse-even-better-errors/packa- │ node-pkg │        0        │
+│ ge.json                                                                          │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/json-stringify-nice/package.json     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/jsonparse/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/just-diff-apply/package.json         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/just-diff/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmaccess/package.json            │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmdiff/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmexec/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmfund/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmorg/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmpack/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmpublish/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmsearch/package.json            │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmteam/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/libnpmversion/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/lru-cache/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/make-fetch-happen/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minimatch/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass-collect/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass-fetch/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass-flush/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass-pipeline/node_modules/mini- │ node-pkg │        0        │
+│ pass/package.json                                                                │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass-pipeline/node_modules/yall- │ node-pkg │        0        │
+│ ist/package.json                                                                 │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass-pipeline/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass-sized/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minipass/package.json                │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/minizlib/package.json                │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/ms/package.json                      │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/mute-stream/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/negotiator/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/node-gyp/package.json                │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/nopt/package.json                    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-audit-report/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-bundled/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-install-checks/package.json      │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-normalize-package-bin/package.j- │ node-pkg │        0        │
+│ son                                                                              │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-package-arg/package.json         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-packlist/package.json            │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-pick-manifest/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-profile/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-registry-fetch/package.json      │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/npm-user-validate/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/p-map/package.json                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/pacote/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/parse-conflict-json/package.json     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/path-scurry/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/postcss-selector-parser/package.json │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/proc-log/package.json                │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/proggy/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/promise-all-reject-late/package.json │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/promise-call-limit/package.json      │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/promzard/package.json                │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/qrcode-terminal/package.json         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/read-cmd-shim/package.json           │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/read/package.json                    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/safer-buffer/package.json            │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/semver/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/signal-exit/package.json             │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/sigstore/package.json                │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/smart-buffer/package.json            │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/socks-proxy-agent/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/socks/package.json                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/spdx-exceptions/package.json         │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/spdx-expression-parse/package.json   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/spdx-license-ids/package.json        │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/ssri/package.json                    │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/supports-color/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/tar/package.json                     │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/text-table/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/tiny-relative-date/package.json      │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/tinyglobby/node_modules/fdir/packag- │ node-pkg │        0        │
+│ e.json                                                                           │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/tinyglobby/node_modules/picomatch/p- │ node-pkg │        0        │
+│ ackage.json                                                                      │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/tinyglobby/package.json              │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/treeverse/package.json               │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/tuf-js/package.json                  │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/undici/package.json                  │ node-pkg │        1        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/util-deprecate/package.json          │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/validate-npm-package-name/package.j- │ node-pkg │        0        │
+│ son                                                                              │          │                 │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/walk-up-path/package.json            │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/which/package.json                   │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/write-file-atomic/package.json       │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/node_modules/yallist/package.json                 │ node-pkg │        0        │
+├──────────────────────────────────────────────────────────────────────────────────┼──────────┼─────────────────┤
+│ usr/local/lib/node_modules/npm/package.json                                      │ node-pkg │        0        │
+└──────────────────────────────────────────────────────────────────────────────────┴──────────┴─────────────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
+
+Node.js (node-pkg)
+==================
+Total: 1 (HIGH: 1, CRITICAL: 0)
+
+┌───────────────────────┬────────────────┬──────────┬────────┬───────────────────┬───────────────────────┬───────────────────────────────────────────────────────────┐
+│        Library        │ Vulnerability  │ Severity │ Status │ Installed Version │     Fixed Version     │                           Title                           │
+├───────────────────────┼────────────────┼──────────┼────────┼───────────────────┼───────────────────────┼───────────────────────────────────────────────────────────┤
+│ undici (package.json) │ CVE-2026-12151 │ HIGH     │ fixed  │ 6.26.0            │ 6.27.0, 7.28.0, 8.5.0 │ undici: undici: Denial of Service due to unbounded memory │
+│                       │                │          │        │                   │                       │ growth via WebSocket...                                   │
+│                       │                │          │        │                   │                       │ https://avd.aquasec.com/nvd/cve-2026-12151                │
+└───────────────────────┴────────────────┴──────────┴────────┴───────────────────┴───────────────────────┴───────────────────────────────────────────────────────────┘

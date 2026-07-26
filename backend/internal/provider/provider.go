@@ -3,6 +3,8 @@ package provider
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 )
 
@@ -49,13 +51,21 @@ type Provenance struct {
 }
 
 type Capability struct {
-	ProviderID    string   `json:"provider_id"`
-	ModelID       string   `json:"model_id"`
-	Endpoints     []string `json:"endpoints"`
-	InputTypes    []string `json:"input_types"`
-	OutputTypes   []string `json:"output_types"`
-	MaxCostUnits  int64    `json:"max_cost_units"`
-	SupportsBatch bool     `json:"supports_batch"`
+	ProviderID            string   `json:"provider_id"`
+	ModelID               string   `json:"model_id"`
+	Endpoints             []string `json:"endpoints"`
+	InputTypes            []string `json:"input_types"`
+	OutputTypes           []string `json:"output_types"`
+	ToolTypes             []string `json:"tool_types,omitempty"`
+	MaxCostUnits          int64    `json:"max_cost_units"`
+	CostCurrency          string   `json:"cost_currency,omitempty"`
+	EstimatedCostCents    int64    `json:"estimated_cost_cents,omitempty"`
+	SupportsBatch         bool     `json:"supports_batch"`
+	MaxBatchSize          int      `json:"max_batch_size,omitempty"`
+	SupportsSeed          bool     `json:"supports_seed,omitempty"`
+	SupportsCancel        bool     `json:"supports_cancel,omitempty"`
+	SupportedAspectRatios []string `json:"supported_aspect_ratios,omitempty"`
+	SupportedQualities    []string `json:"supported_qualities,omitempty"`
 }
 
 type Status struct {
@@ -70,6 +80,71 @@ type Client interface {
 	Invoke(ctx context.Context, req Request) (Response, error)
 	Status(ctx context.Context) Status
 	Capabilities() []Capability
+}
+
+type Error struct {
+	ProviderID   string
+	Code         string
+	HTTPStatus   int
+	ProviderCode string
+	Message      string
+	Retryable    bool
+	RetryAfter   string
+}
+
+func (e *Error) Error() string {
+	if e == nil {
+		return "provider error"
+	}
+	code := strings.TrimSpace(e.Code)
+	if code == "" {
+		code = "provider_error"
+	}
+	parts := []string{fmt.Sprintf("provider_error=%s", code)}
+	if e.HTTPStatus > 0 {
+		parts = append(parts, fmt.Sprintf("http_status=%d", e.HTTPStatus))
+	}
+	if providerCode := strings.TrimSpace(e.ProviderCode); providerCode != "" {
+		parts = append(parts, "provider_code="+providerCode)
+	}
+	if retryAfter := strings.TrimSpace(e.RetryAfter); retryAfter != "" {
+		parts = append(parts, "retry_after="+retryAfter)
+	}
+	parts = append(parts, fmt.Sprintf("retryable=%t", e.Retryable))
+	if message := strings.TrimSpace(e.Message); message != "" {
+		parts = append(parts, "message="+message)
+	}
+	return strings.Join(parts, " ")
+}
+
+func ErrorDetails(err error) (*Error, bool) {
+	var providerErr *Error
+	if errors.As(err, &providerErr) && providerErr != nil {
+		return providerErr, true
+	}
+	return nil, false
+}
+
+type ClientResolver interface {
+	ResolveProviderClient(providerID string) (Client, bool)
+}
+
+type ClientMap map[string]Client
+
+func (m ClientMap) ResolveProviderClient(providerID string) (Client, bool) {
+	client, ok := m[providerID]
+	return client, ok
+}
+
+type clientResolverKey struct{}
+
+func ContextWithClientResolver(ctx context.Context, resolver ClientResolver) context.Context {
+	return context.WithValue(ctx, clientResolverKey{}, resolver)
+}
+
+func ClientResolverFromContext(ctx context.Context) (ClientResolver, bool) {
+	resolver, ok := ctx.Value(clientResolverKey{}).(ClientResolver)
+	return resolver, ok
 }
 
 type SafetyHooks struct {
@@ -129,18 +204,24 @@ func (p DevProvider) Invoke(_ context.Context, req Request) (Response, error) {
 	if p.Now != nil {
 		now = p.Now().UTC()
 	}
+	provenance := req.Provenance
+	provenance.ProviderID = req.ProviderID
+	provenance.ModelID = req.ModelID
+	if strings.TrimSpace(provenance.EndpointVersion) == "" {
+		provenance.EndpointVersion = "dev_echo_v1"
+	}
 	return Response{
 		ID:         "dev_response:" + req.ID,
 		RequestID:  req.ID,
-		ProviderID: "dev",
+		ProviderID: req.ProviderID,
 		ModelID:    req.ModelID,
 		Status:     "succeeded",
 		Output: map[string]any{
 			"echo": req.Payload,
 		},
-		Usage:       Usage{CostUnits: 0},
+		Usage:       Usage{CostUnits: 1},
 		TraceID:     req.TraceID,
-		Provenance:  req.Provenance,
+		Provenance:  provenance,
 		CompletedAt: now,
 	}, nil
 }

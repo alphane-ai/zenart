@@ -1,0 +1,77 @@
+{
+  "blueprint_source": "Docs/stage0_blueprint_rev2.md",
+  "created_by_lane": "lane5",
+  "created_at": "20260624T062635Z",
+  "run_id": "stage1-load-staging-20260624T062625Z-worker_generation",
+  "kind": "load",
+  "environment": "staging",
+  "release_sha": "7123957dcc3371c6e2d1912b5c2ca418a551b943",
+  "mode": "worker_generation",
+  "status": "passed",
+  "base_url": "https://staging.zenari.ai",
+  "requests": 20,
+  "concurrency": 4,
+  "paths": ["/readyz", "/api/v1/tasks/load-smoke", "/api/v1/agent-tasks/load-smoke"],
+  "expected_statuses": ["/readyz:200", "/api/v1/tasks/load-smoke:401", "/api/v1/tasks/load-smoke:501", "/api/v1/agent-tasks/load-smoke:404"],
+  "results_path": "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.ndjson",
+  "summary": {"failure_count": 0, "max_ms": 891, "p50_ms": 688, "p95_ms": 764, "request_count": 20, "statuses": {"/api/v1/agent-tasks/load-smoke:404": 6, "/api/v1/tasks/load-smoke:401": 7, "/readyz:200": 7}},
+  "checks": [
+    {
+      "check_id": "chat_task",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.ndjson"
+      ]
+    },
+    {
+      "check_id": "worker_generation",
+      "status": "passed",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.ndjson"
+      ]
+    },
+    {
+      "check_id": "zip_export",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.ndjson"
+      ]
+    },
+    {
+      "check_id": "signed_download",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.ndjson"
+      ]
+    },
+    {
+      "check_id": "crawler_throttle",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.ndjson"
+      ]
+    },
+    {
+      "check_id": "quota_contention",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.ndjson"
+      ]
+    },
+    {
+      "check_id": "workspace_rendering",
+      "status": "open",
+      "evidence_refs": [
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.json",
+        "ops/evidence/staging/stage1-load-staging-20260624T062625Z-worker_generation.ndjson"
+      ]
+    }
+  ],
+  "production_gate": "open_until_runtime_thresholds_and_full_staging_load_results_exist"
+}

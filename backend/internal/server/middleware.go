@@ -13,9 +13,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alphane-ai/zenart/backend/internal/api"
+	"github.com/alphane-ai/zenart/backend/internal/audit"
 	"github.com/alphane-ai/zenart/backend/internal/auth"
 	"github.com/alphane-ai/zenart/backend/internal/billing"
 	"github.com/alphane-ai/zenart/backend/internal/config"
+	"github.com/alphane-ai/zenart/backend/internal/ratelimit"
 	"github.com/alphane-ai/zenart/backend/internal/security"
 )
 
@@ -124,6 +127,94 @@ func requireEntitlement(service billing.EntitlementService, action string, cost 
 	return billing.EntitlementMiddleware(service, action, cost, principalForEntitlement, denyEntitlement)(next)
 }
 
+type rateLimitRoute struct {
+	Scope               ratelimit.Scope
+	Action              string
+	ProviderPathParam   string
+	ProviderSpendCents  int64
+	AuditDeniedAction   string
+	AuditDeniedResource string
+}
+
+func adminActionRateLimit(action string) rateLimitRoute {
+	return rateLimitRoute{
+		Scope:               ratelimit.ScopeAdminAction,
+		Action:              action,
+		AuditDeniedAction:   "rate_limit.denied",
+		AuditDeniedResource: action,
+	}
+}
+
+func withRateLimit(enforcer ratelimit.Enforcer, route rateLimitRoute) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			limiter := enforcer
+			if contextLimiter, ok := RateLimiterFromContext(r.Context()); ok {
+				limiter = contextLimiter
+			}
+			principal, ok := PrincipalFromContext(r.Context())
+			if !ok {
+				writeError(w, r, http.StatusUnauthorized, "unauthorized", "authentication is required", nil)
+				return
+			}
+			providerID := ""
+			if route.ProviderPathParam != "" {
+				providerID = strings.TrimSpace(r.PathValue(route.ProviderPathParam))
+			}
+			decision, err := limiter.Check(r.Context(), ratelimit.Request{
+				Scope:      route.Scope,
+				TenantID:   principal.TenantID,
+				UserID:     principal.UserID,
+				ProviderID: providerID,
+				Action:     route.Action,
+				CostCents:  route.ProviderSpendCents,
+			})
+			if err != nil {
+				writeError(w, r, http.StatusInternalServerError, "rate_limit_error", "rate limit enforcement failed", nil)
+				return
+			}
+			if !decision.Allowed {
+				if decision.AuditRequired || route.AuditDeniedAction != "" {
+					if err := recordRateLimitDeniedAudit(r, principal.TenantID, principal.UserID, route, decision); err != nil {
+						writeError(w, r, http.StatusInternalServerError, "rate_limit_audit_record_error", "rate limit denial audit could not be written", nil)
+						return
+					}
+				}
+				writeError(w, r, ratelimit.HTTPStatus(decision), decision.Code, decision.Message, ratelimit.PublicErrorDetails(decision))
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func recordRateLimitDeniedAudit(r *http.Request, tenantID string, userID string, route rateLimitRoute, decision ratelimit.Decision) error {
+	recorder, ok := audit.RecorderFromContext(r.Context())
+	if !ok {
+		if decision.AuditRequired {
+			return http.ErrAbortHandler
+		}
+		return nil
+	}
+	action := route.AuditDeniedAction
+	if action == "" {
+		action = "rate_limit.denied"
+	}
+	resource := route.AuditDeniedResource
+	if resource == "" {
+		resource = route.Action
+	}
+	return recorder.Record(r.Context(), audit.Event{
+		ID:        newAuditID(tenantID, userID, action, route.Action, decision.Code, decision.ResetAt.Format(time.RFC3339Nano)),
+		TenantID:  tenantID,
+		ActorID:   userID,
+		Action:    action,
+		Resource:  resource,
+		Metadata:  ratelimit.AuditMetadata(decision),
+		CreatedAt: time.Now().UTC(),
+	})
+}
+
 func PrincipalFromContext(ctx context.Context) (auth.Principal, bool) {
 	principal, ok := ctx.Value(principalKey{}).(auth.Principal)
 	return principal, ok
@@ -204,8 +295,8 @@ func isAdminAPIPath(path string) bool {
 }
 
 func principalFromHeaders(r *http.Request) (auth.Principal, bool) {
-	userID := strings.TrimSpace(r.Header.Get("X-Zenart-User-ID"))
-	tenantID := strings.TrimSpace(r.Header.Get("X-Zenart-Tenant-ID"))
+	userID := strings.TrimSpace(r.Header.Get("X-Zenari-User-ID"))
+	tenantID := strings.TrimSpace(r.Header.Get("X-Zenari-Tenant-ID"))
 	if userID == "" || tenantID == "" {
 		return auth.Principal{}, false
 	}
@@ -214,7 +305,7 @@ func principalFromHeaders(r *http.Request) (auth.Principal, bool) {
 	}
 
 	roles := []auth.Role{auth.RoleUser}
-	for _, role := range strings.Split(r.Header.Get("X-Zenart-Roles"), ",") {
+	for _, role := range strings.Split(r.Header.Get("X-Zenari-Roles"), ",") {
 		parsed, ok := auth.ParseRole(role)
 		if ok && parsed != auth.RoleUser {
 			roles = append(roles, parsed)
@@ -269,7 +360,7 @@ func withSecurityHeaders(cfg config.SecurityConfig, next http.Handler) http.Hand
 				header.Set("Access-Control-Allow-Origin", origin)
 				header.Set("Vary", "Origin")
 				header.Set("Access-Control-Allow-Credentials", "true")
-				header.Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID, X-Zenart-User-ID, X-Zenart-Tenant-ID, X-Zenart-Roles, Idempotency-Key, "+cfg.CSRFHeaderName)
+				header.Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID, X-Zenari-User-ID, X-Zenari-Tenant-ID, X-Zenari-Roles, Idempotency-Key, "+cfg.CSRFHeaderName)
 				header.Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 			}
 		}
@@ -306,6 +397,10 @@ func withSameSiteCSRF(cfg config.SecurityConfig, next http.Handler) http.Handler
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !csrfProtectedMethod(r.Method) || !strings.HasPrefix(r.URL.Path, "/api/") {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if r.Method == http.MethodPost && r.URL.Path == "/api/v1/billing/webhook" {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -419,10 +514,15 @@ func writeError(w http.ResponseWriter, r *http.Request, status int, code, messag
 		details = map[string]any{}
 	}
 	details = security.RedactMap(details)
+	taxonomy := api.ClassifyError(status, code)
+	details["taxonomy"] = taxonomy.Map()
 	writeJSON(w, status, map[string]any{
 		"code":         code,
 		"message":      message,
 		"request_id":   requestIDFrom(r.Context()),
+		"taxonomy":     taxonomy.Map(),
+		"retryable":    taxonomy.Retryable,
+		"blocked":      taxonomy.Blocked,
 		"details":      details,
 		"field_errors": []json.RawMessage{},
 	})

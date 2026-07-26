@@ -1,0 +1,357 @@
+{
+  "authorization_header_persisted": false,
+  "blocked_until": [
+    "production activation runtime request IDs and immutable audit refs are provided",
+    "activation high-risk RBAC, reviewer rationale, second review, audit immutability, and activation gate refs all pass",
+    "production abuse runtime request IDs and immutable audit refs are provided",
+    "abuse account hold, rate limit, spend cap or kill switch, and RBAC audit refs all pass",
+    "production skill runtime request IDs and immutable audit refs are provided",
+    "skill owner/risk, eval suite, safety refs, canary metrics, rollback target, and release notes refs all pass",
+    "stage1_production_source_probe.py --governance writes ops/evidence/production/production-governance-release-source.json",
+    "generate_stage1_production_governance_release_evidence.py writes strict production governance/release evidence",
+    "validate_stage1_production_governance_release_evidence.py passes without --allow-preflight"
+  ],
+  "can_clear_production_governance_release": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "cookie_persisted": false,
+  "environment": "production",
+  "evidence_outputs": {
+    "abuse_throttle_hold": "ops/evidence/production/20260527T1330Z-abuse-throttle-hold.json",
+    "activation_review_audit": "ops/evidence/production/20260527T1430Z-activation-review-audit.json",
+    "proof_candidate": "ops/evidence/non_clearing/production-governance-proof.candidate.json",
+    "proof_diagnostic": "ops/evidence/non_clearing/production-governance-proof.blocked.json",
+    "skill_release_eval_canary": "ops/evidence/production/20260527T1600Z-skill-release-eval-canary.json",
+    "source": "ops/evidence/production/production-governance-release-source.json",
+    "source_diagnostic": "ops/evidence/production/source-probe-diagnostics.governance.json"
+  },
+  "execution_order": [
+    "python3 scripts/stage1_production_governance_proof.py --release-sha $(git rev-parse HEAD) --output ops/evidence/non_clearing/production-governance-proof.candidate.json --skill-risk-level <low|medium|high> --activation-runtime-request-ids <production-runtime-request-id[,id]> --activation-audit-refs <immutable-production-audit-ref[,ref]> --activation-high-risk-rbac-ref <production-activation-high-risk-rbac-ref> --activation-reviewer-rationale-ref <production-activation-reviewer-rationale-ref> --activation-second-review-ref <production-activation-second-review-ref> --activation-audit-immutability-ref <production-activation-audit-immutability-ref> --activation-gates-ref <production-activation-activation-gates-ref> --abuse-runtime-request-ids <production-runtime-request-id[,id]> --abuse-audit-refs <immutable-production-audit-ref[,ref]> --abuse-account-hold-ref <production-abuse-account-hold-ref> --abuse-rate-limit-ref <production-abuse-rate-limit-ref> --abuse-spend-cap-or-kill-switch-ref <production-abuse-spend-cap-or-kill-switch-ref> --abuse-rbac-audit-ref <production-abuse-rbac-audit-ref> --skill-runtime-request-ids <production-runtime-request-id[,id]> --skill-audit-refs <immutable-production-audit-ref[,ref]> --skill-owner-id <production-owner-id> --skill-suite-id <production-suite-id> --skill-rollback-target-id <production-rollback-target-id> --skill-release-notes-id <production-release-notes-id> --skill-canary-sample-size <production-canary-sample-size> --skill-owner-risk-ref <production-skill-owner-risk-ref> --skill-eval-suite-ref <production-skill-eval-suite-ref> --skill-safety-refs-ref <production-skill-safety-refs-ref> --skill-canary-metrics-ref <production-skill-canary-metrics-ref> --skill-rollback-target-ref <production-skill-rollback-target-ref> --skill-release-notes-ref <production-skill-release-notes-ref>",
+    "python3 scripts/validate_stage1_production_governance_proof.py --proof ops/evidence/non_clearing/production-governance-proof.candidate.json",
+    "python3 scripts/stage1_production_source_probe.py --governance --release-sha $(git rev-parse HEAD) --governance-proof ops/evidence/non_clearing/production-governance-proof.candidate.json --diagnostic ops/evidence/production/source-probe-diagnostics.governance.json --write-canonical-source",
+    "python3 scripts/generate_stage1_production_governance_release_evidence.py --source ops/evidence/production/production-governance-release-source.json",
+    "python3 scripts/validate_stage1_production_governance_release_evidence.py",
+    "python3 scripts/generate_stage1_production_launch_evidence.py",
+    "python3 scripts/validate_stage1_production_launch.py"
+  ],
+  "gate_impact": {
+    "can_clear_abuse_throttle_hold_component": false,
+    "can_clear_activation_review_audit_component": false,
+    "can_clear_aggregate_production_gate": false,
+    "can_clear_skill_release_eval_canary_component": false,
+    "can_clear_stage1_production_launch_gate": false,
+    "preserved_do_not_launch_condition": "stage1_production_launch_evidence_incomplete",
+    "preserved_release_gate_check_id": "production_governance_release"
+  },
+  "generated_at": "2026-06-28T21:51:12+00:00",
+  "kind": "stage1_production_governance_operator_packet",
+  "non_clearing_operator_packet": true,
+  "operator_command_packet": [
+    {
+      "command": "python3 scripts/run_stage1_production_proof_bundle.py --env <private-production-env> || test $? -eq 2",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "non-clearing proof candidates and blocked diagnostics only",
+      "step_id": "run_private_env_proof_bundle"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_governance_proof.py --proof ops/evidence/non_clearing/production-governance-proof.candidate.json --diagnostic ops/evidence/non_clearing/production-governance-proof.blocked.json",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "local validation only",
+      "step_id": "validate_governance_candidate_or_diagnostic"
+    },
+    {
+      "command": "python3 scripts/stage1_production_source_probe.py --governance --release-sha $(git rev-parse HEAD) --governance-proof ops/evidence/non_clearing/production-governance-proof.candidate.json --diagnostic ops/evidence/production/source-probe-diagnostics.governance.json --write-canonical-source",
+      "may_write_canonical_source": true,
+      "requires_review": true,
+      "side_effect": "writes governance canonical source only after production governance proof passes",
+      "step_id": "run_governance_source_probe_after_candidate_passes"
+    },
+    {
+      "command": "python3 scripts/generate_stage1_production_governance_release_evidence.py --source ops/evidence/production/production-governance-release-source.json",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "writes strict production governance evidence from canonical source",
+      "step_id": "generate_strict_governance_evidence"
+    },
+    {
+      "command": "python3 scripts/validate_stage1_production_governance_release_evidence.py",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "strict production governance validation",
+      "step_id": "validate_strict_governance_evidence"
+    },
+    {
+      "command": "python3 scripts/refresh_stage1_production_non_clearing_evidence.py || test $? -eq 2",
+      "may_write_canonical_source": false,
+      "requires_review": false,
+      "side_effect": "non-clearing summary refresh",
+      "step_id": "refresh_non_clearing_summary"
+    }
+  ],
+  "private_env_template": {
+    "allowed_variable_names": [
+      "STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS",
+      "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS",
+      "STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF",
+      "STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF",
+      "STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF",
+      "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF",
+      "STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF",
+      "STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS",
+      "STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS",
+      "STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF",
+      "STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF",
+      "STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF",
+      "STAGE1_PROD_GOVERNANCE_ABUSE_RBAC_AUDIT_REF",
+      "STAGE1_PROD_GOVERNANCE_SKILL_RUNTIME_REQUEST_IDS",
+      "STAGE1_PROD_GOVERNANCE_SKILL_AUDIT_REFS",
+      "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_ID",
+      "STAGE1_PROD_GOVERNANCE_SKILL_RISK_LEVEL",
+      "STAGE1_PROD_GOVERNANCE_SKILL_SUITE_ID",
+      "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_ID",
+      "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_ID",
+      "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_SAMPLE_SIZE",
+      "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_RISK_REF",
+      "STAGE1_PROD_GOVERNANCE_SKILL_EVAL_SUITE_REF",
+      "STAGE1_PROD_GOVERNANCE_SKILL_SAFETY_REFS_REF",
+      "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_METRICS_REF",
+      "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_REF",
+      "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_REF"
+    ],
+    "blank_values_only": true,
+    "gitignore_required": true,
+    "path_placeholder": "<private-production-env>",
+    "template_lines": [
+      "STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS=",
+      "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS=",
+      "STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF=",
+      "STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF=",
+      "STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF=",
+      "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF=",
+      "STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF=",
+      "STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS=",
+      "STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS=",
+      "STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF=",
+      "STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF=",
+      "STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF=",
+      "STAGE1_PROD_GOVERNANCE_ABUSE_RBAC_AUDIT_REF=",
+      "STAGE1_PROD_GOVERNANCE_SKILL_RUNTIME_REQUEST_IDS=",
+      "STAGE1_PROD_GOVERNANCE_SKILL_AUDIT_REFS=",
+      "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_ID=",
+      "STAGE1_PROD_GOVERNANCE_SKILL_RISK_LEVEL=",
+      "STAGE1_PROD_GOVERNANCE_SKILL_SUITE_ID=",
+      "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_ID=",
+      "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_ID=",
+      "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_SAMPLE_SIZE=",
+      "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_RISK_REF=",
+      "STAGE1_PROD_GOVERNANCE_SKILL_EVAL_SUITE_REF=",
+      "STAGE1_PROD_GOVERNANCE_SKILL_SAFETY_REFS_REF=",
+      "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_METRICS_REF=",
+      "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_REF=",
+      "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_REF="
+    ]
+  },
+  "proof": {
+    "blocked_diagnostic": {
+      "canonical_source_written": false,
+      "exists": true,
+      "first_blocker": "activation_runtime_request_ids_missing",
+      "path": "ops/evidence/non_clearing/production-governance-proof.blocked.json",
+      "status": "blocked"
+    },
+    "candidate_path": "ops/evidence/non_clearing/production-governance-proof.candidate.json",
+    "proof_generator_command": "python3 scripts/stage1_production_governance_proof.py --release-sha $(git rev-parse HEAD) --output ops/evidence/non_clearing/production-governance-proof.candidate.json --skill-risk-level <low|medium|high> --activation-runtime-request-ids <production-runtime-request-id[,id]> --activation-audit-refs <immutable-production-audit-ref[,ref]> --activation-high-risk-rbac-ref <production-activation-high-risk-rbac-ref> --activation-reviewer-rationale-ref <production-activation-reviewer-rationale-ref> --activation-second-review-ref <production-activation-second-review-ref> --activation-audit-immutability-ref <production-activation-audit-immutability-ref> --activation-gates-ref <production-activation-activation-gates-ref> --abuse-runtime-request-ids <production-runtime-request-id[,id]> --abuse-audit-refs <immutable-production-audit-ref[,ref]> --abuse-account-hold-ref <production-abuse-account-hold-ref> --abuse-rate-limit-ref <production-abuse-rate-limit-ref> --abuse-spend-cap-or-kill-switch-ref <production-abuse-spend-cap-or-kill-switch-ref> --abuse-rbac-audit-ref <production-abuse-rbac-audit-ref> --skill-runtime-request-ids <production-runtime-request-id[,id]> --skill-audit-refs <immutable-production-audit-ref[,ref]> --skill-owner-id <production-owner-id> --skill-suite-id <production-suite-id> --skill-rollback-target-id <production-rollback-target-id> --skill-release-notes-id <production-release-notes-id> --skill-canary-sample-size <production-canary-sample-size> --skill-owner-risk-ref <production-skill-owner-risk-ref> --skill-eval-suite-ref <production-skill-eval-suite-ref> --skill-safety-refs-ref <production-skill-safety-refs-ref> --skill-canary-metrics-ref <production-skill-canary-metrics-ref> --skill-rollback-target-ref <production-skill-rollback-target-ref> --skill-release-notes-ref <production-skill-release-notes-ref>",
+    "proof_validator_command": "python3 scripts/validate_stage1_production_governance_proof.py --proof ops/evidence/non_clearing/production-governance-proof.candidate.json"
+  },
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_check_id": "production_governance_release",
+  "release_gate_decision": "no_go",
+  "release_sha": "ddb10bc71ceafd1e0af3992abeb73f4c0df217ec",
+  "required_governance_components": [
+    {
+      "audit_flag": "--activation-audit-refs",
+      "component": "activation",
+      "release_gate_check_id": "production_activation_review_audit",
+      "required_section_refs": [
+        {
+          "flag": "--activation-high-risk-rbac-ref",
+          "required_assertions": {
+            "all_high_risk_surfaces_covered": true
+          },
+          "section": "high_risk_rbac"
+        },
+        {
+          "flag": "--activation-reviewer-rationale-ref",
+          "required_assertions": {
+            "rationale_captured": true,
+            "rationale_required": true
+          },
+          "section": "reviewer_rationale"
+        },
+        {
+          "flag": "--activation-second-review-ref",
+          "required_assertions": {
+            "distinct_reviewer_enforced": true,
+            "required_for_high_risk": true
+          },
+          "section": "second_review"
+        },
+        {
+          "flag": "--activation-audit-immutability-ref",
+          "required_assertions": {
+            "immutable_audit_refs": true
+          },
+          "section": "audit_immutability"
+        },
+        {
+          "flag": "--activation-gates-ref",
+          "required_assertions": {
+            "crawler": true,
+            "export": true,
+            "prompt": true,
+            "provider": true,
+            "quota": true,
+            "safety": true,
+            "skill": true
+          },
+          "section": "activation_gates"
+        }
+      ],
+      "runtime_flag": "--activation-runtime-request-ids"
+    },
+    {
+      "audit_flag": "--abuse-audit-refs",
+      "component": "abuse",
+      "release_gate_check_id": "production_abuse_throttle_hold",
+      "required_section_refs": [
+        {
+          "flag": "--abuse-account-hold-ref",
+          "required_assertions": {
+            "hold_enforced": true
+          },
+          "section": "account_hold"
+        },
+        {
+          "flag": "--abuse-rate-limit-ref",
+          "required_assertions": {
+            "rate_limit_enforced": true
+          },
+          "section": "rate_limit"
+        },
+        {
+          "flag": "--abuse-spend-cap-or-kill-switch-ref",
+          "required_assertions": {
+            "kill_switch_ready": true,
+            "spend_cap_ready": true
+          },
+          "section": "spend_cap_or_kill_switch"
+        },
+        {
+          "flag": "--abuse-rbac-audit-ref",
+          "required_assertions": {
+            "immutable_audit_refs": true,
+            "rbac_enforced": true
+          },
+          "section": "rbac_audit"
+        }
+      ],
+      "runtime_flag": "--abuse-runtime-request-ids"
+    },
+    {
+      "audit_flag": "--skill-audit-refs",
+      "component": "skill",
+      "release_gate_check_id": "production_skill_release_eval_canary",
+      "required_ids": [
+        {
+          "field": "owner_id",
+          "flag": "--skill-owner-id"
+        },
+        {
+          "field": "suite_id",
+          "flag": "--skill-suite-id"
+        },
+        {
+          "field": "rollback_target_id",
+          "flag": "--skill-rollback-target-id"
+        },
+        {
+          "field": "release_notes_id",
+          "flag": "--skill-release-notes-id"
+        },
+        {
+          "field": "canary_sample_size",
+          "flag": "--skill-canary-sample-size",
+          "rule": "positive integer"
+        }
+      ],
+      "required_section_refs": [
+        {
+          "flag": "--skill-owner-risk-ref",
+          "required_assertions": {
+            "risk_level": "low|medium|high"
+          },
+          "section": "owner_risk"
+        },
+        {
+          "flag": "--skill-eval-suite-ref",
+          "required_assertions": {
+            "eval_passed": true
+          },
+          "section": "eval_suite"
+        },
+        {
+          "flag": "--skill-safety-refs-ref",
+          "required_assertions": {
+            "safety_refs_complete": true
+          },
+          "section": "safety_refs"
+        },
+        {
+          "flag": "--skill-canary-metrics-ref",
+          "required_assertions": {
+            "metrics_within_threshold": true,
+            "sample_size": "positive integer"
+          },
+          "section": "canary_metrics"
+        },
+        {
+          "flag": "--skill-rollback-target-ref",
+          "required_assertions": {
+            "route_smoke_passed": true
+          },
+          "section": "rollback_target"
+        },
+        {
+          "flag": "--skill-release-notes-ref",
+          "required_assertions": {
+            "go_no_go_recorded": true
+          },
+          "section": "release_notes"
+        }
+      ],
+      "runtime_flag": "--skill-runtime-request-ids"
+    }
+  ],
+  "schema_version": "stage1.production_governance_operator_packet.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_probe": {
+    "canonical_source_exists": false,
+    "canonical_source_path": "ops/evidence/production/production-governance-release-source.json",
+    "source_diagnostic": {
+      "canonical_source_written": false,
+      "exists": true,
+      "first_blocker": "governance_proof_missing",
+      "path": "ops/evidence/production/source-probe-diagnostics.governance.json",
+      "status": "blocked"
+    },
+    "source_probe_command": "python3 scripts/stage1_production_source_probe.py --governance --release-sha $(git rev-parse HEAD) --governance-proof ops/evidence/non_clearing/production-governance-proof.candidate.json --diagnostic ops/evidence/production/source-probe-diagnostics.governance.json --write-canonical-source"
+  },
+  "status": "blocked"
+}

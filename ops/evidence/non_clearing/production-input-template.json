@@ -1,0 +1,192 @@
+{
+  "authorization_header_persisted": false,
+  "can_clear_stage1_production_launch_gate": false,
+  "can_close_do_not_launch": false,
+  "canonical_pass_path": false,
+  "commands_after_fill": [
+    "python3 scripts/run_stage1_production_proof_bundle.py --env <private-production-env> || test $? -eq 2",
+    "python3 scripts/validate_stage1_production_proof_bundle.py --summary ops/evidence/non_clearing/production-proof-bundle.json",
+    "python3 scripts/generate_stage1_production_action_matrix.py",
+    "python3 scripts/validate_stage1_production_action_matrix.py"
+  ],
+  "cookie_persisted": false,
+  "environment": "production",
+  "generated_at": "2026-06-28T21:49:01+00:00",
+  "generator_command": "python3 scripts/generate_stage1_production_input_template.py",
+  "groups": [
+    {
+      "group_id": "production_dns",
+      "notes": [
+        "PRODUCTION_WEB_URL should be the public HTTPS production URL.",
+        "Cloudflare values may be omitted only when DNS is applied manually and evidence is recorded elsewhere."
+      ],
+      "optional_or_defaulted_count": 0,
+      "optional_or_defaulted_variables": [],
+      "required_requirement_count": 4,
+      "required_template_variable_count": 6,
+      "required_template_variables": [
+        "PRODUCTION_WEB_URL",
+        "PRODUCTION_DNS_TARGET",
+        "CLOUDFLARE_ZONE_ID",
+        "CF_ZONE_ID",
+        "CLOUDFLARE_API_TOKEN",
+        "CF_API_TOKEN"
+      ],
+      "title": "Production DNS and HTTPS"
+    },
+    {
+      "group_id": "billing",
+      "notes": [
+        "Use live mode only. Do not put sandbox IDs in this production template.",
+        "Store raw Stripe keys only in a private local env file, never in committed evidence."
+      ],
+      "optional_or_defaulted_count": 23,
+      "optional_or_defaulted_variables": [
+        "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_STATUS",
+        "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_STATUS",
+        "STAGE1_PROD_BILLING_PRORATION_BEHAVIOR",
+        "STAGE1_PROD_BILLING_SYNC_IDEMPOTENCY_KEY",
+        "STAGE1_PROD_BILLING_REFUND_STATUS",
+        "STAGE1_PROD_BILLING_ADMIN_OPERATION",
+        "STAGE1_PROD_BILLING_FIRST_DELIVERY_MUTATIONS",
+        "STAGE1_PROD_BILLING_REPLAY_DELIVERY_MUTATIONS",
+        "STAGE1_PROD_BILLING_DUPLICATE_MUTATION_COUNT",
+        "STAGE1_PROD_BILLING_LIVE_TEST_SEPARATION_REF",
+        "STAGE1_PROD_BILLING_PAID_CHECKOUT_REF",
+        "STAGE1_PROD_BILLING_SUBSCRIPTION_ACTIVE_REF",
+        "STAGE1_PROD_BILLING_SUBSCRIPTION_PAST_DUE_REF",
+        "STAGE1_PROD_BILLING_SUBSCRIPTION_CANCEL_REF",
+        "STAGE1_PROD_BILLING_TEAM_SEAT_REF",
+        "STAGE1_PROD_BILLING_INVOICE_VISIBILITY_REF",
+        "STAGE1_PROD_BILLING_LIFECYCLE_AUDIT_REF",
+        "STAGE1_PROD_BILLING_REFUND_CREDIT_REF",
+        "STAGE1_PROD_BILLING_QUOTA_RESET_REF",
+        "STAGE1_PROD_BILLING_WEBHOOK_IDEMPOTENCY_REF",
+        "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_REF",
+        "STAGE1_PROD_BILLING_QUOTA_PROJECTION_REF",
+        "STAGE1_PROD_BILLING_REFUND_WEBHOOK_AUDIT_REF"
+      ],
+      "required_requirement_count": 20,
+      "required_template_variable_count": 22,
+      "required_template_variables": [
+        "STRIPE_MODE",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_API_KEY",
+        "STRIPE_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+        "STAGE1_PROD_BILLING_CHECKOUT_SESSION_ID",
+        "STAGE1_PROD_BILLING_CHECKOUT_CUSTOMER_ID",
+        "STAGE1_PROD_BILLING_PRICE_ID",
+        "STAGE1_PROD_BILLING_ACTIVE_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_ACTIVE_CUSTOMER_ID",
+        "STAGE1_PROD_BILLING_PAST_DUE_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_PAST_DUE_INVOICE_ID",
+        "STAGE1_PROD_BILLING_CANCEL_SUBSCRIPTION_ID",
+        "STAGE1_PROD_BILLING_SEAT_QUANTITY",
+        "STAGE1_PROD_BILLING_SYNCED_QUANTITY",
+        "STAGE1_PROD_BILLING_SUBSCRIPTION_ITEM_ID",
+        "STAGE1_PROD_BILLING_VISIBLE_INVOICE_ID",
+        "STAGE1_PROD_BILLING_REFUND_CHARGE_ID",
+        "STAGE1_PROD_BILLING_REFUND_ID",
+        "STAGE1_PROD_BILLING_QUOTA_RESET_INVOICE_ID",
+        "STAGE1_PROD_BILLING_WEBHOOK_EVENT_IDS",
+        "STAGE1_PROD_BILLING_FAILED_EXPORT_REFUND_ID"
+      ],
+      "title": "Production Stripe live billing lifecycle"
+    },
+    {
+      "group_id": "security",
+      "notes": [
+        "Refs should point to sanitized production runtime or audit evidence.",
+        "Counts must remain zero for raw secret and frontend secret exposure."
+      ],
+      "optional_or_defaulted_count": 3,
+      "optional_or_defaulted_variables": [
+        "STAGE1_PROD_SECURITY_SAME_SITE",
+        "STAGE1_PROD_SECURITY_RAW_SECRET_EXPOSURE_COUNT",
+        "STAGE1_PROD_SECURITY_FRONTEND_SECRET_EXPOSURE_COUNT"
+      ],
+      "required_requirement_count": 10,
+      "required_template_variable_count": 10,
+      "required_template_variables": [
+        "STAGE1_PROD_SECURITY_SECURE_SESSION_COOKIE_REF",
+        "STAGE1_PROD_SECURITY_CSRF_SAME_SITE_REF",
+        "STAGE1_PROD_SECURITY_SECRET_REDACTION_REF",
+        "STAGE1_PROD_SECURITY_ADMIN_SURFACE_PRIVACY_REF",
+        "STAGE1_PROD_SECURITY_PROVIDER_KEY_CONTAINMENT_REF",
+        "STAGE1_PROD_SECURITY_STRIPE_LIVE_TEST_SEPARATION_REF",
+        "STAGE1_PROD_SECURITY_RATE_LIMIT_SPEND_CAP_REF",
+        "STAGE1_PROD_SECURITY_CSP_HEADERS_REF",
+        "STAGE1_PROD_SECURITY_RBAC_TENANT_ISOLATION_REF",
+        "STAGE1_PROD_SECURITY_AUDIT_REF"
+      ],
+      "title": "Production security runtime refs"
+    },
+    {
+      "group_id": "governance",
+      "notes": [
+        "Refs should be immutable production audit refs or production runtime request IDs.",
+        "Skill risk level is optional/defaulted by the proof helper unless explicitly set."
+      ],
+      "optional_or_defaulted_count": 1,
+      "optional_or_defaulted_variables": [
+        "STAGE1_PROD_GOVERNANCE_SKILL_RISK_LEVEL"
+      ],
+      "required_requirement_count": 26,
+      "required_template_variable_count": 26,
+      "required_template_variables": [
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_RUNTIME_REQUEST_IDS",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_REFS",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_HIGH_RISK_RBAC_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_REVIEWER_RATIONALE_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_SECOND_REVIEW_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_AUDIT_IMMUTABILITY_REF",
+        "STAGE1_PROD_GOVERNANCE_ACTIVATION_GATES_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RUNTIME_REQUEST_IDS",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_AUDIT_REFS",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_ACCOUNT_HOLD_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RATE_LIMIT_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_SPEND_CAP_OR_KILL_SWITCH_REF",
+        "STAGE1_PROD_GOVERNANCE_ABUSE_RBAC_AUDIT_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_RUNTIME_REQUEST_IDS",
+        "STAGE1_PROD_GOVERNANCE_SKILL_AUDIT_REFS",
+        "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_ID",
+        "STAGE1_PROD_GOVERNANCE_SKILL_SUITE_ID",
+        "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_ID",
+        "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_ID",
+        "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_SAMPLE_SIZE",
+        "STAGE1_PROD_GOVERNANCE_SKILL_OWNER_RISK_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_EVAL_SUITE_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_SAFETY_REFS_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_CANARY_METRICS_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_ROLLBACK_TARGET_REF",
+        "STAGE1_PROD_GOVERNANCE_SKILL_RELEASE_NOTES_REF"
+      ],
+      "title": "Production governance release refs"
+    }
+  ],
+  "kind": "stage1_production_input_template",
+  "manifest_path": "ops/evidence/non_clearing/production-input-template.json",
+  "non_clearing_template": true,
+  "optional_or_defaulted_variable_count": 27,
+  "raw_prompt_persisted": false,
+  "raw_provider_payload_persisted": false,
+  "raw_stripe_payload_persisted": false,
+  "raw_support_body_projected": false,
+  "release_gate_decision": "no_go",
+  "required_requirement_count": 60,
+  "required_template_variable_count": 64,
+  "schema_version": "stage1.production_input_template.v1",
+  "secret_material_persisted": false,
+  "signed_url_persisted": false,
+  "source_contract": {
+    "coverage_schema": "stage1.production_proof_bundle.input_variable_coverage.v1",
+    "runner": "scripts/run_stage1_production_proof_bundle.py",
+    "validator": "scripts/validate_stage1_production_proof_bundle.py"
+  },
+  "status": "template_only",
+  "template_path": "ops/evidence/non_clearing/production-input-template.env",
+  "template_variable_count": 91,
+  "validator_command": "python3 scripts/validate_stage1_production_input_template.py",
+  "value_policy": "blank_values_only"
+}

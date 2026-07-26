@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://zenart.local/schemas/stage0/rev2/safety_enforcement_contract.schema.json",
-  "title": "ZenArt Stage 0 Rev2 Safety Enforcement Contract",
+  "$id": "https://zenari.local/schemas/stage0/rev2/safety_enforcement_contract.schema.json",
+  "title": "Zenari Stage 0 Rev2 Safety Enforcement Contract",
   "type": "object",
   "additionalProperties": false,
   "required": [

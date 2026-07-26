@@ -1,0 +1,8 @@
+{
+  "id": "sub_1TlLWxGJcwf9BmgH2fGZ7Nb0",
+  "provider": "stripe",
+  "status": "active",
+  "cancel_at_period_end": true,
+  "current_period_end": "2026-07-23T04:01:47Z",
+  "updated_at": "2026-06-23T04:03:38.588311Z"
+}

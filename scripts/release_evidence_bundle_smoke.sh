@@ -21,11 +21,68 @@ SUPPORT_CONTACT_REPORT_PATH="$OUT_DIR/${RUN_ID}.support-contact-external-user.js
 CANONICAL_LEGAL_PAGES_REPORT_PATH="${CANONICAL_LEGAL_PAGES_REPORT_PATH:-ops/evidence/staging/legal-pages-external-user.json}"
 CANONICAL_SUPPORT_CONTACT_REPORT_PATH="${CANONICAL_SUPPORT_CONTACT_REPORT_PATH:-ops/evidence/staging/support-contact-external-user.json}"
 CANONICAL_OBJECT_RETENTION_REPORT_PATH="${CANONICAL_OBJECT_RETENTION_REPORT_PATH:-ops/evidence/staging/object-storage-retention-cleanup.json}"
+STAGE1_STAGING_RUNTIME_EVIDENCE="${STAGE1_STAGING_RUNTIME_EVIDENCE:-ops/evidence/staging/stage1-runtime.json}"
 CI_INSTALLED_WORKFLOW_PATH="${CI_INSTALLED_WORKFLOW_PATH:-.github/workflows/stage0-rev2-ci.yml}"
 CI_PR_MAIN_RUN_EVIDENCE="${CI_PR_MAIN_RUN_EVIDENCE:-ops/evidence/ci/stage0-rev2-pr-main-run.json}"
 CI_PLAYWRIGHT_SMOKE_EVIDENCE="${CI_PLAYWRIGHT_SMOKE_EVIDENCE:-ops/evidence/ci/stage0-rev2-playwright-smoke.json}"
 CI_DOCKER_IMAGE_BUILD_EVIDENCE="${CI_DOCKER_IMAGE_BUILD_EVIDENCE:-ops/evidence/ci/stage0-rev2-docker-image-build.json}"
 PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT="${PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT:-ops/evidence/production/backup-rollback-split.blocked.json}"
+RELEASE_METADATA_PREFLIGHT="${RELEASE_METADATA_PREFLIGHT:-ops/evidence/release/staging/stage1-release-metadata-preflight.json}"
+
+load_release_metadata_preflight() {
+  python3 - "$RELEASE_METADATA_PREFLIGHT" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+if not path.exists():
+    raise SystemExit(0)
+data = json.loads(path.read_text(encoding="utf-8"))
+if data.get("schema_version") != "stage1.release_metadata_preflight.v1":
+    raise SystemExit(0)
+if data.get("kind") != "stage1_release_metadata_preflight":
+    raise SystemExit(0)
+evidence_refs = data.get("evidence_refs", {})
+values = {
+    "RELEASE_SHA": data.get("release_sha", ""),
+    "RELEASE_NOTES_SHA": data.get("release_sha", ""),
+    "RELEASE_TAG": data.get("release_tag", ""),
+    "RELEASE_NOTES_PATH": data.get("release_notes_path", ""),
+    "IMAGE_REFS": ",".join(data.get("image_refs", [])) if isinstance(data.get("image_refs"), list) else "",
+    "MIGRATION_EVIDENCE": evidence_refs.get("migration_evidence", "") if isinstance(evidence_refs, dict) else "",
+    "CONFIG_DIFF_EVIDENCE": evidence_refs.get("config_diff_evidence", "") if isinstance(evidence_refs, dict) else "",
+    "OBSERVABILITY_EVIDENCE": evidence_refs.get("observability_evidence", "") if isinstance(evidence_refs, dict) else "",
+    "BACKUP_RESTORE_EVIDENCE": evidence_refs.get("backup_restore_evidence", "") if isinstance(evidence_refs, dict) else "",
+    "LOAD_EVIDENCE": evidence_refs.get("load_evidence", "") if isinstance(evidence_refs, dict) else "",
+    "ROLLBACK_EVIDENCE": evidence_refs.get("rollback_evidence", "") if isinstance(evidence_refs, dict) else "",
+    "SECURITY_SCAN_EVIDENCE": evidence_refs.get("security_scan_evidence", "") if isinstance(evidence_refs, dict) else "",
+}
+for key, value in values.items():
+    if isinstance(value, str) and value.strip():
+        print(f"{key}\t{value}")
+PY
+}
+
+if [[ -f "$RELEASE_METADATA_PREFLIGHT" ]]; then
+  while IFS=$'\t' read -r key value; do
+    [[ -n "$key" ]] || continue
+    case "$key" in
+      RELEASE_SHA) RELEASE_SHA="${RELEASE_SHA:-$value}" ;;
+      RELEASE_NOTES_SHA) RELEASE_NOTES_SHA="${RELEASE_NOTES_SHA:-$value}" ;;
+      RELEASE_TAG) RELEASE_TAG="${RELEASE_TAG:-$value}" ;;
+      RELEASE_NOTES_PATH) RELEASE_NOTES_PATH="${RELEASE_NOTES_PATH:-$value}" ;;
+      IMAGE_REFS) IMAGE_REFS="${IMAGE_REFS:-$value}" ;;
+      MIGRATION_EVIDENCE) MIGRATION_EVIDENCE="${MIGRATION_EVIDENCE:-$value}" ;;
+      CONFIG_DIFF_EVIDENCE) CONFIG_DIFF_EVIDENCE="${CONFIG_DIFF_EVIDENCE:-$value}" ;;
+      OBSERVABILITY_EVIDENCE) OBSERVABILITY_EVIDENCE="${OBSERVABILITY_EVIDENCE:-$value}" ;;
+      BACKUP_RESTORE_EVIDENCE) BACKUP_RESTORE_EVIDENCE="${BACKUP_RESTORE_EVIDENCE:-$value}" ;;
+      LOAD_EVIDENCE) LOAD_EVIDENCE="${LOAD_EVIDENCE:-$value}" ;;
+      ROLLBACK_EVIDENCE) ROLLBACK_EVIDENCE="${ROLLBACK_EVIDENCE:-$value}" ;;
+      SECURITY_SCAN_EVIDENCE) SECURITY_SCAN_EVIDENCE="${SECURITY_SCAN_EVIDENCE:-$value}" ;;
+    esac
+  done < <(load_release_metadata_preflight)
+fi
 
 mkdir -p "$OUT_DIR"
 cleanup() {
@@ -43,7 +100,9 @@ DRY_RUN="$DRY_RUN" \
   TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-8}" \
   REQUEST_ID_HEADER="${REQUEST_ID_HEADER:-X-Request-ID}" \
   REQUEST_ID_VALUE="${REQUEST_ID_VALUE:-stage0-staging-smoke}" \
+  STAGING_API_URL="${STAGING_API_URL:-}" \
   RELEASE_SHA="${RELEASE_SHA:-${GITHUB_SHA:-}}" \
+  RELEASE_NOTES_SHA="${RELEASE_NOTES_SHA:-${GITHUB_SHA:-}}" \
   RELEASE_TAG="${RELEASE_TAG:-}" \
   RELEASE_NOTES_PATH="${RELEASE_NOTES_PATH:-}" \
   IMAGE_REFS="${IMAGE_REFS:-}" \
@@ -73,6 +132,7 @@ DRY_RUN="$DRY_RUN" \
   REPORT_PATH="$OBJECT_RETENTION_REPORT_PATH" \
   RESULTS_PATH="$OBJECT_RETENTION_RESULTS_PATH" \
   BASE_URL="${BASE_URL:-}" \
+  STAGING_API_URL="${STAGING_API_URL:-}" \
   STAGING_BASE_URL="${STAGING_BASE_URL:-}" \
   TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-8}" \
   REQUEST_ID_HEADER="${REQUEST_ID_HEADER:-X-Request-ID}" \
@@ -162,10 +222,12 @@ report["created_at"] = target_report_path.stem
 target_report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
 
-python3 - "$REPORT_PATH" "$STAGING_REPORT_PATH" "$status" "$OBJECT_RETENTION_REPORT_PATH" "$object_retention_status" "$LEGAL_SUPPORT_REPORT_PATH" "$legal_support_status" "$LEGAL_PAGES_REPORT_PATH" "$SUPPORT_CONTACT_REPORT_PATH" "$CANONICAL_LEGAL_PAGES_REPORT_PATH" "$CANONICAL_SUPPORT_CONTACT_REPORT_PATH" "$CANONICAL_OBJECT_RETENTION_REPORT_PATH" "$CI_INSTALLED_WORKFLOW_PATH" "$CI_PR_MAIN_RUN_EVIDENCE" "$CI_PLAYWRIGHT_SMOKE_EVIDENCE" "$CI_DOCKER_IMAGE_BUILD_EVIDENCE" "$PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT" <<'PY'
+python3 - "$REPORT_PATH" "$STAGING_REPORT_PATH" "$status" "$OBJECT_RETENTION_REPORT_PATH" "$object_retention_status" "$LEGAL_SUPPORT_REPORT_PATH" "$legal_support_status" "$LEGAL_PAGES_REPORT_PATH" "$SUPPORT_CONTACT_REPORT_PATH" "$CANONICAL_LEGAL_PAGES_REPORT_PATH" "$CANONICAL_SUPPORT_CONTACT_REPORT_PATH" "$CANONICAL_OBJECT_RETENTION_REPORT_PATH" "$STAGE1_STAGING_RUNTIME_EVIDENCE" "$CI_INSTALLED_WORKFLOW_PATH" "$CI_PR_MAIN_RUN_EVIDENCE" "$CI_PLAYWRIGHT_SMOKE_EVIDENCE" "$CI_DOCKER_IMAGE_BUILD_EVIDENCE" "$PRODUCTION_BACKUP_ROLLBACK_SPLIT_PREFLIGHT" "$RELEASE_METADATA_PREFLIGHT" <<'PY'
+import ipaddress
 import json
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 report_path = Path(sys.argv[1])
 staging_report_path = Path(sys.argv[2])
@@ -179,20 +241,54 @@ support_contact_report_path = Path(sys.argv[9])
 canonical_legal_pages_report_path = Path(sys.argv[10])
 canonical_support_contact_report_path = Path(sys.argv[11])
 canonical_object_retention_report_path = Path(sys.argv[12])
-ci_installed_workflow_path = Path(sys.argv[13])
-ci_pr_main_run_evidence = Path(sys.argv[14])
-ci_playwright_smoke_evidence = Path(sys.argv[15])
-ci_docker_image_build_evidence = Path(sys.argv[16])
-production_backup_rollback_split_preflight_path = Path(sys.argv[17])
+stage1_staging_runtime_path = Path(sys.argv[13])
+ci_installed_workflow_path = Path(sys.argv[14])
+ci_pr_main_run_evidence = Path(sys.argv[15])
+ci_playwright_smoke_evidence = Path(sys.argv[16])
+ci_docker_image_build_evidence = Path(sys.argv[17])
+production_backup_rollback_split_preflight_path = Path(sys.argv[18])
+release_metadata_preflight_path = Path(sys.argv[19])
 staging = json.loads(staging_report_path.read_text(encoding="utf-8"))
 summary = staging.get("summary", {})
 release_evidence = summary.get("release_evidence", {})
 go_no_go = summary.get("go_no_go", {})
 verification = release_evidence.get("local_evidence_verification", {})
+RESERVED_STAGING_HOST_SUFFIXES = (
+    ".example",
+    ".example.test",
+    ".invalid",
+    ".localhost",
+    ".local",
+    ".test",
+)
 
 
 def path_exists(path: Path) -> bool:
     return path.exists()
+
+
+def is_reserved_or_local_host(host: str) -> bool:
+    normalized = host.strip().lower().strip("[]")
+    if not normalized or normalized in {"localhost", "0.0.0.0"}:
+        return True
+    if any(normalized == suffix[1:] or normalized.endswith(suffix) for suffix in RESERVED_STAGING_HOST_SUFFIXES):
+        return True
+    try:
+        ip = ipaddress.ip_address(normalized)
+    except ValueError:
+        return False
+    return ip.is_loopback or ip.is_private or ip.is_link_local or ip.is_unspecified
+
+
+def strict_staging_url_missing(value: object) -> str | None:
+    if not isinstance(value, str) or not value.strip():
+        return "missing"
+    parsed = urlparse(value)
+    if parsed.scheme != "https" or not parsed.netloc:
+        return "not_https_absolute"
+    if is_reserved_or_local_host(parsed.hostname or ""):
+        return "reserved_or_local_host"
+    return None
 
 
 def ci_closure_artifacts() -> list[dict]:
@@ -274,6 +370,133 @@ def production_split_preflight_summary(path: Path) -> dict:
             "gate_decision_status",
             "missing",
         ),
+    }
+
+
+def release_metadata_preflight_summary(path: Path) -> dict:
+    if not path.exists():
+        return {
+            "path": str(path),
+            "exists": False,
+            "status": "missing",
+            "metadata_complete": False,
+            "missing_slots": [
+                "release_sha",
+                "release_notes_path",
+                "image_refs",
+                "migration_evidence",
+                "config_diff_evidence",
+                "observability_evidence",
+                "backup_restore_evidence",
+                "load_evidence",
+                "rollback_evidence",
+                "security_scan_evidence",
+            ],
+            "unverified_slots": [
+                "release_sha",
+                "release_notes_path",
+                "image_refs",
+                "migration_evidence",
+                "config_diff_evidence",
+                "observability_evidence",
+                "backup_restore_evidence",
+                "load_evidence",
+                "rollback_evidence",
+                "security_scan_evidence",
+            ],
+            "blocking_reasons": ["release_metadata_preflight_missing"],
+        }
+    data = json.loads(path.read_text(encoding="utf-8"))
+    slot_results = data.get("slot_results", {})
+    return {
+        "path": str(path),
+        "exists": True,
+        "schema_version": data.get("schema_version"),
+        "environment": data.get("environment"),
+        "kind": data.get("kind"),
+        "status": data.get("status", "unknown"),
+        "metadata_complete": data.get("metadata_complete") is True,
+        "release_sha": data.get("release_sha", ""),
+        "release_tag": data.get("release_tag", ""),
+        "release_notes_path": data.get("release_notes_path", ""),
+        "image_refs": data.get("image_refs", []),
+        "evidence_refs": data.get("evidence_refs", {}),
+        "missing_slots": data.get("missing_slots", []),
+        "unverified_slots": data.get("unverified_slots", []),
+        "blocking_reasons": data.get("blocking_reasons", []),
+        "slot_verified": {
+            key: value.get("verified") is True
+            for key, value in slot_results.items()
+            if isinstance(value, dict)
+        },
+        "gate_impact": data.get("gate_impact", {}),
+    }
+
+
+def stage1_staging_runtime_summary(path: Path) -> dict:
+    if not path.exists():
+        return {
+            "path": str(path),
+            "exists": False,
+            "status": "missing",
+            "release_gate_decision": "missing",
+            "passed": False,
+            "blockers": ["stage1_staging_runtime_missing"],
+            "do_not_launch_conditions": ["stage1_staging_runtime_missing"],
+            "runtime_input_readiness": {},
+            "component_statuses": {},
+        }
+    data = json.loads(path.read_text(encoding="utf-8"))
+    blockers = data.get("blockers", [])
+    if not isinstance(blockers, list):
+        blockers = ["stage1_staging_runtime_blockers_malformed"]
+    do_not_launch_conditions = data.get("do_not_launch_conditions", [])
+    if not isinstance(do_not_launch_conditions, list):
+        do_not_launch_conditions = ["stage1_staging_runtime_do_not_launch_conditions_malformed"]
+    readiness = data.get("runtime_input_readiness", {})
+    if not isinstance(readiness, dict):
+        readiness = {}
+    components = data.get("components", [])
+    component_statuses = {}
+    if isinstance(components, list):
+        for component in components:
+            if not isinstance(component, dict):
+                continue
+            component_id = component.get("component_id")
+            if not isinstance(component_id, str) or not component_id.strip():
+                continue
+            component_statuses[component_id] = {
+                "status": component.get("status", "unknown"),
+                "exact_evidence": component.get("exact_evidence") is True,
+                "blockers": component.get("blockers", []),
+            }
+    readiness_ready = bool(readiness) and all(value is True for value in readiness.values())
+    passed = (
+        data.get("environment") == "staging"
+        and data.get("kind") == "stage1_staging_runtime"
+        and data.get("status") in {"pass", "passed"}
+        and data.get("release_gate_decision") == "go"
+        and not blockers
+        and not do_not_launch_conditions
+        and readiness_ready
+        and component_statuses
+        and all(item.get("status") in {"pass", "passed"} for item in component_statuses.values())
+        and all(item.get("exact_evidence") is True for item in component_statuses.values())
+    )
+    return {
+        "path": str(path),
+        "exists": True,
+        "environment": data.get("environment"),
+        "kind": data.get("kind"),
+        "status": data.get("status", "unknown"),
+        "release_gate_decision": data.get("release_gate_decision", "unknown"),
+        "passed": passed,
+        "blockers": blockers,
+        "do_not_launch_conditions": do_not_launch_conditions,
+        "runtime_input_readiness": readiness,
+        "readiness_ready": readiness_ready,
+        "component_statuses": component_statuses,
+        "all_components_passed": data.get("all_components_passed") is True,
     }
 
 
@@ -430,8 +653,14 @@ def load_canonical_object_retention_probe(path: Path) -> dict:
         missing_requirements.append("admin_user_id")
     if not data.get("admin_tenant_id"):
         missing_requirements.append("admin_tenant_id")
+    base_url_missing = strict_staging_url_missing(data.get("base_url"))
+    if base_url_missing:
+        missing_requirements.append(f"real_staging_target:base_url:{base_url_missing}")
     if csrf.get("ready") is not True:
         missing_requirements.append("csrf_ready")
+    csrf_origin_missing = strict_staging_url_missing(csrf.get("origin"))
+    if csrf_origin_missing:
+        missing_requirements.append(f"real_staging_target:csrf_origin:{csrf_origin_missing}")
     if split_evidence.get("canonical_pass_paths") is not True:
         missing_requirements.append("canonical_pass_paths")
     if split_evidence.get("retention_cleanup_ready") is not True:
@@ -549,6 +778,9 @@ def load_canonical_object_retention_probe(path: Path) -> dict:
                 missing_requirements.append(f"result_matched_tokens:{check_id}")
             if int(item.get("response_bytes") or 0) <= 0:
                 missing_requirements.append(f"result_response_bytes:{check_id}")
+            url_missing = strict_staging_url_missing(item.get("url"))
+            if url_missing:
+                missing_requirements.append(f"result_real_staging_url:{check_id}:{url_missing}")
     return {
         "path": str(path),
         "exists": True,
@@ -624,9 +856,13 @@ def runtime_blocked_reason(probe: dict) -> str:
 
 object_retention_blocked_reason = runtime_blocked_reason(object_retention_probe)
 object_retention_verified = canonical_object_retention_probe["passed"]
+stage1_staging_runtime = stage1_staging_runtime_summary(stage1_staging_runtime_path)
 ci_artifacts = ci_closure_artifacts()
 production_split_preflight = production_split_preflight_summary(
     production_backup_rollback_split_preflight_path
+)
+release_metadata_preflight = release_metadata_preflight_summary(
+    release_metadata_preflight_path
 )
 
 slots = []
@@ -643,7 +879,50 @@ for slot, required in sorted(release_evidence.get("required_slots", {}).items())
 
 missing_slots = [slot["slot"] for slot in slots if not slot["provided"]]
 unverified_slots = [slot["slot"] for slot in slots if not slot["verified"]]
-decision = go_no_go.get("decision", "no-go")
+source_go_no_go_decision = go_no_go.get("decision", "no-go")
+source_blocking_reasons = go_no_go.get("blocking_reasons", [])
+if not isinstance(source_blocking_reasons, list):
+    source_blocking_reasons = []
+production_gate_fixture_blocking_reasons = [
+    reason
+    for reason in source_blocking_reasons
+    if isinstance(reason, str) and reason.startswith("gate_fixture_blocked:production_launch:")
+]
+private_beta_blocking_reasons = [
+    reason
+    for reason in source_blocking_reasons
+    if not (isinstance(reason, str) and reason.startswith("gate_fixture_blocked:production_launch:"))
+]
+source_blocked_conditions = go_no_go.get("blocked_conditions", [])
+if not isinstance(source_blocked_conditions, list):
+    source_blocked_conditions = []
+source_production_context_blocked_conditions = go_no_go.get("production_context_blocked_conditions", [])
+if not isinstance(source_production_context_blocked_conditions, list):
+    source_production_context_blocked_conditions = []
+production_gate_fixture_blocked_conditions = [
+    condition
+    for condition in source_blocked_conditions + source_production_context_blocked_conditions
+    if isinstance(condition, str) and condition.startswith("production_launch:")
+]
+private_beta_blocked_conditions = [
+    condition
+    for condition in source_blocked_conditions
+    if not (isinstance(condition, str) and condition.startswith("production_launch:"))
+]
+source_decision_inputs = go_no_go.get("decision_inputs", {})
+if not isinstance(source_decision_inputs, dict):
+    source_decision_inputs = {}
+private_beta_gate_fixtures_clear = not private_beta_blocked_conditions and not private_beta_blocking_reasons
+private_beta_decision_inputs = dict(source_decision_inputs)
+private_beta_decision_inputs["gate_fixtures_clear"] = private_beta_gate_fixtures_clear
+decision = (
+    "go"
+    if go_no_go.get("smoke_passed") is True
+    and go_no_go.get("post_deploy_smoke_verified") is True
+    and go_no_go.get("release_evidence_complete") is True
+    and private_beta_gate_fixtures_clear
+    else "no-go"
+)
 split_probe_blocking_reasons = []
 if not object_retention_verified:
     split_probe_blocking_reasons.append("canonical_object_storage_retention_cleanup_not_passed")
@@ -651,6 +930,26 @@ if not legal_support_verified:
     split_probe_blocking_reasons.append("legal_support_external_user_visibility_not_passed")
 if legal_support_probe["passed"] and not legal_support_split_reports_passed:
     split_probe_blocking_reasons.append("legal_support_split_evidence_not_passed")
+stage1_staging_runtime_blocking_reasons = []
+stage1_staging_runtime_readiness = stage1_staging_runtime.get("runtime_input_readiness", {})
+if not isinstance(stage1_staging_runtime_readiness, dict):
+    stage1_staging_runtime_readiness = {}
+stage1_quota_replay_verified = stage1_staging_runtime_readiness.get("quota_replay_ready") is True
+stage1_load_verified = stage1_staging_runtime_readiness.get("load_ready") is True
+stage1_quota_replay_blocking_reasons = []
+stage1_load_blocking_reasons = []
+if not stage1_staging_runtime["passed"]:
+    stage1_staging_runtime_blocking_reasons.append("stage1_staging_runtime_not_passed")
+    if stage1_staging_runtime_readiness:
+        for key in sorted(stage1_staging_runtime_readiness):
+            if stage1_staging_runtime_readiness.get(key) is not True:
+                stage1_staging_runtime_blocking_reasons.append(f"stage1_staging_runtime_{key}_not_ready")
+    if not stage1_staging_runtime.get("exists"):
+        stage1_staging_runtime_blocking_reasons.append("stage1_staging_runtime_missing")
+if not stage1_load_verified:
+    stage1_load_blocking_reasons.append("stage1_load_not_ready")
+if not stage1_quota_replay_verified:
+    stage1_quota_replay_blocking_reasons.append("stage1_quota_replay_not_ready")
 ci_blocking_reasons = [
     f"ci_closure_artifact_missing:{artifact['artifact_id']}"
     for artifact in ci_artifacts
@@ -669,20 +968,31 @@ if rollback_split.get("passed") is not True:
     production_split_blocking_reasons.append("production_rollback_incident_post_deploy_split_not_passed")
 if production_split_preflight.get("exact_split_files_ready") is not True:
     production_split_blocking_reasons.append("production_exact_backup_rollback_split_files_not_ready")
+release_metadata_blocking_reasons = []
+if release_metadata_preflight.get("metadata_complete") is not True:
+    release_metadata_blocking_reasons.append("release_metadata_preflight_not_complete")
+    for slot in release_metadata_preflight.get("missing_slots", []):
+        release_metadata_blocking_reasons.append(f"release_metadata_missing:{slot}")
+    for slot in release_metadata_preflight.get("unverified_slots", []):
+        release_metadata_blocking_reasons.append(f"release_metadata_unverified:{slot}")
 status = (
     "passed"
     if staging_exit_code == 0
     and object_retention_verified
     and legal_support_verified
+    and stage1_staging_runtime["passed"]
     and decision == "go"
     else "blocked"
 )
-decision_inputs = go_no_go.get("decision_inputs", {})
 blocking_reasons = (
-    go_no_go.get("blocking_reasons", [])
+    private_beta_blocking_reasons
     + split_probe_blocking_reasons
+    + stage1_staging_runtime_blocking_reasons
+    + stage1_quota_replay_blocking_reasons
+    + stage1_load_blocking_reasons
     + ci_blocking_reasons
     + production_split_blocking_reasons
+    + release_metadata_blocking_reasons
 )
 
 report_path.write_text(
@@ -720,8 +1030,18 @@ report_path.write_text(
             "object_retention_cleanup_verified": object_retention_verified,
             "legal_support_visibility_verified": legal_support_verified,
             "legal_support_split_reports_verified": legal_support_split_reports_passed,
-            "gate_fixtures_clear": go_no_go.get("gate_fixtures_clear") is True,
-            "decision_inputs": decision_inputs,
+            "stage1_staging_runtime_verified": stage1_staging_runtime["passed"],
+            "stage1_quota_replay_verified": stage1_quota_replay_verified,
+            "gate_fixtures_clear": private_beta_gate_fixtures_clear,
+            "decision_inputs": private_beta_decision_inputs,
+            "source_staging_smoke_decision": source_go_no_go_decision,
+            "source_staging_smoke_gate_fixtures_clear": go_no_go.get("gate_fixtures_clear") is True,
+            "source_staging_smoke_blocking_reasons": source_blocking_reasons,
+            "source_staging_smoke_blocked_conditions": source_blocked_conditions,
+            "source_staging_smoke_production_context_blocked_conditions": source_production_context_blocked_conditions,
+            "production_gate_fixture_blocking_reason_count": len(production_gate_fixture_blocking_reasons),
+            "production_gate_fixture_blocking_reasons": production_gate_fixture_blocking_reasons,
+            "production_gate_fixture_blocked_conditions": production_gate_fixture_blocked_conditions,
             "split_probe_decision_inputs": {
                 "object_retention_cleanup_verified": object_retention_verified,
                 "canonical_object_retention_cleanup_verified": canonical_object_retention_probe["passed"],
@@ -732,12 +1052,26 @@ report_path.write_text(
                 "canonical_legal_pages_external_user_verified": canonical_legal_pages_probe["passed"],
                 "canonical_support_contact_external_user_verified": canonical_support_contact_probe["passed"],
                 "legal_support_evidence_source": legal_support_evidence_source,
+                "stage1_staging_runtime_verified": stage1_staging_runtime["passed"],
+                "stage1_quota_replay_verified": stage1_quota_replay_verified,
+                "stage1_load_verified": stage1_load_verified,
+                "stage1_staging_runtime_readiness": stage1_staging_runtime_readiness,
+                "stage1_staging_runtime_release_gate_decision": stage1_staging_runtime.get("release_gate_decision"),
             },
             "ci_closure_artifacts": ci_artifacts,
             "ci_closure_artifacts_ready": all(item["exists"] for item in ci_artifacts),
             "ci_closure_artifact_blocking_reasons": ci_blocking_reasons,
+            "stage1_staging_runtime": stage1_staging_runtime,
+            "stage1_staging_runtime_blocking_reasons": stage1_staging_runtime_blocking_reasons,
+            "stage1_quota_replay_verified": stage1_quota_replay_verified,
+            "stage1_quota_replay_blocking_reasons": stage1_quota_replay_blocking_reasons,
+            "stage1_load_verified": stage1_load_verified,
+            "stage1_load_blocking_reasons": stage1_load_blocking_reasons,
+            "stage1_load_readiness": stage1_staging_runtime_readiness,
             "production_backup_rollback_split_preflight": production_split_preflight,
             "production_backup_rollback_split_blocking_reasons": production_split_blocking_reasons,
+            "release_metadata_preflight": release_metadata_preflight,
+            "release_metadata_blocking_reasons": release_metadata_blocking_reasons,
             "object_retention_cleanup_probe": object_retention_probe,
             "canonical_object_retention_cleanup_probe": canonical_object_retention_probe,
             "legal_support_visibility_probe": legal_support_probe,

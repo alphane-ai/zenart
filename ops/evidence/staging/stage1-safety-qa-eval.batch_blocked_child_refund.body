@@ -1,0 +1,50 @@
+{
+  "items": [
+    {
+      "id": "child_d1600d1ff5ad7e8ded750dd5",
+      "batch_id": "batch_dff7458131bbc87ab10ca77b",
+      "tenant_id": "tenant_local",
+      "status": "succeeded",
+      "provider_id": "zenari-image-sandbox",
+      "model_id": "glm-5.2",
+      "tool_type": "image.generate",
+      "seed": "batch_dff7458131bbc87ab10ca77b_01",
+      "retry_count": 0,
+      "max_retries": 2,
+      "quota_estimate_units": 4,
+      "quota_committed_units": 4,
+      "quota_refunded_units": 0,
+      "asset_id": "asset_252f710f3120b57c7b6ca6a7aca1aeaa",
+      "canvas_object_id": "canvas_node_252f710f3120b57c7b6ca6a7aca1aeaa",
+      "trace_id": "trace_child_e4812ea83370c670576ac3c3",
+      "visible_trace_ref": "trace_projection_e04bbc5a83f791befb2ea64a",
+      "metadata": {
+        "asset_persisted": "true",
+        "canvas_persisted": "true",
+        "claim_attempt": "1",
+        "claim_expires_at": "2026-06-24T06:24:34Z",
+        "claimed_by_worker_id": "stage0-local-worker",
+        "fanout_index": "0",
+        "fanout_stage": "provider_execution_succeeded",
+        "lineage_persisted": "true",
+        "object_key": "tenants/tenant_local/batch-results/batch_dff7458131bbc87ab10ca77b/child_d1600d1ff5ad7e8ded750dd5/result-manifest.json",
+        "object_ref_persisted": "true",
+        "provider_output_sig": "6ae039a715d840473bfad9e4f4f33de2b01f3cde0bf3052c26e3a245659f4128",
+        "provider_response_id": "openai_compatible:20260624140934576310dfb9bb4a8d",
+        "provider_response_status": "succeeded",
+        "request_hash": "2e8b22f00cd0331f8567b494b1e26ff3d2a39c47f452ff4bf8620e6601e536ad",
+        "result_sink": "postgres_asset_canvas_object_store",
+        "routing_selection_reason": "strategy_group_unavailable_static_default",
+        "source": "api",
+        "thumbnail_key": "tenants/tenant_local/thumbnails/batch_dff7458131bbc87ab10ca77b/child_d1600d1ff5ad7e8ded750dd5/thumbnail-manifest.json",
+        "thumbnail_persisted": "true",
+        "trace_projection": "object_store_manifest",
+        "usage_commit_units": "4",
+        "usage_refund_units": "0",
+        "usage_units": "432"
+      },
+      "created_at": "2026-06-24T06:03:56.588134Z",
+      "updated_at": "2026-06-24T06:09:43.611019Z"
+    }
+  ]
+}
